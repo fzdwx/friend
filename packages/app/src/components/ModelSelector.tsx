@@ -16,15 +16,28 @@ export function ModelSelector() {
 
   const groupedModels = useMemo(() => {
     const groups = new Map<string, ModelInfo[]>();
+    const availableModelsOnly = availableModels.filter((m) => m.available !== false);
 
-    for (const model of availableModels) {
+    for (const model of availableModelsOnly) {
       const existing = groups.get(model.provider) || [];
       existing.push(model);
       groups.set(model.provider, existing);
     }
 
+    const currentIsVisible =
+      currentModel &&
+      availableModelsOnly.some(
+        (m) => m.provider === currentModel.provider && m.id === currentModel.id,
+      );
+
+    if (currentModel && !currentIsVisible) {
+      const existing = groups.get(currentModel.provider) || [];
+      existing.push(currentModel);
+      groups.set(currentModel.provider, existing);
+    }
+
     return new Map([...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])));
-  }, [availableModels]);
+  }, [availableModels, currentModel]);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
@@ -58,11 +71,8 @@ export function ModelSelector() {
                   <option
                     key={`${model.provider}/${model.id}`}
                     value={`${model.provider}/${model.id}`}
-                    disabled={model.available === false}
-                    className={model.available === false ? "text-muted-foreground" : ""}
                   >
                     {model.name}
-                    {model.available === false ? " (unavailable)" : ""}
                   </option>
                 ))}
               </optgroup>
