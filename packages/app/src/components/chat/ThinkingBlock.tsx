@@ -21,8 +21,16 @@ export function ThinkingBlock({ content, isStreaming }: ThinkingBlockProps) {
         <ChevronRight className={cn("w-3 h-3 transition-transform", expanded && "rotate-90")} />
         <Brain className="w-3 h-3" />
         <span>
-          Thinking
-          {isStreaming && content.length === 0 && <span className="ml-1 animate-pulse">...</span>}
+          {content.length === 0 ? (
+            <>
+              Thinking<span className="animate-pulse">...</span>
+            </>
+          ) : (
+            <>
+              {content.slice(0, 50)}
+              {content.length > 50 ? "..." : ""}
+            </>
+          )}
         </span>
         <span className="ml-auto text-[10px]">{content.length} chars</span>
       </button>
