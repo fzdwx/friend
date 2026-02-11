@@ -22,7 +22,7 @@ export function ThinkingBlock({ content, isStreaming }: ThinkingBlockProps) {
         <Brain className="w-3 h-3" />
         <span>
           Thinking
-          {isStreaming && <span className="ml-1 animate-pulse">...</span>}
+          {isStreaming && content.length === 0 && <span className="ml-1 animate-pulse">...</span>}
         </span>
         <span className="ml-auto text-[10px]">{content.length} chars</span>
       </button>
