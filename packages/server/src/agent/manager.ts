@@ -19,7 +19,7 @@ import type {
   CustomProviderConfig,
   CustomModelConfig,
 } from "@friend/shared";
-import type { SSEEvent } from "@friend/shared";
+import type { SSEEvent, GlobalSSEEvent } from "@friend/shared";
 import { prisma, type Prisma } from "@friend/db";
 
 // ─── DB mapping types ──────────────────────────────────────
@@ -152,7 +152,6 @@ interface ManagedSession {
   session: AgentSession;
   createdAt: string;
   updatedAt: string;
-  subscribers: Set<EventSubscriber>;
   messages: ChatMessage[];
   currentAssistantBlocks: AssistantContentBlock[];
   currentAssistantId: string | null;
@@ -160,7 +159,7 @@ interface ManagedSession {
 }
 
 interface EventSubscriber {
-  push(event: SSEEvent): void;
+  push(event: GlobalSSEEvent): void;
   close(): void;
 }
 
@@ -168,6 +167,7 @@ interface EventSubscriber {
 
 class AgentManager {
   private managedSessions = new Map<string, ManagedSession>();
+  private globalSubscribers = new Set<EventSubscriber>();
   private authStorage: AuthStorage;
   private modelRegistry: ModelRegistry;
   private config: AppConfig = { thinkingLevel: "medium", customProviders: [] };
@@ -211,7 +211,6 @@ class AgentManager {
         session,
         createdAt: s.createdAt.toISOString(),
         updatedAt: s.updatedAt.toISOString(),
-        subscribers: new Set(),
         messages,
         currentAssistantBlocks: [],
         currentAssistantId: null,
@@ -362,7 +361,6 @@ class AgentManager {
       session,
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
-      subscribers: new Set(),
       messages: [],
       currentAssistantBlocks: [],
       currentAssistantId: null,
@@ -412,9 +410,6 @@ class AgentManager {
     const managed = this.managedSessions.get(id);
     if (!managed) return false;
     managed.session.dispose();
-    for (const sub of managed.subscribers) {
-      sub.close();
-    }
     this.managedSessions.delete(id);
 
     // Delete from DB (cascade deletes messages)
@@ -541,16 +536,15 @@ class AgentManager {
   }
 
   // SSE subscription
-  subscribe(sessionId: string): EventSubscriber & AsyncIterable<SSEEvent> {
-    const managed = this.managedSessions.get(sessionId);
-    if (!managed) throw new Error(`Session ${sessionId} not found`);
+  subscribe(): EventSubscriber & AsyncIterable<GlobalSSEEvent> {
+    const manager = this;
 
-    const queue: SSEEvent[] = [];
-    let resolve: ((value: IteratorResult<SSEEvent>) => void) | null = null;
+    const queue: GlobalSSEEvent[] = [];
+    let resolve: ((value: IteratorResult<GlobalSSEEvent>) => void) | null = null;
     let closed = false;
 
-    const subscriber: EventSubscriber & AsyncIterable<SSEEvent> = {
-      push(event: SSEEvent) {
+    const subscriber: EventSubscriber & AsyncIterable<GlobalSSEEvent> = {
+      push(event: GlobalSSEEvent) {
         if (closed) return;
         if (resolve) {
           const r = resolve;
@@ -569,7 +563,7 @@ class AgentManager {
       },
       [Symbol.asyncIterator]() {
         return {
-          next(): Promise<IteratorResult<SSEEvent>> {
+          next(): Promise<IteratorResult<GlobalSSEEvent>> {
             if (queue.length > 0) {
               return Promise.resolve({
                 value: queue.shift()!,
@@ -586,22 +580,23 @@ class AgentManager {
               resolve = r;
             });
           },
-          return(): Promise<IteratorResult<SSEEvent>> {
+          return(): Promise<IteratorResult<GlobalSSEEvent>> {
             closed = true;
-            managed.subscribers.delete(subscriber);
+            manager.globalSubscribers.delete(subscriber);
             return Promise.resolve({ value: undefined as any, done: true });
           },
         };
       },
     };
 
-    managed.subscribers.add(subscriber);
+    this.globalSubscribers.add(subscriber);
     return subscriber;
   }
 
   private broadcast(managed: ManagedSession, event: SSEEvent): void {
-    for (const sub of managed.subscribers) {
-      sub.push(event);
+    const globalEvent: GlobalSSEEvent = { ...event, sessionId: managed.id };
+    for (const sub of this.globalSubscribers) {
+      sub.push(globalEvent);
     }
   }
 

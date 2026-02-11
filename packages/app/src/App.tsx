@@ -4,38 +4,29 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { ChatPanel } from "@/components/layout/ChatPanel";
 import { ActivityPanel } from "@/components/layout/ActivityPanel";
 import { StatusBar } from "@/components/layout/StatusBar";
-import { ModelSelector } from "@/components/config/ModelSelector";
-import { ThinkingLevelSelector } from "@/components/config/ThinkingLevel";
-import { ApiKeySettings } from "@/components/config/ApiKeySettings";
 import { ProviderSettings } from "@/components/config/ProviderSettings";
-import { useSSE } from "@/hooks/useSSE";
+import { useGlobalSSE } from "@/hooks/useSSE";
 import { useApi } from "@/hooks/useApi";
-import { useSessionStore } from "@/stores/sessionStore";
 
 function TopBar() {
   return (
     <div className="flex items-center justify-end gap-2 px-3 py-1.5 border-b border-border bg-background">
-      <ModelSelector />
-      <ThinkingLevelSelector />
       <ProviderSettings />
-      <ApiKeySettings />
     </div>
   );
 }
 
 function SSEConnector() {
-  const sessionId = useSessionStore((s) => s.activeSessionId);
-  useSSE(sessionId);
+  useGlobalSSE();
   return null;
 }
 
 export function App() {
-  const { loadModels, loadConfig } = useApi();
+  const { loadConfig } = useApi();
 
   useEffect(() => {
-    loadModels();
     loadConfig();
-  }, [loadModels, loadConfig]);
+  }, [loadConfig]);
 
   return (
     <>

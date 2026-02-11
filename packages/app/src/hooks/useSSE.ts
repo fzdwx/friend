@@ -1,12 +1,15 @@
 import { useEffect, useRef } from "react";
 import { useSessionStore } from "@/stores/sessionStore";
 import { useToolStore } from "@/stores/toolStore";
-import type { SSEEvent, AssistantContentBlock } from "@friend/shared";
+import type { GlobalSSEEvent, AssistantContentBlock } from "@friend/shared";
 
-export function useSSE(sessionId: string | null) {
-  const eventSourceRef = useRef<EventSource | null>(null);
+export function useGlobalSSE() {
   const blocksRef = useRef<AssistantContentBlock[]>([]);
   const messageIdRef = useRef<string | null>(null);
+
+  const activeSessionId = useSessionStore((s) => s.activeSessionId);
+  const activeSessionRef = useRef(activeSessionId);
+  activeSessionRef.current = activeSessionId;
 
   const { setStreaming, appendStreamingText, appendStreamingThinking, resetStreaming, addMessage } =
     useSessionStore();
@@ -14,13 +17,11 @@ export function useSSE(sessionId: string | null) {
   const { addExecution, updateExecution, completeExecution, clearExecutions } = useToolStore();
 
   useEffect(() => {
-    if (!sessionId) return;
-
-    const es = new EventSource(`/api/sessions/${sessionId}/events`);
-    eventSourceRef.current = es;
+    const es = new EventSource("/api/events");
 
     const handleEvent = (e: MessageEvent) => {
-      const event: SSEEvent = JSON.parse(e.data);
+      const event: GlobalSSEEvent = JSON.parse(e.data);
+      if (event.sessionId !== activeSessionRef.current) return;
 
       switch (event.type) {
         case "agent_start":
@@ -90,7 +91,6 @@ export function useSSE(sessionId: string | null) {
 
         case "tool_execution_end":
           completeExecution(event.toolCallId, event.result, event.isError);
-          // Add tool result to messages
           addMessage({
             role: "tool_result",
             id: crypto.randomUUID(),
@@ -124,12 +124,12 @@ export function useSSE(sessionId: string | null) {
     es.addEventListener("error", handleEvent);
     es.addEventListener("turn_start", handleEvent);
     es.addEventListener("turn_end", handleEvent);
+    es.addEventListener("session_updated", handleEvent);
 
     return () => {
       es.close();
-      eventSourceRef.current = null;
     };
-  }, [sessionId]);
+  }, []);
 }
 
 function appendToBlocks(blocks: AssistantContentBlock[], type: "text" | "thinking", delta: string) {

@@ -105,3 +105,6 @@ export interface SessionUpdatedEvent {
   type: "session_updated";
   sessionId: string;
 }
+
+/** Wire format: every event carries a sessionId for multiplexing */
+export type GlobalSSEEvent = SSEEvent & { sessionId: string };

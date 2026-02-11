@@ -1,13 +1,16 @@
-import { Elysia } from "elysia";
+import { Elysia, sse } from "elysia";
 import { getAgentManager } from "../agent/manager";
 
 export const eventRoutes = new Elysia().get(
-  "/api/sessions/:id/events",
-  async function* ({ params: { id } }) {
-    const subscriber = getAgentManager().subscribe(id);
+  "/api/events",
+  async function* () {
+    // Yield immediately so Elysia flushes SSE response headers
+    yield sse({ event: "connected", data: "{}" });
+
+    const subscriber = getAgentManager().subscribe();
     try {
       for await (const event of subscriber) {
-        yield { event: event.type, data: JSON.stringify(event) };
+        yield sse({ event: event.type, data: JSON.stringify(event) });
       }
     } finally {
       subscriber.close();
