@@ -5,6 +5,7 @@ import type { CustomProviderConfig } from "./models.js";
 // Sessions
 export interface CreateSessionRequest {
   name?: string;
+  workingPath?: string;
 }
 
 export interface PromptRequest {
