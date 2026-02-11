@@ -1,0 +1,5 @@
+{
+  "name": "friend",
+  "private": true,
+  "workspaces": ["packages/*"]
+}

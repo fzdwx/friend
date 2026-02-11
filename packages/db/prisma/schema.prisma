@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id        String    @id @default(uuid())
+  name      String
+  model     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  messages  Message[]
+}
+
+model Message {
+  id         String  @id @default(uuid())
+  sessionId  String
+  session    Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  orderIndex Int
+
+  role String // "user" | "assistant" | "tool_result"
+
+  // User message
+  content String?
+
+  // Assistant message
+  contentBlocks String? // JSON string of AssistantContentBlock[]
+
+  // Tool result message
+  toolCallId String?
+  toolName   String?
+  result     String?
+  isError    Boolean?
+
+  timestamp String // ISO string
+
+  @@index([sessionId, orderIndex])
+}
+
+model AppConfig {
+  id            String @id @default("singleton")
+  thinkingLevel String @default("medium")
+}
+
+model CustomProvider {
+  name    String        @id
+  baseUrl String
+  apiKey  String?
+  headers String? // JSON string of Record<string, string>
+  models  CustomModel[]
+}
+
+model CustomModel {
+  id             String  @id @default(uuid())
+  modelId        String
+  name           String
+  reasoning      Boolean @default(false)
+  contextWindow  Int     @default(128000)
+  maxTokens      Int     @default(8192)
+  costInput      Float   @default(0)
+  costOutput     Float   @default(0)
+  costCacheRead  Float   @default(0)
+  costCacheWrite Float   @default(0)
+  providerName   String
+  provider       CustomProvider @relation(fields: [providerName], references: [name], onDelete: Cascade)
+
+  @@unique([providerName, modelId])
+}
