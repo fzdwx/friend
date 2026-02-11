@@ -50,6 +50,7 @@ model CustomProvider {
   name    String        @id
   baseUrl String
   apiKey  String?
+  api     String?       // API protocol: "openai-responses", "openai-completions", etc.
   headers String? // JSON string of Record<string, string>
   models  CustomModel[]
 }

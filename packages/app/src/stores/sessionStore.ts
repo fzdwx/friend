@@ -1,10 +1,5 @@
 import { create } from "zustand";
-import type {
-  SessionInfo,
-  ChatMessage,
-  AssistantContentBlock,
-  ThinkingLevel,
-} from "@friend/shared";
+import type { SessionInfo, ChatMessage, AssistantContentBlock } from "@friend/shared";
 
 interface SessionState {
   sessions: SessionInfo[];
@@ -13,8 +8,6 @@ interface SessionState {
   isStreaming: boolean;
   streamingText: string;
   streamingThinking: string;
-  currentModel: string | null;
-  thinkingLevel: ThinkingLevel;
 
   // Actions
   setSessions: (sessions: SessionInfo[]) => void;
@@ -28,8 +21,6 @@ interface SessionState {
   appendStreamingThinking: (text: string) => void;
   resetStreaming: () => void;
   finalizeAssistantMessage: (id: string, blocks: AssistantContentBlock[]) => void;
-  setModel: (model: string | null) => void;
-  setThinkingLevel: (level: ThinkingLevel) => void;
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -39,8 +30,6 @@ export const useSessionStore = create<SessionState>((set) => ({
   isStreaming: false,
   streamingText: "",
   streamingThinking: "",
-  currentModel: null,
-  thinkingLevel: "medium",
 
   setSessions: (sessions) => set({ sessions }),
   addSession: (session) => set((s) => ({ sessions: [...s.sessions, session] })),
@@ -69,6 +58,4 @@ export const useSessionStore = create<SessionState>((set) => ({
         },
       ],
     })),
-  setModel: (model) => set({ currentModel: model }),
-  setThinkingLevel: (level) => set({ thinkingLevel: level }),
 }));

@@ -37,31 +37,8 @@ export const api = {
   compact: (id: string) => request<void>(`/sessions/${id}/compact`, { method: "POST" }),
   getStats: (id: string) => request<any>(`/sessions/${id}/stats`),
 
-  // Models
-  getModels: () => request<any[]>("/models"),
-  setModel: (sessionId: string, provider: string, modelId: string) =>
-    request<void>(`/sessions/${sessionId}/model`, {
-      method: "POST",
-      body: JSON.stringify({ provider, modelId }),
-    }),
-  setThinking: (sessionId: string, level: string) =>
-    request<void>(`/sessions/${sessionId}/thinking`, {
-      method: "POST",
-      body: JSON.stringify({ level }),
-    }),
-
   // Config
   getConfig: () => request<any>("/config"),
-  updateConfig: (config: Record<string, unknown>) =>
-    request<any>("/config", {
-      method: "PUT",
-      body: JSON.stringify(config),
-    }),
-  setAuth: (provider: string, apiKey: string) =>
-    request<void>("/config/auth", {
-      method: "PUT",
-      body: JSON.stringify({ provider, apiKey }),
-    }),
 
   // Custom providers
   getProviders: () => request<CustomProviderConfig[]>("/config/providers"),

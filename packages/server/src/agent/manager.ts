@@ -6,8 +6,10 @@ import {
   type AgentSession,
   type AgentSessionEvent,
   type SessionStats,
+  type ToolDefinition,
 } from "@mariozechner/pi-coding-agent";
 import type { Model } from "@mariozechner/pi-ai";
+import { Type } from "@sinclair/typebox";
 import type {
   SessionInfo,
   SessionDetail,
@@ -42,6 +44,7 @@ type DbCustomProvider = {
   name: string;
   baseUrl: string;
   apiKey: string | null;
+  api: string | null;
   headers: string | null;
   models: DbCustomModel[];
 };
@@ -98,6 +101,7 @@ function dbProviderToConfig(p: DbCustomProvider): CustomProviderConfig {
     name: p.name,
     baseUrl: p.baseUrl,
     apiKey: p.apiKey ?? undefined,
+    api: p.api ?? undefined,
     headers: p.headers ? JSON.parse(p.headers) : undefined,
     models: p.models.map((m) => ({
       id: m.modelId,
@@ -163,6 +167,75 @@ interface EventSubscriber {
   close(): void;
 }
 
+// ─── Custom tool: add_custom_provider ────────────────────
+
+const AddCustomProviderParams = Type.Object({
+  name: Type.String({ description: "Provider name (e.g. 'my-openai')" }),
+  baseUrl: Type.String({ description: "Base URL of the OpenAI-compatible API" }),
+  apiKey: Type.Optional(Type.String({ description: "API key for authentication" })),
+  api: Type.Optional(
+    Type.String({
+      description:
+        'API protocol to use. Common values: "openai-responses", "openai-completions", "anthropic-messages". Defaults to "openai-responses".',
+    }),
+  ),
+  headers: Type.Optional(Type.Record(Type.String(), Type.String(), { description: "Extra HTTP headers" })),
+  models: Type.Array(
+    Type.Object({
+      id: Type.String({ description: "Model ID sent to the API (e.g. 'gpt-4o')" }),
+      name: Type.String({ description: "Human-readable display name" }),
+      reasoning: Type.Boolean({ description: "Whether the model supports extended thinking" }),
+      contextWindow: Type.Number({ description: "Max context window in tokens" }),
+      maxTokens: Type.Number({ description: "Max output tokens" }),
+      cost: Type.Object({
+        input: Type.Number({ description: "Cost per 1M input tokens in USD" }),
+        output: Type.Number({ description: "Cost per 1M output tokens in USD" }),
+        cacheRead: Type.Number({ description: "Cost per 1M cache-read tokens in USD" }),
+        cacheWrite: Type.Number({ description: "Cost per 1M cache-write tokens in USD" }),
+      }),
+    }),
+    { description: "Models available from this provider" },
+  ),
+});
+
+function createAddProviderTool(manager: AgentManager): ToolDefinition {
+  return {
+    name: "add_custom_provider",
+    label: "Add Custom Provider",
+    description:
+      "Register a custom OpenAI-compatible LLM provider. " +
+      "The user provides the provider name, base URL, optional API key / headers, " +
+      "and a list of models with their capabilities and cost info.",
+    parameters: AddCustomProviderParams,
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const p = params as CustomProviderConfig;
+      try {
+        manager.addCustomProvider(p);
+        const modelNames = p.models.map((m) => m.name).join(", ");
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Successfully added provider "${p.name}" (${p.baseUrl}) with models: ${modelNames}`,
+            },
+          ],
+          details: undefined,
+        };
+      } catch (err) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Failed to add provider: ${String(err)}`,
+            },
+          ],
+          details: undefined,
+        };
+      }
+    },
+  };
+}
+
 // ─── AgentManager ──────────────────────────────────────────
 
 class AgentManager {
@@ -201,6 +274,7 @@ class AgentManager {
         authStorage: this.authStorage,
         modelRegistry: this.modelRegistry,
         thinkingLevel: this.config.thinkingLevel,
+        customTools: [createAddProviderTool(this)],
       });
 
       const messages = s.messages.map(dbMessageToChatMessage);
@@ -249,6 +323,7 @@ class AgentManager {
     this.modelRegistry.registerProvider(provider.name, {
       baseUrl: provider.baseUrl,
       apiKey: provider.apiKey,
+      api: (provider.api ?? "openai-responses") as any,
       headers: provider.headers,
       models: provider.models.map((m) => ({
         id: m.id,
@@ -274,6 +349,7 @@ class AgentManager {
             name: provider.name,
             baseUrl: provider.baseUrl,
             apiKey: provider.apiKey ?? null,
+            api: provider.api ?? null,
             headers: provider.headers ? JSON.stringify(provider.headers) : null,
             models: {
               create: provider.models.map((m) => ({
@@ -292,6 +368,7 @@ class AgentManager {
           update: {
             baseUrl: provider.baseUrl,
             apiKey: provider.apiKey ?? null,
+            api: provider.api ?? null,
             headers: provider.headers ? JSON.stringify(provider.headers) : null,
             models: {
               deleteMany: {},
@@ -352,6 +429,7 @@ class AgentManager {
       authStorage: this.authStorage,
       modelRegistry: this.modelRegistry,
       thinkingLevel: this.config.thinkingLevel,
+      customTools: [createAddProviderTool(this)],
     });
 
     const now = new Date();

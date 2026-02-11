@@ -23,21 +23,12 @@ export function ProviderSettings() {
   const handleSave = async (provider: CustomProviderConfig) => {
     await api.addProvider(provider);
     addCustomProvider(provider);
-    // Refresh models list
-    const res = await api.getModels();
-    if (res.ok && res.data) {
-      useConfigStore.getState().setModels(res.data);
-    }
     setEditing(null);
   };
 
   const handleDelete = async (name: string) => {
     await api.removeProvider(name);
     removeCustomProvider(name);
-    const res = await api.getModels();
-    if (res.ok && res.data) {
-      useConfigStore.getState().setModels(res.data);
-    }
   };
 
   if (!open) {
@@ -61,7 +52,7 @@ export function ProviderSettings() {
           <div className="flex items-center gap-2">
             <button
               onClick={() =>
-                setEditing({ name: "", baseUrl: "", apiKey: "", models: [{ ...DEFAULT_MODEL }] })
+                setEditing({ name: "", baseUrl: "", apiKey: "", api: "openai-completions", models: [{ ...DEFAULT_MODEL }] })
               }
               className="flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs hover:bg-primary/90"
             >
@@ -81,7 +72,9 @@ export function ProviderSettings() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-sm font-medium">{p.name}</div>
-                  <div className="text-xs text-muted-foreground">{p.baseUrl}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {p.baseUrl} · {p.api || "openai-responses"}
+                  </div>
                   <div className="text-xs text-muted-foreground mt-1">
                     {p.models.length} model{p.models.length !== 1 ? "s" : ""}:{" "}
                     {p.models.map((m) => m.id).join(", ")}
@@ -203,6 +196,18 @@ function ProviderForm({
           placeholder="sk-..."
           className="w-full bg-secondary border border-border rounded px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-ring"
         />
+      </div>
+
+      <div>
+        <label className="text-[11px] text-muted-foreground block mb-0.5">API Protocol</label>
+        <select
+          value={form.api || "openai-completions"}
+          onChange={(e) => updateField("api", e.target.value)}
+          className="w-full bg-secondary border border-border rounded px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-ring"
+        >
+          <option value="openai-completions">OpenAI Completions</option>
+          <option value="anthropic-messages">Anthropic Messages</option>
+        </select>
       </div>
 
       {/* Models */}

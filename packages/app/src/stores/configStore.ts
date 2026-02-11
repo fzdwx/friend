@@ -1,12 +1,10 @@
 import { create } from "zustand";
-import type { ModelInfo, AppConfig, CustomProviderConfig } from "@friend/shared";
+import type { AppConfig, CustomProviderConfig } from "@friend/shared";
 
 interface ConfigState {
-  models: ModelInfo[];
   config: AppConfig;
   customProviders: CustomProviderConfig[];
 
-  setModels: (models: ModelInfo[]) => void;
   setConfig: (config: AppConfig) => void;
   setCustomProviders: (providers: CustomProviderConfig[]) => void;
   addCustomProvider: (provider: CustomProviderConfig) => void;
@@ -14,11 +12,9 @@ interface ConfigState {
 }
 
 export const useConfigStore = create<ConfigState>((set) => ({
-  models: [],
   config: { thinkingLevel: "medium", customProviders: [] },
   customProviders: [],
 
-  setModels: (models) => set({ models }),
   setConfig: (config) => set({ config, customProviders: config.customProviders || [] }),
   setCustomProviders: (providers) => set({ customProviders: providers }),
   addCustomProvider: (provider) =>

@@ -59,6 +59,7 @@ export interface CustomProviderConfig {
   name: string;
   baseUrl: string;
   apiKey?: string;
+  api?: string;
   headers?: Record<string, string>;
   models: CustomModelConfig[];
 }

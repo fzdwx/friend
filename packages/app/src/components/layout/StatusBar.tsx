@@ -3,7 +3,7 @@ import { Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function StatusBar() {
-  const { isStreaming, currentModel, thinkingLevel } = useSessionStore();
+  const isStreaming = useSessionStore((s) => s.isStreaming);
 
   return (
     <div className="flex items-center gap-4 px-4 py-1.5 border-t border-border bg-background text-xs text-muted-foreground select-none">
@@ -16,16 +16,6 @@ export function StatusBar() {
         />
         <span>{isStreaming ? "Streaming" : "Connected"}</span>
       </div>
-
-      {currentModel && (
-        <>
-          <span className="text-border">|</span>
-          <span>{currentModel}</span>
-        </>
-      )}
-
-      <span className="text-border">|</span>
-      <span>thinking: {thinkingLevel}</span>
     </div>
   );
 }

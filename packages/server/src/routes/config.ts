@@ -19,6 +19,7 @@ const CustomProviderSchema = t.Object({
   name: t.String(),
   baseUrl: t.String(),
   apiKey: t.Optional(t.String()),
+  api: t.Optional(t.String()),
   headers: t.Optional(t.Record(t.String(), t.String())),
   models: t.Array(CustomModelSchema),
 });
@@ -27,33 +28,6 @@ export const configRoutes = new Elysia({ prefix: "/api/config" })
   .get("/", () => {
     return { ok: true, data: getAgentManager().getConfig() };
   })
-
-  .put(
-    "/",
-    async ({ body }) => {
-      const config = await getAgentManager().updateConfig(body as any);
-      return { ok: true, data: config };
-    },
-    {
-      body: t.Object({
-        thinkingLevel: t.Optional(t.String()),
-      }),
-    },
-  )
-
-  .put(
-    "/auth",
-    ({ body }) => {
-      getAgentManager().setApiKey(body.provider, body.apiKey);
-      return { ok: true };
-    },
-    {
-      body: t.Object({
-        provider: t.String(),
-        apiKey: t.String(),
-      }),
-    },
-  )
 
   // Custom provider management
   .get("/providers", () => {
