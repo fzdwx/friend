@@ -11,8 +11,15 @@ export function useGlobalSSE() {
   const activeSessionRef = useRef(activeSessionId);
   activeSessionRef.current = activeSessionId;
 
-  const { setStreaming, setStreamingPhase, appendStreamingText, appendStreamingThinking, addStreamingBlock, resetStreaming, addMessage } =
-      useSessionStore();
+  const {
+    setStreaming,
+    setStreamingPhase,
+    appendStreamingText,
+    appendStreamingThinking,
+    addStreamingBlock,
+    resetStreaming,
+    addMessage,
+  } = useSessionStore();
 
   const { addExecution, updateExecution, completeExecution, clearExecutions } = useToolStore();
 

@@ -68,18 +68,17 @@ export function MessageList({
 
   // Auto-scroll when new content arrives, but only if user hasn't scrolled up
   useEffect(() => {
-    if (!userScrolledRef.current && streamingPhase != "idle") {
+    if (!userScrolledRef.current) {
       scrollToBottom();
     }
-  }, [messages, streamingPhase, scrollToBottom]);
+  }, [messages,  streamingText, streamingThinking, streamingBlocks, scrollToBottom]);
 
   useEffect(() => {
-    if (activeSessionId) {
-      userScrolledRef.current = false;
-      setIsAtBottom(true);
+    if (!userScrolledRef.current && streamingPhase !='idle') {
       scrollToBottom();
     }
-  }, [activeSessionId, scrollToBottom]);
+  }, [messages,  streamingPhase, scrollToBottom]);
+
 
   // Always scroll to bottom when user sends a new message
   useEffect(() => {
