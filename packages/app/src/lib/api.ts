@@ -1,4 +1,4 @@
-import type { CustomProviderConfig } from "@friend/shared";
+import type { CustomProviderConfig, ModelInfo } from "@friend/shared";
 
 const API_BASE = "/api";
 
@@ -36,6 +36,14 @@ export const api = {
   abort: (id: string) => request<void>(`/sessions/${id}/abort`, { method: "POST" }),
   compact: (id: string) => request<void>(`/sessions/${id}/compact`, { method: "POST" }),
   getStats: (id: string) => request<any>(`/sessions/${id}/stats`),
+
+  // Models
+  getModels: () => request<ModelInfo[]>("/models"),
+  setModel: (sessionId: string, provider: string, modelId: string) =>
+    request<void>(`/sessions/${sessionId}/model`, {
+      method: "POST",
+      body: JSON.stringify({ provider, modelId }),
+    }),
 
   // Config
   getConfig: () => request<any>("/config"),

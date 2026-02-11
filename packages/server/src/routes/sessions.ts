@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import { getAgentManager } from "../agent/manager";
+import { getAgentManager } from "../agent/manager.js";
 
 export const sessionRoutes = new Elysia({ prefix: "/api/sessions" })
   .get("/", async () => {
@@ -75,4 +75,17 @@ export const sessionRoutes = new Elysia({ prefix: "/api/sessions" })
     const stats = getAgentManager().getStats(id);
     if (!stats) return { ok: false, error: "Session not found" };
     return { ok: true, data: stats };
-  });
+  })
+
+  .post(
+    "/:id/model",
+    async ({ params: { id }, body }) => {
+      try {
+        const ok = await getAgentManager().setModel(id, body.provider, body.modelId);
+        return { ok };
+      } catch (e) {
+        return { ok: false, error: String(e) };
+      }
+    },
+    { body: t.Object({ provider: t.String(), modelId: t.String() }) },
+  );
