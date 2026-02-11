@@ -176,7 +176,7 @@ const AddCustomProviderParams = Type.Object({
   api: Type.Optional(
     Type.String({
       description:
-        'API protocol to use. Common values: "openai-responses", "openai-completions", "anthropic-messages". Defaults to "openai-responses".',
+        'API protocol to use. Common values: "openai-completions", "anthropic-messages". Defaults to "openai-completions".',
     }),
   ),
   headers: Type.Optional(
@@ -245,7 +245,11 @@ class AgentManager {
   private globalSubscribers = new Set<EventSubscriber>();
   private authStorage: AuthStorage;
   private modelRegistry: ModelRegistry;
-  private config: AppConfig = { thinkingLevel: "medium", customProviders: [] };
+  private config: AppConfig = {
+    thinkingLevel: "medium",
+    customProviders: [],
+    activeThemeId: "default-dark",
+  };
 
   constructor() {
     this.authStorage = new AuthStorage();
@@ -325,7 +329,7 @@ class AgentManager {
     this.modelRegistry.registerProvider(provider.name, {
       baseUrl: provider.baseUrl,
       apiKey: provider.apiKey,
-      api: (provider.api ?? "openai-responses") as any,
+      api: (provider.api ?? "openai-completions") as any,
       headers: provider.headers,
       models: provider.models.map((m) => ({
         id: m.id,
@@ -585,6 +589,7 @@ class AgentManager {
     return {
       thinkingLevel: this.config.thinkingLevel,
       customProviders: [...this.config.customProviders],
+      activeThemeId: this.config.activeThemeId,
     };
   }
 
@@ -598,6 +603,9 @@ class AgentManager {
         create: { id: "singleton", thinkingLevel: updates.thinkingLevel },
         update: { thinkingLevel: updates.thinkingLevel },
       });
+    }
+    if (updates.activeThemeId) {
+      this.config.activeThemeId = updates.activeThemeId;
     }
     return this.getConfig();
   }

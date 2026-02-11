@@ -43,7 +43,7 @@ export function Modal({ isOpen, onClose, children, title, size = "lg", className
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={handleOverlayClick}
     >
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-background/30 backdrop-blur-sm" />
 
       <div
         className={cn(

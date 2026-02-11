@@ -1,7 +1,7 @@
-import { Server } from "lucide-react";
+import { Server, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type SettingsSection = "providers";
+type SettingsSection = "providers" | "appearance";
 
 interface SettingsSidebarProps {
   activeSection: SettingsSection;
@@ -9,6 +9,7 @@ interface SettingsSidebarProps {
 }
 
 const SECTIONS: { id: SettingsSection; label: string; icon: React.ElementType }[] = [
+  { id: "appearance", label: "Appearance", icon: Palette },
   { id: "providers", label: "Provider", icon: Server },
 ];
 

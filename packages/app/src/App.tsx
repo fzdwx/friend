@@ -8,6 +8,7 @@ import { SettingsModal } from "@/components/config/SettingsModal";
 import { useGlobalSSE } from "@/hooks/useSSE";
 import { useApi } from "@/hooks/useApi";
 import { useConfigStore } from "@/stores/configStore";
+import { applyThemeToDOM } from "@/lib/theme";
 
 function SSEConnector() {
   useGlobalSSE();
@@ -17,10 +18,19 @@ function SSEConnector() {
 export function App() {
   const { loadConfig } = useApi();
   const isSettingsOpen = useConfigStore((s) => s.isSettingsOpen);
+  const activeThemeId = useConfigStore((s) => s.activeThemeId);
+  const getActiveTheme = useConfigStore((s) => s.getActiveTheme);
 
   useEffect(() => {
     loadConfig();
   }, [loadConfig]);
+
+  useEffect(() => {
+    const theme = getActiveTheme();
+    if (theme) {
+      applyThemeToDOM(theme);
+    }
+  }, [activeThemeId, getActiveTheme]);
 
   return (
     <>

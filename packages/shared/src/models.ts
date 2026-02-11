@@ -54,6 +54,50 @@ export interface ModelInfo {
 
 export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
 
+// Theme types
+export type ThemeMode = "light" | "dark" | "system";
+export type Theme = "light" | "dark";
+
+export interface ColorDefinition {
+  l: number;
+  c: number;
+  h: number;
+}
+
+export interface ColorSet {
+  background: ColorDefinition;
+  foreground: ColorDefinition;
+  card: ColorDefinition;
+  cardForeground: ColorDefinition;
+  popover: ColorDefinition;
+  popoverForeground: ColorDefinition;
+  primary: ColorDefinition;
+  primaryForeground: ColorDefinition;
+  secondary: ColorDefinition;
+  secondaryForeground: ColorDefinition;
+  muted: ColorDefinition;
+  mutedForeground: ColorDefinition;
+  accent: ColorDefinition;
+  accentForeground: ColorDefinition;
+  destructive: ColorDefinition;
+  destructiveForeground: ColorDefinition;
+  border: ColorDefinition;
+  input: ColorDefinition;
+  ring: ColorDefinition;
+  sidebar: ColorDefinition;
+  sidebarForeground: ColorDefinition;
+  sidebarBorder: ColorDefinition;
+}
+
+export interface ThemeConfig {
+  id: string;
+  name: string;
+  mode: ThemeMode;
+  colors: ColorSet;
+  isPreset: boolean;
+  isBuiltIn: boolean;
+}
+
 // Custom provider
 export interface CustomProviderConfig {
   name: string;
@@ -82,4 +126,5 @@ export interface CustomModelConfig {
 export interface AppConfig {
   thinkingLevel: ThinkingLevel;
   customProviders: CustomProviderConfig[];
+  activeThemeId: string;
 }

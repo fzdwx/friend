@@ -7,11 +7,11 @@ interface BashOutputProps {
 
 export function BashOutput({ output, isError }: BashOutputProps) {
   return (
-    <div className="bg-[#0d1117] text-[#c9d1d9]">
+    <div className="bg-[var(--color-background)] text-[var(--color-foreground)]">
       <pre
         className={cn(
           "p-3 text-[11px] font-mono whitespace-pre-wrap break-all leading-relaxed",
-          isError && "text-red-400",
+          isError && "text-[var(--color-destructive)]",
         )}
       >
         {output.slice(0, 3000)}
