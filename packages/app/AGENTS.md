@@ -26,20 +26,21 @@ packages/app/src/
 
 ## WHERE TO LOOK
 
-| Task              | Location                            | Notes                      |
-|-------------------|-------------------------------------|----------------------------|
-| 根组件            | `src/App.tsx`                       | 布局组合 + SSEConnector    |
-| 可拖拽布局        | `src/components/layout/ResizableLayout.tsx` | 三栏可拖拽布局       |
-| API 调用          | `src/lib/api.ts`                    | 封装 fetch，统一错误处理   |
-| SSE 连接          | `src/hooks/useSSE.ts`               | Server-Sent Events 订阅    |
-| 状态管理          | `src/stores/*Store.ts`              | Zustand，selector 模式     |
-| 样式变量          | `src/styles/globals.css`            | oklch 颜色系统             |
+| Task       | Location                                    | Notes                    |
+| ---------- | ------------------------------------------- | ------------------------ |
+| 根组件     | `src/App.tsx`                               | 布局组合 + SSEConnector  |
+| 可拖拽布局 | `src/components/layout/ResizableLayout.tsx` | 三栏可拖拽布局           |
+| API 调用   | `src/lib/api.ts`                            | 封装 fetch，统一错误处理 |
+| SSE 连接   | `src/hooks/useSSE.ts`                       | Server-Sent Events 订阅  |
+| 状态管理   | `src/stores/*Store.ts`                      | Zustand，selector 模式   |
+| 样式变量   | `src/styles/globals.css`                    | oklch 颜色系统           |
 
 ---
 
 ## CONVENTIONS
 
 ### 组件
+
 ```typescript
 interface ComponentProps {
   propName: Type;
@@ -51,6 +52,7 @@ export function ComponentName({ propName }: ComponentProps) {
 ```
 
 ### Store 定义
+
 ```typescript
 export const useStoreName = create<StoreState>((set, get) => ({
   // state
@@ -59,6 +61,7 @@ export const useStoreName = create<StoreState>((set, get) => ({
 ```
 
 ### API 调用
+
 ```typescript
 const res = await api.someEndpoint();
 if (res.ok && res.data) {

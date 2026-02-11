@@ -25,27 +25,32 @@ packages/server/src/
 
 ## WHERE TO LOOK
 
-| Task              | Location                           | Notes                              |
-|-------------------|------------------------------------|------------------------------------|
-| 应用入口          | `src/index.ts`                     | Elysia 实例 + 路由组合             |
-| Agent 管理        | `src/agent/manager.ts`             | SessionManager 包装 pi-coding-agent |
-| Session 路由      | `src/routes/sessions.ts`           | POST /:id/prompt, /:id/steer       |
-| SSE 流            | `src/routes/events.ts`             | async generator 实现               |
-| 数据库映射        | `manager.ts` 中的 dbToDomain()     | Prisma ↔ Domain 类型转换           |
+| Task         | Location                       | Notes                               |
+| ------------ | ------------------------------ | ----------------------------------- |
+| 应用入口     | `src/index.ts`                 | Elysia 实例 + 路由组合              |
+| Agent 管理   | `src/agent/manager.ts`         | SessionManager 包装 pi-coding-agent |
+| Session 路由 | `src/routes/sessions.ts`       | POST /:id/prompt, /:id/steer        |
+| SSE 流       | `src/routes/events.ts`         | async generator 实现                |
+| 数据库映射   | `manager.ts` 中的 dbToDomain() | Prisma ↔ Domain 类型转换            |
 
 ---
 
 ## CONVENTIONS
 
 ### 路由定义
+
 ```typescript
-export const routes = new Elysia({ prefix: "/api/sessions" })
-  .post("/:id/prompt", async ({ params, body }) => {
+export const routes = new Elysia({ prefix: "/api/sessions" }).post(
+  "/:id/prompt",
+  async ({ params, body }) => {
     // handler
-  }, { body: t.Object({ message: t.String() }) });
+  },
+  { body: t.Object({ message: t.String() }) },
+);
 ```
 
 ### 错误处理
+
 ```typescript
 try {
   await operation();
@@ -56,9 +61,10 @@ try {
 ```
 
 ### Fire-and-Forget DB 操作
+
 ```typescript
 // 注释标记非阻塞操作
-prisma.session.update({...}).catch((err) => 
+prisma.session.update({...}).catch((err) =>
   console.error("...", err)
 );
 ```

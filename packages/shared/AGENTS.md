@@ -20,18 +20,19 @@ packages/shared/src/
 
 ## WHERE TO LOOK
 
-| Type              | File            | Key Exports                                  |
-|-------------------|-----------------|----------------------------------------------|
-| Session types     | `models.ts`     | `SessionInfo`, `SessionDetail`               |
-| Message types     | `models.ts`     | `ChatMessage`, `UserChatMessage`, `AssistantChatMessage` |
-| API types         | `api.ts`        | `ApiResponse<T>`, request/response types     |
-| SSE events        | `events.ts`     | `SSEEvent`, `TextDeltaEvent`, `ToolCallStartEvent` |
+| Type          | File        | Key Exports                                              |
+| ------------- | ----------- | -------------------------------------------------------- |
+| Session types | `models.ts` | `SessionInfo`, `SessionDetail`                           |
+| Message types | `models.ts` | `ChatMessage`, `UserChatMessage`, `AssistantChatMessage` |
+| API types     | `api.ts`    | `ApiResponse<T>`, request/response types                 |
+| SSE events    | `events.ts` | `SSEEvent`, `TextDeltaEvent`, `ToolCallStartEvent`       |
 
 ---
 
 ## CONVENTIONS
 
 ### 类型导出
+
 ```typescript
 // index.ts
 export * from "./models.js";
@@ -40,11 +41,9 @@ export * from "./events.js";
 ```
 
 ### Discriminated Unions
+
 ```typescript
-export type ChatMessage =
-  | UserChatMessage
-  | AssistantChatMessage
-  | ToolResultChatMessage;
+export type ChatMessage = UserChatMessage | AssistantChatMessage | ToolResultChatMessage;
 
 export interface UserChatMessage {
   role: "user";
@@ -69,6 +68,6 @@ export interface UserChatMessage {
 // Frontend
 import type { SessionInfo, ChatMessage } from "@friend/shared";
 
-// Backend  
+// Backend
 import type { SessionInfo, ChatMessage } from "@friend/shared";
 ```

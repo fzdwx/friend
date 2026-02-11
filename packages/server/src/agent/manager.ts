@@ -179,7 +179,9 @@ const AddCustomProviderParams = Type.Object({
         'API protocol to use. Common values: "openai-responses", "openai-completions", "anthropic-messages". Defaults to "openai-responses".',
     }),
   ),
-  headers: Type.Optional(Type.Record(Type.String(), Type.String(), { description: "Extra HTTP headers" })),
+  headers: Type.Optional(
+    Type.Record(Type.String(), Type.String(), { description: "Extra HTTP headers" }),
+  ),
   models: Type.Array(
     Type.Object({
       id: Type.String({ description: "Model ID sent to the API (e.g. 'gpt-4o')" }),
@@ -515,9 +517,7 @@ class AgentManager {
     await prisma.message.create({
       data: chatMessageToDbData(id, userMsg, orderIndex),
     });
-    prisma.session
-      .update({ where: { id }, data: { updatedAt: new Date() } })
-      .catch(() => {});
+    prisma.session.update({ where: { id }, data: { updatedAt: new Date() } }).catch(() => {});
 
     // Run prompt (non-blocking - returns after agent finishes)
     managed.session.prompt(message).catch((err) => {
@@ -901,6 +901,7 @@ export async function initAgentManager(): Promise<AgentManager> {
 }
 
 export function getAgentManager(): AgentManager {
-  if (!_agentManager) throw new Error("AgentManager not initialized. Call initAgentManager() first.");
+  if (!_agentManager)
+    throw new Error("AgentManager not initialized. Call initAgentManager() first.");
   return _agentManager;
 }

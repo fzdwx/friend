@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Send, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ModelSelector } from "@/components/ModelSelector";
 
 interface InputAreaProps {
   onSend: (message: string) => void;
@@ -42,47 +43,53 @@ export function InputArea({ onSend, onAbort, isStreaming, disabled }: InputAreaP
 
   return (
     <div className="border-t border-border p-3">
-      <div className="flex items-end gap-2 bg-secondary/30 rounded-lg border border-border px-3 py-2">
-        <textarea
-          ref={textareaRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
-          disabled={disabled}
-          rows={1}
-          className={cn(
-            "flex-1 bg-transparent text-sm resize-none outline-none",
-            "placeholder:text-muted-foreground/50",
-            "min-h-[24px] max-h-[160px]",
-          )}
-        />
-        {isStreaming ? (
-          <button
-            onClick={onAbort}
-            className="flex-shrink-0 p-1.5 rounded-md bg-destructive/20 hover:bg-destructive/30 text-destructive transition-colors"
-            title="Stop"
-          >
-            <Square className="w-4 h-4" />
-          </button>
-        ) : (
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || disabled}
+      <div className="bg-secondary/30 rounded-lg border border-border px-3 py-2">
+        <div className="flex items-end gap-2">
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder='Ask anything... "Add input validation"'
+            disabled={disabled}
+            rows={1}
             className={cn(
-              "flex-shrink-0 p-1.5 rounded-md transition-colors",
-              input.trim() && !disabled
-                ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                : "text-muted-foreground/30",
+              "flex-1 bg-transparent text-sm resize-none outline-none",
+              "placeholder:text-muted-foreground/50",
+              "min-h-[24px] max-h-[160px]",
             )}
-            title="Send"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-      <div className="flex justify-between mt-1 px-1 text-[10px] text-muted-foreground/50">
-        <span>Enter to send, Shift+Enter for new line</span>
+          />
+        </div>
+        <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-border/50">
+          <div className="flex items-center gap-1">
+            <ModelSelector />
+          </div>
+          <div className="flex items-center gap-1">
+            {isStreaming ? (
+              <button
+                onClick={onAbort}
+                className="flex-shrink-0 p-1.5 rounded-md bg-destructive/20 hover:bg-destructive/30 text-destructive transition-colors"
+                title="Stop"
+              >
+                <Square className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || disabled}
+                className={cn(
+                  "flex-shrink-0 p-1.5 rounded-md transition-colors",
+                  input.trim() && !disabled
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "text-muted-foreground/30",
+                )}
+                title="Send"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
