@@ -28,6 +28,7 @@ export function MessageList({
   const [isAtBottom, setIsAtBottom] = useState(true);
   const userScrolledRef = useRef(false);
   const streamingBlocks = useSessionStore((s) => s.streamingBlocks);
+  const streamingPhase = useSessionStore((s) => s.streamingPhase);
 
   const checkAtBottom = useCallback(() => {
     const el = containerRef.current;
@@ -66,10 +67,10 @@ export function MessageList({
 
   // Auto-scroll when new content arrives, but only if user hasn't scrolled up
   useEffect(() => {
-    if (!userScrolledRef.current) {
+    if (!userScrolledRef.current && streamingPhase !="idle") {
       scrollToBottom();
     }
-  }, [messages, streamingText, streamingThinking, streamingBlocks, scrollToBottom]);
+  }, [messages, streamingPhase, scrollToBottom]);
 
   // Always scroll to bottom when user sends a new message
   useEffect(() => {
