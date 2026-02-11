@@ -1,18 +1,34 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useSessions } from "@/hooks/useSessions";
 import { useConfigStore } from "@/stores/configStore";
 import { Plus, MessageSquare, Trash2, Settings, Folder } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { selectDirectory } from "@/lib/tauri";
+import { selectDirectory, isTauri } from "@/lib/tauri";
 
 export function Sidebar() {
   const { sessions, activeSessionId, loadSessions, createSession, switchSession, deleteSession } =
     useSessions();
   const setIsSettingsOpen = useConfigStore((s) => s.setIsSettingsOpen);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    const directoryPath = file.webkitRelativePath.split("/")[0];
+    createSession({ workingPath: directoryPath });
+
+    e.target.value = "";
+  };
 
   const handleNewSession = async () => {
-    const workingPath = await selectDirectory();
-    createSession({ workingPath: workingPath || undefined });
+    if (isTauri()) {
+      const workingPath = await selectDirectory();
+      createSession({ workingPath: workingPath || undefined });
+    } else {
+      fileInputRef.current?.click();
+    }
   };
 
   useEffect(() => {
@@ -88,6 +104,13 @@ export function Sidebar() {
           <span>Settings</span>
         </button>
       </div>
+      <input
+        type="file"
+        {...({ webkitdirectory: true } as React.InputHTMLAttributes<HTMLInputElement>)}
+        hidden
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+      />
     </div>
   );
 }
