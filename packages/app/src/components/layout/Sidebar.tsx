@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useSessions } from "@/hooks/useSessions";
 import { useConfigStore } from "@/stores/configStore";
 import { Plus, MessageSquare, Trash2, Settings, Folder } from "lucide-react";
@@ -9,26 +9,24 @@ export function Sidebar() {
   const { sessions, activeSessionId, loadSessions, createSession, switchSession, deleteSession } =
     useSessions();
   const setIsSettingsOpen = useConfigStore((s) => s.setIsSettingsOpen);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const file = files[0];
-    const directoryPath = file.webkitRelativePath.split("/")[0];
-    createSession({ workingPath: directoryPath });
-
-    e.target.value = "";
-  };
+  const [showPathInput, setShowPathInput] = useState(false);
+  const [pathValue, setPathValue] = useState("");
 
   const handleNewSession = async () => {
     if (isTauri()) {
       const workingPath = await selectDirectory();
       createSession({ workingPath: workingPath || undefined });
     } else {
-      fileInputRef.current?.click();
+      setPathValue("");
+      setShowPathInput(true);
     }
+  };
+
+  const handlePathSubmit = () => {
+    const trimmed = pathValue.trim();
+    createSession({ workingPath: trimmed || undefined });
+    setShowPathInput(false);
+    setPathValue("");
   };
 
   useEffect(() => {
@@ -49,6 +47,38 @@ export function Sidebar() {
           </button>
         </div>
       </div>
+
+      {showPathInput && (
+        <div className="p-2 border-b border-sidebar-border space-y-2">
+          <label className="text-xs text-muted-foreground">Working directory (optional)</label>
+          <input
+            type="text"
+            value={pathValue}
+            onChange={(e) => setPathValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handlePathSubmit();
+              if (e.key === "Escape") setShowPathInput(false);
+            }}
+            placeholder="/path/to/project"
+            autoFocus
+            className="w-full px-2 py-1.5 rounded-md bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          <div className="flex gap-1.5">
+            <button
+              onClick={handlePathSubmit}
+              className="flex-1 px-2 py-1 rounded-md bg-accent text-accent-foreground text-xs hover:bg-accent/80 transition-colors"
+            >
+              Create
+            </button>
+            <button
+              onClick={() => setShowPathInput(false)}
+              className="px-2 py-1 rounded-md text-xs text-muted-foreground hover:bg-accent/50 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
         <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium uppercase tracking-wider">
@@ -104,13 +134,6 @@ export function Sidebar() {
           <span>Settings</span>
         </button>
       </div>
-      <input
-        type="file"
-        {...({ webkitdirectory: true } as React.InputHTMLAttributes<HTMLInputElement>)}
-        hidden
-        ref={fileInputRef}
-        onChange={handleFileSelect}
-      />
     </div>
   );
 }

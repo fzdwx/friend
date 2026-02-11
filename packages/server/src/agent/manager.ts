@@ -277,6 +277,7 @@ class AgentManager {
     });
     for (const s of sessions) {
       const { session } = await createAgentSession({
+        cwd: s.workingPath ?? undefined,
         sessionManager: SessionManager.inMemory(),
         authStorage: this.authStorage,
         modelRegistry: this.modelRegistry,
@@ -434,6 +435,7 @@ class AgentManager {
     const name = opts?.name ?? `Session ${this.managedSessions.size + 1}`;
 
     const { session } = await createAgentSession({
+      cwd: opts?.workingPath,
       sessionManager: SessionManager.inMemory(),
       authStorage: this.authStorage,
       modelRegistry: this.modelRegistry,

@@ -71,14 +71,13 @@ export function MessageList({
     if (!userScrolledRef.current) {
       scrollToBottom();
     }
-  }, [messages,  streamingText, streamingThinking, streamingBlocks, scrollToBottom]);
+  }, [messages, streamingText, streamingThinking, streamingBlocks, scrollToBottom]);
 
   useEffect(() => {
-    if (!userScrolledRef.current && streamingPhase !='idle') {
+    if (!userScrolledRef.current && streamingPhase != "idle") {
       scrollToBottom();
     }
-  }, [messages,  streamingPhase, scrollToBottom]);
-
+  }, [messages, streamingPhase, scrollToBottom]);
 
   // Always scroll to bottom when user sends a new message
   useEffect(() => {
