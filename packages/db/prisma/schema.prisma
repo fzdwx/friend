@@ -8,12 +8,13 @@ datasource db {
 }
 
 model Session {
-  id        String    @id @default(uuid())
-  name      String
-  model     String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  messages  Message[]
+  id          String    @id @default(uuid())
+  name        String
+  model       String?
+  workingPath String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  messages    Message[]
 }
 
 model Message {
