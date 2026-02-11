@@ -71,6 +71,14 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           );
           if (model) {
             set({ currentModel: model });
+          } else {
+            const fallbackModel: ModelInfo = {
+              provider,
+              id: modelId,
+              name: `${provider}/${modelId}`,
+              available: false,
+            };
+            set({ currentModel: fallbackModel });
           }
         }
       }
@@ -83,9 +91,14 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   appendStreamingText: (text) => set((s) => ({ streamingText: s.streamingText + text })),
   appendStreamingThinking: (text) =>
     set((s) => ({ streamingThinking: s.streamingThinking + text })),
-  addStreamingBlock: (block) =>
-    set((s) => ({ streamingBlocks: [...s.streamingBlocks, block] })),
-  resetStreaming: () => set({ streamingText: "", streamingThinking: "", streamingBlocks: [], streamingPhase: "idle" as StreamingPhase }),
+  addStreamingBlock: (block) => set((s) => ({ streamingBlocks: [...s.streamingBlocks, block] })),
+  resetStreaming: () =>
+    set({
+      streamingText: "",
+      streamingThinking: "",
+      streamingBlocks: [],
+      streamingPhase: "idle" as StreamingPhase,
+    }),
   finalizeAssistantMessage: (id, blocks) =>
     set((s) => ({
       messages: [
