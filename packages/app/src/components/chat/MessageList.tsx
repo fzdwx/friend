@@ -3,7 +3,9 @@ import type { ChatMessage } from "@friend/shared";
 import { UserMessage } from "./UserMessage";
 import { AssistantMessage } from "./AssistantMessage";
 import { ThinkingBlock } from "./ThinkingBlock";
+import { ToolCallBlock } from "./ToolCallBlock";
 import { SessionStatus } from "./SessionStatus";
+import { useSessionStore } from "@/stores/sessionStore";
 import { ArrowDown } from "lucide-react";
 
 interface MessageListProps {
@@ -25,6 +27,7 @@ export function MessageList({
   const bottomRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const userScrolledRef = useRef(false);
+  const streamingBlocks = useSessionStore((s) => s.streamingBlocks);
 
   const checkAtBottom = useCallback(() => {
     const el = containerRef.current;
@@ -66,7 +69,7 @@ export function MessageList({
     if (!userScrolledRef.current) {
       scrollToBottom();
     }
-  }, [messages, streamingText, streamingThinking, scrollToBottom]);
+  }, [messages, streamingText, streamingThinking, streamingBlocks, scrollToBottom]);
 
   // Always scroll to bottom when user sends a new message
   useEffect(() => {
@@ -102,10 +105,22 @@ export function MessageList({
         return null;
       })}
 
-      {/* Streaming indicator */}
-      {isStreaming && (streamingText || streamingThinking) && (
+      {/* Streaming content */}
+      {isStreaming && (streamingText || streamingThinking || streamingBlocks.length > 0) && (
         <div className="space-y-2">
           {streamingThinking && <ThinkingBlock content={streamingThinking} isStreaming />}
+          {streamingBlocks
+            .filter((b) => b.type === "tool_call")
+            .map((b) =>
+              b.type === "tool_call" ? (
+                <ToolCallBlock
+                  key={b.toolCallId}
+                  toolCallId={b.toolCallId}
+                  toolName={b.toolName}
+                  args={b.args}
+                />
+              ) : null,
+            )}
           {streamingText && (
             <div className="prose prose-invert prose-sm max-w-none">
               <AssistantMessage

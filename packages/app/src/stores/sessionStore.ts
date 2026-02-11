@@ -17,6 +17,7 @@ interface SessionState {
   isStreaming: boolean;
   streamingText: string;
   streamingThinking: string;
+  streamingBlocks: AssistantContentBlock[];
   streamingPhase: StreamingPhase;
   availableModels: ModelInfo[];
   currentModel: ModelInfo | null;
@@ -32,6 +33,7 @@ interface SessionState {
   setStreamingPhase: (phase: StreamingPhase) => void;
   appendStreamingText: (text: string) => void;
   appendStreamingThinking: (text: string) => void;
+  addStreamingBlock: (block: AssistantContentBlock) => void;
   resetStreaming: () => void;
   finalizeAssistantMessage: (id: string, blocks: AssistantContentBlock[]) => void;
   loadModels: () => Promise<void>;
@@ -45,6 +47,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   isStreaming: false,
   streamingText: "",
   streamingThinking: "",
+  streamingBlocks: [] as AssistantContentBlock[],
   streamingPhase: "idle" as StreamingPhase,
   availableModels: [],
   currentModel: null,
@@ -80,7 +83,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   appendStreamingText: (text) => set((s) => ({ streamingText: s.streamingText + text })),
   appendStreamingThinking: (text) =>
     set((s) => ({ streamingThinking: s.streamingThinking + text })),
-  resetStreaming: () => set({ streamingText: "", streamingThinking: "", streamingPhase: "idle" as StreamingPhase }),
+  addStreamingBlock: (block) =>
+    set((s) => ({ streamingBlocks: [...s.streamingBlocks, block] })),
+  resetStreaming: () => set({ streamingText: "", streamingThinking: "", streamingBlocks: [], streamingPhase: "idle" as StreamingPhase }),
   finalizeAssistantMessage: (id, blocks) =>
     set((s) => ({
       messages: [
