@@ -8,7 +8,7 @@ interface ThinkingBlockProps {
 }
 
 export function ThinkingBlock({ content, isStreaming }: ThinkingBlockProps) {
-  const [expanded, setExpanded] = useState(!!isStreaming);
+  const [expanded, setExpanded] = useState(isStreaming);
 
   if (!content) return null;
 
