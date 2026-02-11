@@ -1,8 +1,10 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import type { ChatMessage } from "@friend/shared";
 import { UserMessage } from "./UserMessage";
 import { AssistantMessage } from "./AssistantMessage";
 import { ThinkingBlock } from "./ThinkingBlock";
+import { SessionStatus } from "./SessionStatus";
+import { ArrowDown } from "lucide-react";
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -11,28 +13,93 @@ interface MessageListProps {
   isStreaming: boolean;
 }
 
+const SCROLL_THRESHOLD = 80;
+
 export function MessageList({
   messages,
   streamingText,
   streamingThinking,
   isStreaming,
 }: MessageListProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const userScrolledRef = useRef(false);
 
-  useEffect(() => {
+  const checkAtBottom = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < SCROLL_THRESHOLD;
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingText, streamingThinking]);
+  }, []);
 
-  // Filter to only user and assistant messages for the chat view
-  const chatMessages = messages.filter((m) => m.role === "user" || m.role === "assistant");
+  // Track user scroll
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const atBottom = checkAtBottom();
+        setIsAtBottom(atBottom);
+        if (!atBottom) {
+          userScrolledRef.current = true;
+        } else {
+          userScrolledRef.current = false;
+        }
+        ticking = false;
+      });
+    };
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [checkAtBottom]);
+
+  // Auto-scroll when new content arrives, but only if user hasn't scrolled up
+  useEffect(() => {
+    if (!userScrolledRef.current) {
+      scrollToBottom();
+    }
+  }, [messages, streamingText, streamingThinking, scrollToBottom]);
+
+  // Always scroll to bottom when user sends a new message
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (last?.role === "user") {
+      userScrolledRef.current = false;
+      setIsAtBottom(true);
+      scrollToBottom();
+    }
+  }, [messages.length, scrollToBottom]);
+
+  const chatMessages = messages.filter((m) => {
+    if (m.role === "user") return true;
+    if (m.role === "assistant") {
+      const content = m.content;
+      if (!content || content.length === 0) return false;
+      return content.some(
+        (block) => block.type === "tool_call" || (block.text && block.text.trim() !== ""),
+      );
+    }
+    return false;
+  });
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+    <div ref={containerRef} className="relative flex-1 overflow-y-auto px-4 py-4 space-y-4">
       {chatMessages.map((msg) => {
         if (msg.role === "user") {
           return <UserMessage key={msg.id} message={msg} />;
         }
-        return <AssistantMessage key={msg.id} message={msg} />;
+        if (msg.role === "assistant") {
+          return <AssistantMessage key={msg.id} message={msg} />;
+        }
+        return null;
       })}
 
       {/* Streaming indicator */}
@@ -55,18 +122,23 @@ export function MessageList({
         </div>
       )}
 
-      {isStreaming && !streamingText && !streamingThinking && (
-        <div className="flex items-center gap-2 text-muted-foreground text-sm">
-          <div className="flex gap-1">
-            <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:0ms]" />
-            <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:150ms]" />
-            <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:300ms]" />
-          </div>
-          <span>Thinking...</span>
-        </div>
-      )}
+      {isStreaming && <SessionStatus />}
 
       <div ref={bottomRef} />
+
+      {/* Scroll to bottom button */}
+      {!isAtBottom && (
+        <button
+          onClick={() => {
+            userScrolledRef.current = false;
+            setIsAtBottom(true);
+            scrollToBottom();
+          }}
+          className="sticky bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center justify-center w-8 h-8 rounded-full bg-secondary border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shadow-lg cursor-pointer"
+        >
+          <ArrowDown className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 }

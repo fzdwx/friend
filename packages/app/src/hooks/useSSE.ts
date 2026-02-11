@@ -11,7 +11,7 @@ export function useGlobalSSE() {
   const activeSessionRef = useRef(activeSessionId);
   activeSessionRef.current = activeSessionId;
 
-  const { setStreaming, appendStreamingText, appendStreamingThinking, resetStreaming, addMessage } =
+  const { setStreaming, setStreamingPhase, appendStreamingText, appendStreamingThinking, resetStreaming, addMessage } =
     useSessionStore();
 
   const { addExecution, updateExecution, completeExecution, clearExecutions } = useToolStore();
@@ -26,30 +26,36 @@ export function useGlobalSSE() {
       switch (event.type) {
         case "agent_start":
           setStreaming(true);
+          setStreamingPhase("started");
           clearExecutions();
           break;
 
         case "agent_end":
           setStreaming(false);
+          setStreamingPhase("idle");
           break;
 
         case "message_start":
           messageIdRef.current = event.messageId;
           blocksRef.current = [];
           resetStreaming();
+          setStreamingPhase("started");
           break;
 
         case "text_delta":
           appendStreamingText(event.content);
           appendToBlocks(blocksRef.current, "text", event.content);
+          setStreamingPhase("generating");
           break;
 
         case "thinking_delta":
           appendStreamingThinking(event.content);
           appendToBlocks(blocksRef.current, "thinking", event.content);
+          setStreamingPhase("thinking");
           break;
 
         case "tool_call_start":
+          setStreamingPhase("tool_calling");
           break;
 
         case "tool_call_end":
@@ -76,6 +82,7 @@ export function useGlobalSSE() {
           break;
 
         case "tool_execution_start":
+          setStreamingPhase("tool_executing");
           addExecution({
             toolCallId: event.toolCallId,
             toolName: event.toolName,

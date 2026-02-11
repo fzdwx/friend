@@ -2,6 +2,14 @@ import { create } from "zustand";
 import type { SessionInfo, ChatMessage, AssistantContentBlock, ModelInfo } from "@friend/shared";
 import { api } from "@/lib/api.js";
 
+export type StreamingPhase =
+  | "idle"
+  | "started"
+  | "thinking"
+  | "generating"
+  | "tool_calling"
+  | "tool_executing";
+
 interface SessionState {
   sessions: SessionInfo[];
   activeSessionId: string | null;
@@ -9,6 +17,7 @@ interface SessionState {
   isStreaming: boolean;
   streamingText: string;
   streamingThinking: string;
+  streamingPhase: StreamingPhase;
   availableModels: ModelInfo[];
   currentModel: ModelInfo | null;
 
@@ -20,6 +29,7 @@ interface SessionState {
   setMessages: (messages: ChatMessage[]) => void;
   addMessage: (message: ChatMessage) => void;
   setStreaming: (streaming: boolean) => void;
+  setStreamingPhase: (phase: StreamingPhase) => void;
   appendStreamingText: (text: string) => void;
   appendStreamingThinking: (text: string) => void;
   resetStreaming: () => void;
@@ -35,6 +45,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   isStreaming: false,
   streamingText: "",
   streamingThinking: "",
+  streamingPhase: "idle" as StreamingPhase,
   availableModels: [],
   currentModel: null,
 
@@ -65,10 +76,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   setMessages: (messages) => set({ messages }),
   addMessage: (message) => set((s) => ({ messages: [...s.messages, message] })),
   setStreaming: (streaming) => set({ isStreaming: streaming }),
+  setStreamingPhase: (phase) => set({ streamingPhase: phase }),
   appendStreamingText: (text) => set((s) => ({ streamingText: s.streamingText + text })),
   appendStreamingThinking: (text) =>
     set((s) => ({ streamingThinking: s.streamingThinking + text })),
-  resetStreaming: () => set({ streamingText: "", streamingThinking: "" }),
+  resetStreaming: () => set({ streamingText: "", streamingThinking: "", streamingPhase: "idle" as StreamingPhase }),
   finalizeAssistantMessage: (id, blocks) =>
     set((s) => ({
       messages: [
