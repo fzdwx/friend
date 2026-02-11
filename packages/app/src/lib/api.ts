@@ -16,10 +16,10 @@ async function request<T>(
 export const api = {
   // Sessions
   listSessions: () => request<any[]>("/sessions"),
-  createSession: (name?: string) =>
+  createSession: (opts?: { name?: string; workingPath?: string }) =>
     request<any>("/sessions", {
       method: "POST",
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(opts),
     }),
   getSession: (id: string) => request<any>(`/sessions/${id}`),
   deleteSession: (id: string) => request<any>(`/sessions/${id}`, { method: "DELETE" }),
