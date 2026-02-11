@@ -26,14 +26,18 @@ packages/app/src/
 
 ## WHERE TO LOOK
 
-| Task       | Location                                    | Notes                    |
-| ---------- | ------------------------------------------- | ------------------------ |
-| 根组件     | `src/App.tsx`                               | 布局组合 + SSEConnector  |
-| 可拖拽布局 | `src/components/layout/ResizableLayout.tsx` | 三栏可拖拽布局           |
-| API 调用   | `src/lib/api.ts`                            | 封装 fetch，统一错误处理 |
-| SSE 连接   | `src/hooks/useSSE.ts`                       | Server-Sent Events 订阅  |
-| 状态管理   | `src/stores/*Store.ts`                      | Zustand，selector 模式   |
-| 样式变量   | `src/styles/globals.css`                    | oklch 颜色系统           |
+| Task       | Location                                      | Notes                    |
+| ---------- | --------------------------------------------- | ------------------------ |
+| 根组件     | `src/App.tsx`                                 | 布局组合 + SSEConnector  |
+| 可拖拽布局 | `src/components/layout/ResizableLayout.tsx`   | 三栏可拖拽布局           |
+| API 调用   | `src/lib/api.ts`                              | 封装 fetch，统一错误处理 |
+| SSE 连接   | `src/hooks/useSSE.ts`                         | Server-Sent Events 订阅  |
+| 状态管理   | `src/stores/*Store.ts`                        | Zustand，selector 模式   |
+| 主题系统   | `src/lib/theme.ts`                            | 主题工具 + 颜色转换      |
+| 主题预设   | `src/lib/themePresets.ts`                     | 15 组内置配色            |
+| 外观设置   | `src/components/config/AppearanceContent.tsx` | 主题编辑器               |
+| 颜色选择器 | `src/components/config/ColorPicker.tsx`       | hex 输入 + 原生选择器    |
+| 主题卡片   | `src/components/config/PresetCard.tsx`        | 预设主题卡片             |
 
 ---
 

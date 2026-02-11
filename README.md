@@ -9,6 +9,7 @@
 - 🛠️ **工具调用** - 支持文件读写、Bash 命令执行等工具
 - 🎯 **会话管理** - 创建、切换、删除会话，持久化聊天记录
 - ⚙️ **灵活配置** - 支持自定义 Provider、API Key 管理、思维层级设置
+- 🎨 **主题系统** - 15 组内置主题（5 亮色 + 10 暗色），支持自定义主题创建、编辑、导入/导出
 - 🖥️ **桌面应用** - 基于 Tauri 的跨平台桌面应用（Windows/macOS/Linux）
 
 ## 🚀 快速开始
@@ -85,11 +86,16 @@ just build-tauri
 │   │       ├── components/
 │   │       │   ├── layout/       # Sidebar, ChatPanel, StatusBar
 │   │       │   ├── chat/         # MessageList, InputArea
-│   │       │   ├── config/       # ProviderSettings
+│   │       │   ├── config/       # ProviderSettings, AppearanceSettings
 │   │       │   └── ModelSelector.tsx
 │   │       ├── stores/           # Zustand 状态管理
 │   │       ├── hooks/            # useSSE, useApi
-│   │       └── lib/api.ts        # API 客户端
+│   │       ├── lib/
+│   │       │   ├── api.ts        # API 客户端
+│   │       │   ├── theme.ts      # 主题工具函数
+│   │       │   └── themePresets.ts # 15 组内置配色
+│   │       └── styles/
+│   │           └── globals.css   # Tailwind v4 + oklch 颜色变量
 │   │
 │   └── db/         # Prisma + SQLite (@friend/db)
 │       └── prisma/
@@ -112,9 +118,10 @@ just build-tauri
 - **Framework**: React 19
 - **Build Tool**: Vite 6
 - **Desktop**: [Tauri v2](https://tauri.app)
-- **Styling**: Tailwind CSS v4
+- **Styling**: Tailwind CSS v4 + oklch 颜色格式
 - **State**: [Zustand](https://github.com/pmndrs/zustand)
 - **Icons**: [Lucide React](https://lucide.dev)
+- **Color System**: oklch - 现代感知均匀颜色空间
 
 ### 代码质量
 - **Formatter**: [oxfmt](https://github.com/oxc-project/oxc)
@@ -170,6 +177,20 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 
 或在应用内通过自定义 Provider 配置。
 
+### 主题配置
+
+1. **内置主题** - 15 组预设主题：
+   - **亮色主题**：Default Light, Gruvbox Light, Solarized Light, Catppuccin Latte, Rose Pine Dawn
+   - **暗色主题**：Default Dark, Dracula, Nord, Gruvbox Dark, Monokai, Catppuccin Mocha, Solarized Dark, Tokyo Night, One Dark Pro, Rose Pine Moon
+
+2. **自定义主题** - 点击顶部工具栏的 Server 图标，进入 Appearance 设置：
+   - 基于现有主题创建自定义主题
+   - 编辑 22 个语义化颜色变量
+   - 实时预览主题效果
+   - 导入/导出主题配置（JSON 格式）
+
+3. **主题存储** - 自定义主题保存在浏览器的 localStorage 中
+
 ## 🔌 API 端点
 
 ### 会话管理
@@ -218,6 +239,15 @@ export ANTHROPIC_API_KEY="sk-ant-..."
   - PascalCase: 组件、类型、接口
   - camelCase: 函数、变量、hooks
   - kebab-case: 目录名
+
+### 主题系统开发
+
+- **颜色格式**: 使用 oklch 而非 hex 或 rgb
+  ```typescript
+  const color: ColorDefinition = { l: 0.5, c: 0.1, h: 250 }; // 亮度、色度、色相
+  ```
+- **颜色变量**: 使用 CSS 变量，通过 `applyThemeToDOM()` 应用到 `:root`
+- **颜色转换**: 使用 `hexToOklch()` 和 `oklchToHex()` 进行格式转换
 
 ## 🤝 贡献
 

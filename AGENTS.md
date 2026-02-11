@@ -39,6 +39,9 @@ Friend 是一个 AI 编程助手桌面应用，使用 Tauri + React 构建前端
 | 共享类型                | `packages/shared/src/`            | models/api/events              |
 | 数据库 Schema           | `packages/db/prisma/schema.prisma`| SQLite + Prisma                |
 | API 客户端              | `packages/app/src/lib/api.ts`     | 封装 fetch，返回统一格式       |
+| 主题系统                | `packages/app/src/lib/theme.ts`   | 主题工具函数 + 颜色转换        |
+| 主题预设                | `packages/app/src/lib/themePresets.ts` | 15 组内置配色               |
+| 外观设置                | `packages/app/src/components/config/AppearanceContent.tsx` | 主题编辑器  |
 
 ---
 
@@ -116,4 +119,4 @@ just db-studio        # Prisma Studio
 - **无 CI/CD**: 无 `.github/workflows` 目录
 - **Tauri 图标**: `packages/app/src-tauri/icons/` 包含多平台图标
 - **SSE 代理**: Vite dev server 代理 `/api` 到 `:3001`
-- **Dark-First**: UI 使用 oklch 暗色主题，无亮色模式
+- **主题系统**: 15 组内置主题（5 亮色 + 10 暗色），使用 oklch 颜色格式，支持自定义主题导入/导出
