@@ -27,7 +27,7 @@ export const useToolStore = create<ToolState>((set) => ({
 
   addExecution: (exec) =>
     set((s) => ({
-      executions: [...s.executions, exec],
+      executions: [exec, ...s.executions],
       activeToolCallIds: new Set([...s.activeToolCallIds, exec.toolCallId]),
     })),
 
