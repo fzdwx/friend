@@ -12,7 +12,7 @@ export const sessionRoutes = new Elysia({ prefix: "/api/sessions" })
       const session = await getAgentManager().createSession(body);
       return { ok: true, data: session };
     },
-    { body: t.Object({ name: t.Optional(t.String()) }) },
+    { body: t.Object({ name: t.Optional(t.String()), workingPath: t.Optional(t.String()) }) },
   )
 
   .get("/:id", async ({ params: { id } }) => {

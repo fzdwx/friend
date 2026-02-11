@@ -160,6 +160,7 @@ interface ManagedSession {
   currentAssistantBlocks: AssistantContentBlock[];
   currentAssistantId: string | null;
   currentToolCalls: Map<string, { toolName: string; argsJson: string }>;
+  workingPath?: string;
 }
 
 interface EventSubscriber {
@@ -295,6 +296,7 @@ class AgentManager {
         currentAssistantBlocks: [],
         currentAssistantId: null,
         currentToolCalls: new Map(),
+        workingPath: s.workingPath ?? undefined,
       };
 
       // Restore model selection
@@ -423,10 +425,11 @@ class AgentManager {
       updatedAt: s.updatedAt,
       model: s.session.model ? `${s.session.model.provider}/${s.session.model.id}` : undefined,
       messageCount: s.messages.length,
+      workingPath: s.workingPath,
     }));
   }
 
-  async createSession(opts?: { name?: string }): Promise<SessionInfo> {
+  async createSession(opts?: { name?: string; workingPath?: string }): Promise<SessionInfo> {
     const id = crypto.randomUUID();
     const name = opts?.name ?? `Session ${this.managedSessions.size + 1}`;
 
@@ -449,6 +452,7 @@ class AgentManager {
       currentAssistantBlocks: [],
       currentAssistantId: null,
       currentToolCalls: new Map(),
+      workingPath: opts?.workingPath,
     };
 
     this.setupEventListeners(managed);
@@ -461,6 +465,7 @@ class AgentManager {
         name,
         createdAt: now,
         updatedAt: now,
+        workingPath: opts?.workingPath,
       },
     });
 
@@ -471,6 +476,7 @@ class AgentManager {
       updatedAt: managed.updatedAt,
       model: session.model ? `${session.model.provider}/${session.model.id}` : undefined,
       messageCount: 0,
+      workingPath: opts?.workingPath,
     };
   }
 
@@ -487,6 +493,7 @@ class AgentManager {
         : undefined,
       messageCount: managed.messages.length,
       messages: managed.messages,
+      workingPath: managed.workingPath,
     };
   }
 

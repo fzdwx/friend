@@ -6,6 +6,7 @@ export interface SessionInfo {
   updatedAt: string;
   model?: string;
   messageCount: number;
+  workingPath?: string;
 }
 
 export interface SessionDetail extends SessionInfo {
