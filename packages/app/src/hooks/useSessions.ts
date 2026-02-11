@@ -30,9 +30,9 @@ export function useSessions() {
         setActiveSession(res.data.id);
         setMessages([]);
         clearExecutions();
-        return res.data;
+        return { data: res.data };
       }
-      return null;
+      return { error: res.error || "Failed to create session" };
     },
     [addSession, setActiveSession, setMessages, clearExecutions],
   );

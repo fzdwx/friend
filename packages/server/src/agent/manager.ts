@@ -23,6 +23,7 @@ import type {
 } from "@friend/shared";
 import type { SSEEvent, GlobalSSEEvent } from "@friend/shared";
 import { prisma, type Prisma } from "@friend/db";
+import { stat } from "node:fs/promises";
 
 // ─── DB mapping types ──────────────────────────────────────
 
@@ -431,6 +432,13 @@ class AgentManager {
   }
 
   async createSession(opts?: { name?: string; workingPath?: string }): Promise<SessionInfo> {
+    if (opts?.workingPath) {
+      const s = await stat(opts.workingPath).catch(() => null);
+      if (!s || !s.isDirectory()) {
+        throw new Error(`Working path does not exist or is not a directory: ${opts.workingPath}`);
+      }
+    }
+
     const id = crypto.randomUUID();
     const name = opts?.name ?? `Session ${this.managedSessions.size + 1}`;
 

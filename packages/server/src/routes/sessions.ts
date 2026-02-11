@@ -9,8 +9,12 @@ export const sessionRoutes = new Elysia({ prefix: "/api/sessions" })
   .post(
     "/",
     async ({ body }) => {
-      const session = await getAgentManager().createSession(body);
-      return { ok: true, data: session };
+      try {
+        const session = await getAgentManager().createSession(body);
+        return { ok: true, data: session };
+      } catch (e) {
+        return { ok: false, error: String(e) };
+      }
     },
     { body: t.Object({ name: t.Optional(t.String()), workingPath: t.Optional(t.String()) }) },
   )
