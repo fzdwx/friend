@@ -4,16 +4,19 @@ import type { AppConfig, CustomProviderConfig } from "@friend/shared";
 interface ConfigState {
   config: AppConfig;
   customProviders: CustomProviderConfig[];
+  isSettingsOpen: boolean;
 
   setConfig: (config: AppConfig) => void;
   setCustomProviders: (providers: CustomProviderConfig[]) => void;
   addCustomProvider: (provider: CustomProviderConfig) => void;
   removeCustomProvider: (name: string) => void;
+  setIsSettingsOpen: (open: boolean) => void;
 }
 
 export const useConfigStore = create<ConfigState>((set) => ({
   config: { thinkingLevel: "medium", customProviders: [] },
   customProviders: [],
+  isSettingsOpen: false,
 
   setConfig: (config) => set({ config, customProviders: config.customProviders || [] }),
   setCustomProviders: (providers) => set({ customProviders: providers }),
@@ -25,4 +28,5 @@ export const useConfigStore = create<ConfigState>((set) => ({
     set((s) => ({
       customProviders: s.customProviders.filter((p) => p.name !== name),
     })),
+  setIsSettingsOpen: (isSettingsOpen) => set({ isSettingsOpen }),
 }));

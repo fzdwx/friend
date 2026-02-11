@@ -4,19 +4,10 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { ChatPanel } from "@/components/layout/ChatPanel";
 import { ActivityPanel } from "@/components/layout/ActivityPanel";
 import { StatusBar } from "@/components/layout/StatusBar";
-import { ProviderSettings } from "@/components/config/ProviderSettings";
-import { ModelSelector } from "@/components/ModelSelector";
+import { SettingsModal } from "@/components/config/SettingsModal";
 import { useGlobalSSE } from "@/hooks/useSSE";
 import { useApi } from "@/hooks/useApi";
-
-function TopBar() {
-  return (
-    <div className="flex items-center justify-between gap-4 px-3 py-1.5 border-b border-border bg-background">
-      <ModelSelector />
-      <ProviderSettings />
-    </div>
-  );
-}
+import { useConfigStore } from "@/stores/configStore";
 
 function SSEConnector() {
   useGlobalSSE();
@@ -25,6 +16,7 @@ function SSEConnector() {
 
 export function App() {
   const { loadConfig } = useApi();
+  const isSettingsOpen = useConfigStore((s) => s.isSettingsOpen);
 
   useEffect(() => {
     loadConfig();
@@ -37,7 +29,6 @@ export function App() {
         sidebar={<Sidebar />}
         main={
           <div className="flex flex-col h-full">
-            <TopBar />
             <div className="flex-1 overflow-hidden">
               <ChatPanel />
             </div>
@@ -46,6 +37,7 @@ export function App() {
         activity={<ActivityPanel />}
         statusBar={<StatusBar />}
       />
+      {isSettingsOpen && <SettingsModal />}
     </>
   );
 }

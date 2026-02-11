@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { useConfigStore } from "@/stores/configStore";
 import type { CustomProviderConfig, CustomModelConfig } from "@friend/shared";
-import { Plus, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 
 const DEFAULT_MODEL: CustomModelConfig = {
   id: "",
@@ -13,9 +13,9 @@ const DEFAULT_MODEL: CustomModelConfig = {
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 };
 
-export function SettingsPage() {
+export function ProvidersContent() {
   const customProviders = useConfigStore((s) => s.customProviders);
-  const { addCustomProvider, removeCustomProvider, setIsSettingsOpen } = useConfigStore();
+  const { addCustomProvider, removeCustomProvider } = useConfigStore();
 
   const [editing, setEditing] = useState<CustomProviderConfig | null>(null);
 
@@ -31,93 +31,75 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
-        <button
-          onClick={() => setIsSettingsOpen(false)}
-          className="p-1 rounded-md hover:bg-accent transition-colors"
-          title="Back"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-        <h1 className="text-sm font-semibold">Settings</h1>
-      </div>
+    <div className="flex-1 overflow-y-auto p-6">
+      <div className="max-w-[560px] mx-auto space-y-4">
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold">Custom Providers</h2>
+            <button
+              onClick={() =>
+                setEditing({
+                  name: "",
+                  baseUrl: "",
+                  apiKey: "",
+                  api: "openai-completions",
+                  models: [{ ...DEFAULT_MODEL }],
+                })
+              }
+              className="flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs hover:bg-primary/90"
+            >
+              <Plus className="w-3 h-3" />
+              Add Provider
+            </button>
+          </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="max-w-[560px] mx-auto space-y-4">
-          {/* Section: Custom Providers */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Custom Providers
-              </h2>
-              <button
-                onClick={() =>
-                  setEditing({
-                    name: "",
-                    baseUrl: "",
-                    apiKey: "",
-                    api: "openai-completions",
-                    models: [{ ...DEFAULT_MODEL }],
-                  })
-                }
-                className="flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs hover:bg-primary/90"
-              >
-                <Plus className="w-3 h-3" />
-                Add Provider
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {customProviders.map((p) => (
-                <div key={p.name} className="border border-border rounded-md p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-medium">{p.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {p.baseUrl} · {p.api || "openai-completions"}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {p.models.length} model{p.models.length !== 1 ? "s" : ""}:{" "}
-                        {p.models.map((m) => m.id).join(", ")}
-                      </div>
+          <div className="space-y-3">
+            {customProviders.map((p) => (
+              <div key={p.name} className="border border-border rounded-md p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium">{p.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {p.baseUrl} · {p.api || "openai-completions"}
                     </div>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() =>
-                          setEditing({ ...p, models: p.models.map((m) => ({ ...m })) })
-                        }
-                        className="px-2 py-1 text-xs hover:bg-accent rounded"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(p.name)}
-                        className="p-1 hover:bg-destructive/20 rounded"
-                      >
-                        <Trash2 className="w-3 h-3 text-muted-foreground" />
-                      </button>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {p.models.length} model{p.models.length !== 1 ? "s" : ""}:{" "}
+                      {p.models.map((m) => m.id).join(", ")}
                     </div>
                   </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => setEditing({ ...p, models: p.models.map((m) => ({ ...m })) })}
+                      className="px-2 py-1 text-xs hover:bg-accent rounded"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(p.name)}
+                      className="p-1 hover:bg-destructive/20 rounded"
+                    >
+                      <Trash2 className="w-3 h-3 text-muted-foreground" />
+                    </button>
+                  </div>
                 </div>
-              ))}
+              </div>
+            ))}
 
-              {customProviders.length === 0 && !editing && (
-                <div className="text-center py-8 text-xs text-muted-foreground border border-dashed border-border rounded-md">
-                  No custom providers configured.
-                  <br />
-                  Add one to use custom OpenAI-compatible endpoints.
-                </div>
-              )}
+            {customProviders.length === 0 && !editing && (
+              <div className="text-center py-8 text-xs text-muted-foreground border border-dashed border-border rounded-md">
+                No custom providers configured.
+                <br />
+                Add one to use custom OpenAI-compatible endpoints.
+              </div>
+            )}
 
-              {editing && (
-                <ProviderForm
-                  provider={editing}
-                  onSave={handleSave}
-                  onCancel={() => setEditing(null)}
-                />
-              )}
-            </div>
+            {editing && (
+              <ProviderForm
+                provider={editing}
+                onSave={handleSave}
+                onCancel={() => setEditing(null)}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -170,7 +152,6 @@ function ProviderForm({
         {provider.name ? "Edit Provider" : "New Provider"}
       </div>
 
-      {/* Provider fields */}
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className="text-[11px] text-muted-foreground block mb-0.5">Provider Name</label>
@@ -215,7 +196,6 @@ function ProviderForm({
         </select>
       </div>
 
-      {/* Models */}
       <div>
         <div className="flex items-center justify-between mb-1">
           <label className="text-[11px] text-muted-foreground font-medium">Models</label>
@@ -292,7 +272,6 @@ function ProviderForm({
         </div>
       </div>
 
-      {/* Actions */}
       <div className="flex justify-end gap-2 pt-1">
         <button onClick={onCancel} className="px-3 py-1.5 text-xs hover:bg-accent rounded-md">
           Cancel

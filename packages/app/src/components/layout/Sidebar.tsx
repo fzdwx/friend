@@ -1,11 +1,13 @@
 import { useEffect } from "react";
 import { useSessions } from "@/hooks/useSessions";
-import { Plus, MessageSquare, Trash2 } from "lucide-react";
+import { useConfigStore } from "@/stores/configStore";
+import { Plus, MessageSquare, Trash2, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Sidebar() {
   const { sessions, activeSessionId, loadSessions, createSession, switchSession, deleteSession } =
     useSessions();
+  const setIsSettingsOpen = useConfigStore((s) => s.setIsSettingsOpen);
 
   useEffect(() => {
     loadSessions();
@@ -13,7 +15,6 @@ export function Sidebar() {
 
   return (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
-      {/* Header */}
       <div className="p-3 border-b border-sidebar-border">
         <div className="flex items-center justify-between">
           <span className="text-sm font-semibold tracking-wide">Friend</span>
@@ -27,7 +28,6 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Session List */}
       <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
         <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium uppercase tracking-wider">
           Sessions
@@ -63,6 +63,16 @@ export function Sidebar() {
             Click + to start.
           </div>
         )}
+      </div>
+
+      <div className="p-2 border-t border-sidebar-border">
+        <button
+          onClick={() => setIsSettingsOpen(true)}
+          className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent/50 transition-colors"
+        >
+          <Settings className="w-3.5 h-3.5" />
+          <span>Settings</span>
+        </button>
       </div>
     </div>
   );
