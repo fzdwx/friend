@@ -38,22 +38,35 @@ export function ToolBlock({ toolCallId, toolName, args, isStreaming, toolResult 
   const renderer = getToolRenderer(toolName);
   const summary = renderer.getSummary(parsedArgs);
 
-  // Derive result from toolStore execution (streaming) or toolResult prop (historical)
-  const resultText = execution?.result ?? (toolResult ? extractResultText(toolResult) : undefined);
-  const isError = execution?.isError ?? toolResult?.isError ?? false;
+  // Derive result: prefer toolResult prop (stable for historical), fallback to toolStore (live for streaming)
+  const resultText = toolResult ? extractResultText(toolResult) : execution?.result;
+  const isError = toolResult?.isError ?? execution?.isError ?? false;
 
   // Derive phase
-  const phase = execution
-    ? execution.status === "running"
-      ? "executing"
-      : execution.isError
-        ? "error"
-        : "completed"
-    : toolResult
+  // For streaming (live) tool calls: use toolStore execution status
+  // For historical tool calls: use toolResult prop, never show spinner
+  let phase: "calling" | "executing" | "completed" | "error";
+  if (isStreaming) {
+    phase = execution
+      ? execution.status === "running"
+        ? "executing"
+        : execution.isError
+          ? "error"
+          : "completed"
+      : "calling";
+  } else {
+    phase = toolResult
       ? toolResult.isError
         ? "error"
         : "completed"
-      : "calling";
+      : execution
+        ? execution.status === "running"
+          ? "executing"
+          : execution.isError
+            ? "error"
+            : "completed"
+        : "completed";
+  }
 
   const statusIcon =
     phase === "calling" || phase === "executing" ? (

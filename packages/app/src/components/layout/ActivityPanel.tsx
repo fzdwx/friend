@@ -1,9 +1,51 @@
-import { useToolStore, type ToolExecution } from "@/stores/toolStore";
-import { ToolExecutionCard } from "@/components/tools/ToolExecution";
+import { useMemo, useRef, useEffect } from "react";
 import { Activity } from "lucide-react";
+import { useSessionStore } from "@/stores/sessionStore";
+import type { Message, UserMessage, AssistantMessage, ToolResultMessage } from "@friend/shared";
+import { TurnGroup, type Turn } from "@/components/activity/TurnGroup";
+import { StreamingTurn } from "@/components/activity/StreamingTurn";
+
+function groupByTurns(messages: Message[]): Turn[] {
+  const turns: Turn[] = [];
+  let current: Turn | null = null;
+
+  for (const msg of messages) {
+    if (msg.role === "user") {
+      current = {
+        index: turns.length,
+        userMessage: msg as UserMessage,
+        assistantMessages: [],
+        toolResults: new Map(),
+      };
+      turns.push(current);
+    } else if (msg.role === "assistant" && current) {
+      current.assistantMessages.push(msg as AssistantMessage);
+    } else if (msg.role === "toolResult" && current) {
+      const tr = msg as ToolResultMessage;
+      current.toolResults.set(tr.toolCallId, tr);
+    }
+  }
+  return turns;
+}
 
 export function ActivityPanel() {
-  const executions = useToolStore((s) => s.executions);
+  const messages = useSessionStore((s) => s.messages);
+  const isStreaming = useSessionStore((s) => s.isStreaming);
+  const topRef = useRef<HTMLDivElement>(null);
+
+  const turns = useMemo(() => groupByTurns(messages), [messages]);
+
+  // Newest turns first (reversed)
+  const reversedTurns = useMemo(() => [...turns].reverse(), [turns]);
+
+  // Auto-scroll to top when streaming (newest is at top)
+  useEffect(() => {
+    if (isStreaming) {
+      topRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [isStreaming, turns]);
+
+  const hasTurns = turns.length > 0 || isStreaming;
 
   return (
     <div className="flex flex-col h-full bg-card">
@@ -15,12 +57,22 @@ export function ActivityPanel() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-2 space-y-2">
-        {executions.length === 0 ? (
+        {!hasTurns ? (
           <div className="flex items-center justify-center h-32 text-xs text-muted-foreground">
-            Tool executions will appear here
+            Thinking and tool activity will appear here
           </div>
         ) : (
-          executions.map((exec) => <ToolExecutionCard key={exec.toolCallId} execution={exec} />)
+          <>
+            <div ref={topRef} />
+            {isStreaming && <StreamingTurn />}
+            {reversedTurns.map((turn) => (
+              <TurnGroup
+                key={`turn-${turn.index}`}
+                turn={turn}
+                defaultExpanded={!isStreaming && turn.index === turns.length - 1}
+              />
+            ))}
+          </>
         )}
       </div>
     </div>

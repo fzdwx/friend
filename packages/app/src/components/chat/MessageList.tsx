@@ -1,11 +1,9 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from "react";
-import type { Message, UserMessage as PiUserMessage, AssistantMessage as PiAssistantMessage, ToolResultMessage } from "@friend/shared";
+import type { Message, UserMessage as PiUserMessage, AssistantMessage as PiAssistantMessage } from "@friend/shared";
 import { UserMessage } from "./UserMessage";
 import { AssistantMessage } from "./AssistantMessage";
-import { ThinkingBlock } from "./ThinkingBlock";
-import { ToolBlock } from "@/components/tools/ToolBlock";
-import { SessionStatus } from "./SessionStatus";
 import { useSessionStore } from "@/stores/sessionStore";
+import { SessionStatus } from "./SessionStatus";
 import { ArrowDown } from "lucide-react";
 
 interface MessageListProps {
@@ -20,6 +18,7 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const userScrolledRef = useRef(false);
+  const setActiveTurnIndex = useSessionStore((s) => s.setActiveTurnIndex);
 
   const checkAtBottom = useCallback(() => {
     const el = containerRef.current;
@@ -73,50 +72,60 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
     }
   }, [messages, scrollToBottom]);
 
-  // Build a map of toolCallId → ToolResultMessage for historical tool results
-  const toolResultsById = useMemo(() => {
-    const map = new Map<string, ToolResultMessage>();
+  // Build chat messages with their turn indices
+  const chatMessagesWithTurns = useMemo(() => {
+    const result: { msg: Message; turnIndex: number }[] = [];
+    let turnIndex = -1;
+
     for (const m of messages) {
-      if (m.role === "toolResult") {
-        map.set(m.toolCallId, m as ToolResultMessage);
+      if (m.role === "user") {
+        turnIndex++;
+        result.push({ msg: m, turnIndex });
+      } else if (m.role === "assistant") {
+        const content = m.content;
+        if (!content || content.length === 0) continue;
+        const hasText = content.some(
+          (block) => block.type === "text" && block.text.trim() !== "",
+        );
+        if (hasText && turnIndex >= 0) {
+          result.push({ msg: m, turnIndex });
+        }
       }
     }
-    return map;
+    return result;
   }, [messages]);
 
-  const chatMessages = useMemo(
-    () =>
-      messages.filter((m) => {
-        if (m.role === "user") return true;
-        if (m.role === "assistant") {
-          const content = m.content;
-          if (!content || content.length === 0) return false;
-          return content.some(
-            (block) =>
-              block.type === "toolCall" ||
-              (block.type === "text" && block.text.trim() !== ""),
+  return (
+    <div ref={containerRef} className="relative flex-1 overflow-y-auto px-4 pt-4 pb-10 space-y-3">
+      {chatMessagesWithTurns.map(({ msg, turnIndex }, i) => {
+        if (msg.role === "user") {
+          return (
+            <div
+              key={`user-${msg.timestamp}-${i}`}
+              className="cursor-pointer"
+              onClick={() => setActiveTurnIndex(turnIndex)}
+            >
+              <UserMessage message={msg as PiUserMessage} />
+            </div>
           );
         }
-        return false; // filter out toolResult
-      }),
-    [messages],
-  );
-
-  return (
-    <div ref={containerRef} className="relative flex-1 overflow-y-auto px-4 pt-4 pb-10 space-y-4">
-      {chatMessages.map((msg, i) => {
-        if (msg.role === "user") {
-          return <UserMessage key={`user-${msg.timestamp}-${i}`} message={msg as PiUserMessage} />;
-        }
         if (msg.role === "assistant") {
-          return <AssistantMessage key={`assistant-${msg.timestamp}-${i}`} message={msg as PiAssistantMessage} toolResults={toolResultsById} />;
+          return (
+            <div
+              key={`assistant-${msg.timestamp}-${i}`}
+              className="cursor-pointer"
+              onClick={() => setActiveTurnIndex(turnIndex)}
+            >
+              <AssistantMessage message={msg as PiAssistantMessage} />
+            </div>
+          );
         }
         return null;
       })}
 
-      {/* Streaming content - isolated to avoid re-rendering historical messages */}
+      {/* Streaming text - isolated to avoid re-rendering historical messages */}
       {isStreaming && (
-        <StreamingContent
+        <StreamingText
           scrollToBottom={scrollToBottom}
           userScrolledRef={userScrolledRef}
         />
@@ -142,10 +151,10 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
 }
 
 /**
- * Reads streaming state from the store directly.
- * Re-renders independently from the historical message list.
+ * Only renders streaming text as a bubble.
+ * Thinking and tool calls are shown in ActivityPanel.
  */
-function StreamingContent({
+function StreamingText({
   scrollToBottom,
   userScrolledRef,
 }: {
@@ -153,48 +162,26 @@ function StreamingContent({
   userScrolledRef: React.RefObject<boolean>;
 }) {
   const streamingText = useSessionStore((s) => s.streamingText);
-  const streamingThinking = useSessionStore((s) => s.streamingThinking);
-  const streamingBlocks = useSessionStore((s) => s.streamingBlocks);
-  const streamingPhase = useSessionStore((s) => s.streamingPhase);
 
-  // Auto-scroll when streaming content changes
+  // Auto-scroll when streaming text changes
   useEffect(() => {
     if (!userScrolledRef.current) {
       scrollToBottom();
     }
-  }, [streamingText, streamingThinking, streamingBlocks, streamingPhase, scrollToBottom, userScrolledRef]);
-
-  const hasContent = streamingText || streamingThinking || streamingBlocks.length > 0;
+  }, [streamingText, scrollToBottom, userScrolledRef]);
 
   return (
     <>
-      {hasContent && (
-        <div className="space-y-2">
-          {streamingThinking && <ThinkingBlock content={streamingThinking} isStreaming />}
-          {streamingBlocks.map((tc) => (
-            <ToolBlock
-              key={tc.id}
-              toolCallId={tc.id}
-              toolName={tc.name}
-              args={JSON.stringify(tc.arguments)}
-              isStreaming
-            />
-          ))}
-          {streamingText && (
-            <div className="prose prose-invert prose-sm max-w-none">
-              <AssistantMessage
-                message={{
-                  role: "assistant",
-                  content: [{ type: "text", text: streamingText }],
-                  timestamp: Date.now(),
-                } as PiAssistantMessage}
-                isStreaming
-              />
-            </div>
-          )}
-        </div>
+      {streamingText && (
+        <AssistantMessage
+          message={{
+            role: "assistant",
+            content: [{ type: "text", text: streamingText }],
+            timestamp: Date.now(),
+          } as PiAssistantMessage}
+          isStreaming
+        />
       )}
-
       <SessionStatus />
     </>
   );

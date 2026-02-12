@@ -19,10 +19,12 @@ interface SessionState {
   streamingThinking: string;
   streamingBlocks: ToolCall[];
   streamingPhase: StreamingPhase;
+  activeTurnIndex: number | null;
   availableModels: ModelInfo[];
   currentModel: ModelInfo | null;
 
   // Actions
+  setActiveTurnIndex: (index: number | null) => void;
   setSessions: (sessions: SessionInfo[]) => void;
   addSession: (session: SessionInfo) => void;
   removeSession: (id: string) => void;
@@ -48,9 +50,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   streamingThinking: "",
   streamingBlocks: [] as ToolCall[],
   streamingPhase: "idle" as StreamingPhase,
+  activeTurnIndex: null,
   availableModels: [],
   currentModel: null,
 
+  setActiveTurnIndex: (index) => set({ activeTurnIndex: index }),
   setSessions: (sessions) => set({ sessions }),
   addSession: (session) => set((s) => ({ sessions: [...s.sessions, session] })),
   removeSession: (id) =>

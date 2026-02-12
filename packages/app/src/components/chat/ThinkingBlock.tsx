@@ -1,14 +1,23 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ChevronRight, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ThinkingBlockProps {
   content: string;
   isStreaming?: boolean;
+  defaultExpanded?: boolean;
 }
 
-export function ThinkingBlock({ content, isStreaming }: ThinkingBlockProps) {
-  const [expanded, setExpanded] = useState(isStreaming);
+export function ThinkingBlock({ content, isStreaming, defaultExpanded }: ThinkingBlockProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded ?? isStreaming);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when content grows during streaming
+  useEffect(() => {
+    if (expanded && isStreaming && contentRef.current) {
+      contentRef.current.scrollTop = contentRef.current.scrollHeight;
+    }
+  }, [content, expanded, isStreaming]);
 
   if (!content) return null;
 
@@ -27,7 +36,10 @@ export function ThinkingBlock({ content, isStreaming }: ThinkingBlockProps) {
         <span className="ml-auto text-[10px]">{content.length} chars</span>
       </button>
       {expanded && (
-        <div className="px-3 py-2 text-xs text-muted-foreground border-t border-border whitespace-pre-wrap font-mono leading-relaxed max-h-64 overflow-y-auto">
+        <div
+          ref={contentRef}
+          className="px-3 py-2 text-xs text-muted-foreground border-t border-border whitespace-pre-wrap font-mono leading-relaxed max-h-64 overflow-y-auto"
+        >
           {content}
         </div>
       )}
