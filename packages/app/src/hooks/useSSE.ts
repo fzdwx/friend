@@ -33,6 +33,17 @@ export function useGlobalSSE() {
         return;
       }
 
+      // Handle session rename before session filter (updates sidebar for any session)
+      if (event.type === "session_renamed") {
+        const sessions = useSessionStore.getState().sessions;
+        useSessionStore.getState().setSessions(
+          sessions.map((s) =>
+            s.id === event.sessionId ? { ...s, name: event.newName } : s,
+          ),
+        );
+        return;
+      }
+
       if (event.sessionId !== activeSessionRef.current) return;
 
       // Ensure streaming mode is on for events that imply active streaming
@@ -152,6 +163,7 @@ export function useGlobalSSE() {
       "auto_retry_end",
       "error",
       "session_updated",
+      "session_renamed",
       "config_updated",
     ];
     for (const t of eventTypes) {

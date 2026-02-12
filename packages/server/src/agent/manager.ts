@@ -7,6 +7,7 @@ import {
   type AgentSessionEvent,
   type SessionStats,
 } from "@mariozechner/pi-coding-agent";
+import { completeSimple } from "@mariozechner/pi-ai";
 import type {
   SessionInfo,
   SessionDetail,
@@ -28,6 +29,8 @@ import {
   createGetThemesTool,
   createGenerateThemeTool,
   createSetThemeTool,
+  createGrepTool,
+  createGlobTool,
 } from "./tools";
 import type { IAgentManager } from "./tools";
 
@@ -164,6 +167,8 @@ export class AgentManager implements IAgentManager {
           createGetThemesTool(this),
           createGenerateThemeTool(this),
           createSetThemeTool(this),
+          createGrepTool(),
+          createGlobTool(),
         ],
       });
 
@@ -332,6 +337,8 @@ export class AgentManager implements IAgentManager {
         createGetThemesTool(this),
         createGenerateThemeTool(this),
         createSetThemeTool(this),
+        createGrepTool(),
+        createGlobTool(),
       ],
     });
 
@@ -433,19 +440,110 @@ export class AgentManager implements IAgentManager {
     return true;
   }
 
-  private generateSessionName(userMessage: string): string {
-    // 提取消息内容生成标题
-    const text = userMessage.trim();
-    if (text.length <= 50) {
-      return text;
+  private static TITLE_PROMPT = `You are a title generator. You output ONLY a thread title. Nothing else.
+
+<task>
+Generate a brief title that would help the user find this conversation later.
+
+Follow all rules in <rules>
+Use the <examples> so you know what a good title looks like.
+Your output must be:
+- A single line
+- ≤50 characters
+- No explanations
+</task>
+
+<rules>
+- you MUST use the same language as the user message you are summarizing
+- Title must be grammatically correct and read naturally - no word salad
+- Never include tool names in the title (e.g. "read tool", "bash tool", "edit tool")
+- Focus on the main topic or question the user needs to retrieve
+- Vary your phrasing - avoid repetitive patterns like always starting with "Analyzing"
+- When a file is mentioned, focus on WHAT the user wants to do WITH the file, not just that they shared it
+- Keep exact: technical terms, numbers, filenames, HTTP codes
+- Remove: the, this, my, a, an
+- Never assume tech stack
+- Never use tools
+- NEVER respond to questions, just generate a title for the conversation
+- The title should NEVER include "summarizing" or "generating" when generating a title
+- DO NOT SAY YOU CANNOT GENERATE A TITLE OR COMPLAIN ABOUT THE INPUT
+- Always output something meaningful, even if the input is minimal.
+- If the user message is short or conversational (e.g. "hello", "lol", "what's up", "hey"):
+  → create a title that reflects the user's tone or intent (such as Greeting, Quick check-in, Light chat, Intro message, etc.)
+</rules>
+
+<examples>
+"debug 500 errors in production" → Debugging production 500 errors
+"refactor user service" → Refactoring user service
+"why is app.js failing" → app.js failure investigation
+"implement rate limiting" → Rate limiting implementation
+"how do I connect postgres to my API" → Postgres API connection
+"best practices for React hooks" → React hooks best practices
+"@src/auth.ts can you add refresh token support" → Auth refresh token support
+"@utils/parser.ts this is broken" → Parser bug fix
+"look at @config.json" → Config review
+"@App.tsx add dark mode toggle" → Dark mode toggle in App
+</examples>`;
+
+  private async generateSessionName(managed: ManagedSession): Promise<string> {
+    const model = managed.session.model;
+    if (!model) return this.fallbackSessionName(managed);
+
+    // Collect user messages as context for title generation
+    const userMessages = managed.session.messages
+      .filter((m) => m.role === "user")
+      .map((m) => {
+        const text = typeof m.content === "string"
+          ? m.content
+          : m.content.filter((c: any) => c.type === "text").map((c: any) => c.text).join("");
+        return text;
+      })
+      .filter(Boolean);
+
+    if (userMessages.length === 0) return this.fallbackSessionName(managed);
+
+    try {
+      const result = await completeSimple(model, {
+        systemPrompt: AgentManager.TITLE_PROMPT,
+        messages: [
+          {
+            role: "user",
+            content: userMessages.join("\n\n"),
+            timestamp: Date.now(),
+          },
+        ],
+      }, { maxTokens: 60 });
+
+      const title = result.content
+        .filter((c) => c.type === "text")
+        .map((c) => (c as { type: "text"; text: string }).text)
+        .join("")
+        .trim()
+        .replace(/^["']|["']$/g, ""); // strip surrounding quotes
+
+      return title || this.fallbackSessionName(managed);
+    } catch (err) {
+      console.warn("AI title generation failed, using fallback:", err);
+      return this.fallbackSessionName(managed);
     }
+  }
 
-    // 截取前 50 个字符，找到最近的单词边界
-    const first50 = text.substring(0, 50);
+  private fallbackSessionName(managed: ManagedSession): string {
+    const lastUserMsg = managed.session.messages
+      .filter((m) => m.role === "user")
+      .pop();
+    if (!lastUserMsg) return managed.name;
+
+    const text = typeof lastUserMsg.content === "string"
+      ? lastUserMsg.content
+      : lastUserMsg.content.filter((c: any) => c.type === "text").map((c: any) => c.text).join("");
+
+    const trimmed = text.trim();
+    if (trimmed.length <= 50) return trimmed;
+
+    const first50 = trimmed.substring(0, 50);
     const lastSpace = first50.lastIndexOf(" ");
-    const trunc = lastSpace > 20 ? first50.substring(0, lastSpace) : first50;
-
-    return trunc + "...";
+    return (lastSpace > 20 ? first50.substring(0, lastSpace) : first50) + "...";
   }
 
   async prompt(id: string, message: string): Promise<void> {
@@ -734,8 +832,7 @@ export class AgentManager implements IAgentManager {
 
         // Auto-rename after 3rd user message if not already renamed
         if (currentCount === 3 && !managed.autoRenamed && managed.name.startsWith("Session ")) {
-          const lastUserMessage = messages[messages.length - 1];
-          this.autoRenameSession(managed, lastUserMessage);
+          this.autoRenameSession(managed);
         }
       }
     }
@@ -744,24 +841,10 @@ export class AgentManager implements IAgentManager {
     this.broadcast(managed, event);
   }
 
-  private async autoRenameSession(managed: ManagedSession, userMessage: Message): Promise<void> {
-    if (userMessage.role !== "user") return;
-
-    // Handle both string and array content formats
-    let text = "";
-    if (typeof userMessage.content === "string") {
-      text = userMessage.content;
-    } else {
-      const textContent = userMessage.content.find((c: any) => c.type === "text");
-      if (textContent && "text" in textContent) {
-        text = textContent.text;
-      }
-    }
-
-    if (!text) return;
-
-    const newName = this.generateSessionName(text);
-    if (newName === managed.name) return;
+  private async autoRenameSession(managed: ManagedSession): Promise<void> {
+    const oldName = managed.name;
+    const newName = await this.generateSessionName(managed);
+    if (newName === oldName) return;
 
     await this.renameSession(managed.id, newName);
     managed.autoRenamed = true;
@@ -770,7 +853,7 @@ export class AgentManager implements IAgentManager {
     this.broadcast(managed, {
       type: "session_renamed",
       newName,
-      oldName: managed.name,
+      oldName,
     });
   }
 }

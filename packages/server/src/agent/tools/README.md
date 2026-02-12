@@ -8,6 +8,8 @@ This directory contains custom tools that extend the capabilities of the AI agen
 tools/
 ├── index.ts                 # Main export file
 ├── addCustomProvider.ts     # Tool for adding custom providers
+├── grep.ts                 # Tool for searching file contents using ripgrep
+├── glob.ts                 # Tool for finding files using glob patterns
 ├── getThemes.ts            # Tool for getting available themes
 ├── generateTheme.ts        # Tool for generating custom themes
 ├── setTheme.ts             # Tool for setting active theme
@@ -20,6 +22,153 @@ tools/
 Custom tools are self-contained functions that can be called by the agent to perform specific actions. Each tool is defined as a separate module in this directory.
 
 ## Available Tools
+
+### Grep / Search Files (`grep`)
+
+**File:** `grep.ts`
+
+Search for text patterns in files using ripgrep. Supports regular expressions, file filtering with glob patterns, case-sensitive/insensitive searching, and path validation.
+
+#### Features
+
+- ✅ Regular expression pattern matching
+- ✅ Custom search paths with validation
+- ✅ File include/exclude filtering using glob patterns
+- ✅ Case-sensitive or case-insensitive search
+- ✅ Configurable result limits
+- ✅ Hidden files support
+- ✅ Results sorted by file modification time (most recent first)
+- ✅ Path validation (ensures directory is accessible)
+- ✅ Detailed search metadata in response
+
+#### Parameters
+
+- `pattern` (string, required): The regex pattern to search for in file contents
+- `path` (string, optional): The directory to search in. Defaults to current working directory
+- `include` (string, optional): File pattern to include (e.g., "*.js", "*.{ts,tsx}")
+- `exclude` (string, optional): File pattern to exclude (e.g., "*.test.js", "node_modules")
+- `caseSensitive` (boolean, optional): Case-sensitive search. Defaults to false
+- `maxResults` (number, optional): Maximum number of results to return. Defaults to 100
+
+#### Usage Examples
+
+```typescript
+// Search for a function name in all TypeScript files
+await tool.execute("grep-1", {
+  pattern: "AgentManager",
+  path: "./src/agent",
+  include: "*.ts",
+}, signal, undefined, ctx);
+
+// Case-sensitive search
+await tool.execute("grep-2", {
+  pattern: "Agent",
+  path: "./src/agent",
+  caseSensitive: true,
+  maxResults: 10,
+}, signal, undefined, ctx);
+
+// Search excluding test files
+await tool.execute("grep-3", {
+  pattern: "import",
+  path: "./src",
+  include: "*.ts",
+  exclude: "*.test.ts",
+}, signal, undefined, ctx);
+```
+
+#### Response Details
+
+The tool returns both a formatted text output and a details object:
+
+```typescript
+{
+  content: [{ type: "text", text: "Found 5 matches\n..." }],
+  details: {
+    matches: 5,
+    truncated: false,
+    searchPath: "/absolute/path/to/search",
+    pattern: "search-term"
+  }
+}
+```
+  path: "./src",
+  include: "*.ts",
+  exclude: "*.test.ts",
+}, signal, undefined, ctx);
+```
+
+### Glob / Find Files (`glob`)
+
+**File:** `glob.ts`
+
+Find files matching a glob pattern using ripgrep. Supports wildcards like '*', '**', and recursive patterns.
+
+#### Features
+
+- ✅ Glob pattern matching (supports *, **, ?, and character classes)
+- ✅ Custom search paths with validation
+- ✅ Hidden files support
+- ✅ Results sorted by file modification time (most recent first)
+- ✅ Configurable result limits
+- ✅ Path validation (ensures directory is accessible)
+- ✅ Detailed search metadata in response
+
+#### Glob Pattern Examples
+
+- `*.ts` - All TypeScript files in the current directory
+- `**/*.ts` - All TypeScript files in the current directory and subdirectories
+- `src/**/*.js` - All JavaScript files under the src directory
+- `*.{ts,tsx}` - All TypeScript and TSX files
+- `test_*.js` - All JavaScript files starting with "test_"
+- `[A-Z]*.md` - All Markdown files starting with uppercase letters
+
+#### Parameters
+
+- `pattern` (string, required): The glob pattern to match files against (e.g., '*.ts', 'src/**/*.js')
+- `path` (string, optional): The directory to search in. Defaults to current working directory
+- `maxResults` (number, optional): Maximum number of results to return. Defaults to 100
+
+#### Usage Examples
+
+```typescript
+// Find all TypeScript files
+await tool.execute("glob-1", {
+  pattern: "*.ts",
+  path: "./src",
+}, signal, undefined, ctx);
+
+// Find all JavaScript files recursively
+await tool.execute("glob-2", {
+  pattern: "**/*.js",
+}, signal, undefined, ctx);
+
+// Find all test files
+await tool.execute("glob-3", {
+  pattern: "**/*.test.ts",
+  path: "./src",
+  maxResults: 20,
+}, signal, undefined, ctx);
+```
+
+#### Response Details
+
+The tool returns both a formatted text output and a details object:
+
+```typescript
+{
+  content: [{
+    type: "text",
+    text: "Found 5 files\n\n/path/to/file1.ts\n/path/to/file2.ts\n..."
+  }],
+  details: {
+    count: 5,
+    truncated: false,
+    searchPath: "/absolute/path/to/search",
+    pattern: "*.ts"
+  }
+}
+```
 
 ### Add Custom Provider (`add_custom_provider`)
 
@@ -91,6 +240,8 @@ import {
   createGetThemesTool,
   createGenerateThemeTool,
   createSetThemeTool,
+  createGrepTool,
+  createGlobTool,
 } from "./tools/index.js";
 
 // Create tools with an agent manager instance
@@ -99,6 +250,8 @@ const tools = [
   createGetThemesTool(agentManager),
   createGenerateThemeTool(agentManager),
   createSetThemeTool(agentManager),
+  createGrepTool(),
+  createGlobTool(),
 ];
 
 // Use with AgentSession
@@ -164,6 +317,8 @@ customTools: [
   createGetThemesTool(this),
   createGenerateThemeTool(this),
   createSetThemeTool(this),
+  createGrepTool(),
+  createGlobTool(),
   createMyTool(this),
 ];
 ```

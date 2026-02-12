@@ -135,6 +135,7 @@ export function Sidebar() {
         {sessions.map((session) => (
           <div
             key={session.id}
+            onClick={() => switchSession(session.id)}
             className={cn(
               "group flex items-start gap-2 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors",
               activeSessionId === session.id
