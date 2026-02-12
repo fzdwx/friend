@@ -58,12 +58,33 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   setSessions: (sessions) => set({ sessions }),
   addSession: (session) => set((s) => ({ sessions: [...s.sessions, session] })),
   removeSession: (id) =>
-    set((s) => ({
-      sessions: s.sessions.filter((sess) => sess.id !== id),
-      activeSessionId: s.activeSessionId === id ? null : s.activeSessionId,
-    })),
+    set((s) => {
+      const isRemovingActive = s.activeSessionId === id;
+      return {
+        sessions: s.sessions.filter((sess) => sess.id !== id),
+        activeSessionId: isRemovingActive ? null : s.activeSessionId,
+        // Reset streaming state if removing the active session
+        ...(isRemovingActive && {
+          isStreaming: false,
+          streamingPhase: "idle",
+          streamingText: "",
+          streamingThinking: "",
+          streamingBlocks: [],
+          activeTurnIndex: null,
+        }),
+      };
+    }),
   setActiveSession: (id) => {
-    set({ activeSessionId: id });
+    // Reset streaming state when switching sessions
+    set({
+      activeSessionId: id,
+      isStreaming: false,
+      streamingPhase: "idle",
+      streamingText: "",
+      streamingThinking: "",
+      streamingBlocks: [],
+      activeTurnIndex: null,
+    });
     if (id) {
       const session = get().sessions.find((s) => s.id === id);
       if (session?.model) {
