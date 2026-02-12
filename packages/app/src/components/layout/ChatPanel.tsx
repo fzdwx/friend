@@ -1,6 +1,7 @@
 import { useSession } from "@/hooks/useSession";
 import { MessageList } from "@/components/chat/MessageList";
 import { InputArea } from "@/components/chat/InputArea";
+import { StreamingTurn } from "@/components/activity/StreamingTurn";
 import { MessageSquarePlus } from "lucide-react";
 
 export function ChatPanel() {
@@ -18,6 +19,11 @@ export function ChatPanel() {
   return (
     <div className="flex flex-col h-full">
       <MessageList messages={messages} isStreaming={isStreaming} />
+      {isStreaming && (
+        <div className="px-4 pb-2">
+          <StreamingTurn />
+        </div>
+      )}
       <InputArea
         onSend={sendMessage}
         onAbort={abort}

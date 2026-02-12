@@ -3,7 +3,6 @@ import { Activity } from "lucide-react";
 import { useSessionStore } from "@/stores/sessionStore";
 import type { Message, UserMessage, AssistantMessage, ToolResultMessage } from "@friend/shared";
 import { TurnGroup, type Turn } from "@/components/activity/TurnGroup";
-import { StreamingTurn } from "@/components/activity/StreamingTurn";
 
 function groupByTurns(messages: Message[]): Turn[] {
   const turns: Turn[] = [];
@@ -64,12 +63,11 @@ export function ActivityPanel() {
         ) : (
           <>
             <div ref={topRef} />
-            {isStreaming && <StreamingTurn />}
             {reversedTurns.map((turn) => (
               <TurnGroup
                 key={`turn-${turn.index}`}
                 turn={turn}
-                defaultExpanded={!isStreaming && turn.index === turns.length - 1}
+                defaultExpanded={turn.index === turns.length - 1}
               />
             ))}
           </>

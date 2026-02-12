@@ -25,6 +25,10 @@ function getUserPreview(msg: UserMessage): string {
   return text.length > 60 ? text.slice(0, 60) + "..." : text;
 }
 
+type ActivityBlock =
+  | { kind: "thinking"; content: string }
+  | { kind: "toolCall"; id: string; name: string; args: string };
+
 export function TurnGroup({ turn, defaultExpanded = false }: TurnGroupProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const activeTurnIndex = useSessionStore((s) => s.activeTurnIndex);
@@ -36,26 +40,29 @@ export function TurnGroup({ turn, defaultExpanded = false }: TurnGroupProps) {
     }
   }, [activeTurnIndex, turn.index]);
 
-  // Collect all thinking blocks and tool calls from assistant messages
-  const thinkingBlocks: string[] = [];
-  const toolCalls: { id: string; name: string; args: string }[] = [];
+  // Collect blocks in original order
+  const blocks: ActivityBlock[] = [];
+  let thinkingCount = 0;
+  let toolCount = 0;
 
   for (const msg of turn.assistantMessages) {
     for (const block of msg.content) {
       if (block.type === "thinking") {
-        thinkingBlocks.push(block.thinking);
+        blocks.push({ kind: "thinking", content: block.thinking });
+        thinkingCount++;
       } else if (block.type === "toolCall") {
-        toolCalls.push({
+        blocks.push({
+          kind: "toolCall",
           id: block.id,
           name: block.name,
           args: JSON.stringify(block.arguments),
         });
+        toolCount++;
       }
     }
   }
 
-  const hasActivity = thinkingBlocks.length > 0 || toolCalls.length > 0;
-  if (!hasActivity) return null;
+  if (blocks.length === 0) return null;
 
   return (
     <div
@@ -81,27 +88,28 @@ export function TurnGroup({ turn, defaultExpanded = false }: TurnGroupProps) {
           {getUserPreview(turn.userMessage)}
         </span>
         <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50 flex-shrink-0">
-          {thinkingBlocks.length > 0 && <span>{thinkingBlocks.length} thinking</span>}
-          {thinkingBlocks.length > 0 && toolCalls.length > 0 && <span>·</span>}
-          {toolCalls.length > 0 && <span>{toolCalls.length} tool{toolCalls.length > 1 ? "s" : ""}</span>}
+          {thinkingCount > 0 && <span>{thinkingCount} thinking</span>}
+          {thinkingCount > 0 && toolCount > 0 && <span>·</span>}
+          {toolCount > 0 && <span>{toolCount} tool{toolCount > 1 ? "s" : ""}</span>}
         </span>
       </button>
 
-      {/* Expanded content */}
+      {/* Expanded content - renders in original message order */}
       {expanded && (
         <div className="border-t border-border/50 px-3 py-2 space-y-2">
-          {thinkingBlocks.map((thinking, i) => (
-            <ThinkingBlock key={`thinking-${i}`} content={thinking} defaultExpanded={defaultExpanded} />
-          ))}
-          {toolCalls.map((tc) => (
-            <ToolBlock
-              key={tc.id}
-              toolCallId={tc.id}
-              toolName={tc.name}
-              args={tc.args}
-              toolResult={turn.toolResults.get(tc.id)}
-            />
-          ))}
+          {blocks.map((block, i) =>
+            block.kind === "thinking" ? (
+              <ThinkingBlock key={`thinking-${i}`} content={block.content} defaultExpanded={defaultExpanded} />
+            ) : (
+              <ToolBlock
+                key={block.id}
+                toolCallId={block.id}
+                toolName={block.name}
+                args={block.args}
+                toolResult={turn.toolResults.get(block.id)}
+              />
+            ),
+          )}
         </div>
       )}
     </div>
