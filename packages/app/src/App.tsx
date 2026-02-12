@@ -3,7 +3,6 @@ import { ResizableLayout } from "@/components/layout/ResizableLayout";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ChatPanel } from "@/components/layout/ChatPanel";
 import { ActivityPanel } from "@/components/layout/ActivityPanel";
-import { StatusBar } from "@/components/layout/StatusBar";
 import { SettingsModal } from "@/components/config/SettingsModal";
 import { useGlobalSSE } from "@/hooks/useSSE";
 import { useApi } from "@/hooks/useApi";
@@ -45,7 +44,6 @@ export function App() {
           </div>
         }
         activity={<ActivityPanel />}
-        statusBar={<StatusBar />}
       />
       {isSettingsOpen && <SettingsModal />}
     </>

@@ -1,8 +1,9 @@
 import { useMemo, useRef, useEffect } from "react";
-import { Activity } from "lucide-react";
+import { Activity, Circle } from "lucide-react";
 import { useSessionStore } from "@/stores/sessionStore";
 import type { Message, UserMessage, AssistantMessage, ToolResultMessage } from "@friend/shared";
 import { TurnGroup, type Turn } from "@/components/activity/TurnGroup";
+import { cn } from "@/lib/utils";
 
 function groupByTurns(messages: Message[]): Turn[] {
   const turns: Turn[] = [];
@@ -72,6 +73,19 @@ export function ActivityPanel() {
             ))}
           </>
         )}
+      </div>
+
+      {/* SSE Connection Status Footer */}
+      <div className="px-3 py-2 border-t border-border">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Circle
+            className={cn(
+              "w-2 h-2 fill-current",
+              isStreaming ? "text-yellow-500 animate-pulse" : "text-emerald-500",
+            )}
+          />
+          <span className="font-medium">{isStreaming ? "Streaming" : "Connected"}</span>
+        </div>
       </div>
     </div>
   );

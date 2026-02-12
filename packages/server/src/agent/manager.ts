@@ -523,6 +523,7 @@ Your output must be:
     if (userMessages.length === 0) return this.fallbackSessionName(managed);
 
     try {
+      const apiKey = await this.modelRegistry.getApiKey(model);
       const result = await completeSimple(model, {
         systemPrompt: AgentManager.TITLE_PROMPT,
         messages: [
@@ -532,7 +533,7 @@ Your output must be:
             timestamp: Date.now(),
           },
         ],
-      }, { maxTokens: 60 });
+      }, { maxTokens: 60, apiKey: apiKey || undefined });
 
       const title = result.content
         .filter((c) => c.type === "text")

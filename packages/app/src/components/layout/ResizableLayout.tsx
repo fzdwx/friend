@@ -5,7 +5,6 @@ interface ResizableLayoutProps {
   sidebar: React.ReactNode;
   main: React.ReactNode;
   activity: React.ReactNode;
-  statusBar: React.ReactNode;
 }
 
 const STORAGE_KEY = "friend-panel-sizes";
@@ -24,7 +23,7 @@ function saveSizes(sizes: { sidebar: number; activity: number }) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(sizes));
 }
 
-export function ResizableLayout({ sidebar, main, activity, statusBar }: ResizableLayoutProps) {
+export function ResizableLayout({ sidebar, main, activity }: ResizableLayoutProps) {
   const [sizes, setSizes] = useState(loadSizes);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activityCollapsed, setActivityCollapsed] = useState(false);
@@ -70,8 +69,7 @@ export function ResizableLayout({ sidebar, main, activity, statusBar }: Resizabl
   );
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden relative">
-      {statusBar}
+    <div className="flex flex-col h-screen w-screen overflow-hidden">
       <div ref={containerRef} className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         {!sidebarCollapsed && (
