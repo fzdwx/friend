@@ -24,48 +24,6 @@ export function createRenameSessionTool(manager: IAgentManager): ToolDefinition 
         const p = params as { sessionId: string; newName: string };
         const { sessionId, newName } = p;
 
-        // Get the current session name for context
-        const sessions = await manager.listSessions?.();
-        if (!sessions) {
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: "Unable to get session list. The session renaming functionality may not be available.",
-              },
-            ],
-            details: undefined,
-          };
-        }
-
-        const targetSession = sessions.find((s) => s.id === sessionId);
-        if (!targetSession) {
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: `Session "${sessionId}" not found. Please verify the session ID is correct. Use list_sessions to get all available session IDs.`,
-              },
-            ],
-            details: { sessionId, error: "not_found" },
-          };
-        }
-
-        const oldName = targetSession.name;
-
-        // Rename the session if it's different
-        if (oldName === newName) {
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: `The session name is already "${newName}". No changes were made.`,
-              },
-            ],
-            details: { sessionId, oldName, newName },
-          };
-        }
-
         if (!manager.renameSession) {
           return {
             content: [
@@ -78,17 +36,41 @@ export function createRenameSessionTool(manager: IAgentManager): ToolDefinition 
           };
         }
 
-        const success = await manager.renameSession(sessionId, newName);
+        const result = await manager.renameSession(sessionId, newName);
 
-        if (!success) {
+        if (!result.success) {
+          if (result.error === "not_found") {
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: `Session "${sessionId}" not found. Please verify the session ID is correct.`,
+                },
+              ],
+              details: { sessionId, error: "not_found" },
+            };
+          }
           return {
             content: [
               {
                 type: "text" as const,
-                text: `Failed to rename session "${sessionId}" from "${oldName}" to "${newName}". The operation was not successful.`,
+                text: `Failed to rename session "${sessionId}". The operation was not successful.`,
               },
             ],
-            details: { sessionId, oldName, newName, error: "rename_failed" },
+            details: { sessionId, error: "rename_failed" },
+          };
+        }
+
+        const oldName = result.oldName || "";
+        if (oldName === newName) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `The session name is already "${newName}". No changes were made.`,
+              },
+            ],
+            details: { sessionId, oldName, newName },
           };
         }
 

@@ -430,11 +430,14 @@ export class AgentManager implements IAgentManager {
     return true;
   }
 
-  async renameSession(id: string, name: string, broadcastEvent = true): Promise<boolean> {
+  async renameSession(id: string, name: string, broadcastEvent = true): Promise<{ success: boolean; oldName?: string; error?: "not_found" }> {
     const managed = this.managedSessions.get(id);
-    if (!managed) return false;
+    if (!managed) return { success: false, error: "not_found" };
 
     const oldName = managed.name;
+    // Early return if name hasn't changed
+    if (oldName === name) return { success: true, oldName };
+
     managed.name = name;
     managed.updatedAt = new Date().toISOString();
 
@@ -450,7 +453,7 @@ export class AgentManager implements IAgentManager {
       });
     }
 
-    return true;
+    return { success: true, oldName };
   }
 
   private static TITLE_PROMPT = `You are a title generator. You output ONLY a thread title. Nothing else.
