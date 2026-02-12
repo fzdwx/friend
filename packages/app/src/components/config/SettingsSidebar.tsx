@@ -1,7 +1,7 @@
-import { Server, Palette } from "lucide-react";
+import { Server, Palette, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type SettingsSection = "providers" | "appearance";
+type SettingsSection = "providers" | "appearance" | "skills";
 
 interface SettingsSidebarProps {
   activeSection: SettingsSection;
@@ -11,6 +11,7 @@ interface SettingsSidebarProps {
 const SECTIONS: { id: SettingsSection; label: string; icon: React.ElementType }[] = [
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "providers", label: "Provider", icon: Server },
+  { id: "skills", label: "Skills", icon: Sparkles },
 ];
 
 export function SettingsSidebar({ activeSection, onSectionChange }: SettingsSidebarProps) {

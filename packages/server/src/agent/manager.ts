@@ -366,6 +366,94 @@ export class AgentManager implements IAgentManager {
     return [...this.config.customProviders];
   }
 
+  // ─── Skill management ──────────────────────────────────────
+
+  /**
+   * Get all loaded skills.
+   * If sessionId is provided, returns skills for that session only.
+   * Otherwise, returns all unique skills from all sessions (deduplicated by filePath).
+   */
+  getAllSkills(sessionId?: string): Skill[] {
+    if (sessionId) {
+      const managed = this.managedSessions.get(sessionId);
+      if (managed) {
+        return managed.resourceLoader.getSkills().skills;
+      }
+      return [];
+    }
+
+    // Collect all unique skills from all sessions, deduplicated by filePath
+    const skillMap = new Map<string, Skill>();
+
+    for (const managed of this.managedSessions.values()) {
+      const { skills } = managed.resourceLoader.getSkills();
+      for (const skill of skills) {
+        if (!skillMap.has(skill.filePath)) {
+          skillMap.set(skill.filePath, skill);
+        }
+      }
+    }
+
+    // Also include global skills in case no session has loaded them yet
+    const globalResult = loadSkillsFromDir({ dir: GLOBAL_SKILLS_DIR, source: "user" });
+    for (const skill of globalResult.skills) {
+      if (!skillMap.has(skill.filePath)) {
+        skillMap.set(skill.filePath, skill);
+      }
+    }
+
+    return Array.from(skillMap.values());
+  }
+
+  // Alias for backward compatibility
+  getSkills(sessionId?: string): Skill[] {
+    return this.getAllSkills(sessionId);
+  }
+
+  /**
+   * Get skill directory paths for all sessions.
+   */
+  getSkillPaths(): { global: string; projects: Array<{ path: string; sessionId: string; sessionName: string }> } {
+    const projects: Array<{ path: string; sessionId: string; sessionName: string }> = [];
+    const seenPaths = new Set<string>();
+
+    for (const managed of this.managedSessions.values()) {
+      const cwd = managed.workingPath ?? process.cwd();
+      const projectSkillsDir = getProjectSkillsDir(cwd);
+
+      if (!seenPaths.has(projectSkillsDir)) {
+        seenPaths.add(projectSkillsDir);
+        projects.push({
+          path: projectSkillsDir,
+          sessionId: managed.id,
+          sessionName: managed.name,
+        });
+      }
+    }
+
+    return {
+      global: GLOBAL_SKILLS_DIR,
+      projects,
+    };
+  }
+
+  /**
+   * Reload skills for a session or all sessions.
+   */
+  async reloadSkills(sessionId?: string): Promise<void> {
+    if (sessionId) {
+      const managed = this.managedSessions.get(sessionId);
+      if (managed) {
+        await managed.resourceLoader.reload();
+      }
+    } else {
+      // Reload all sessions
+      for (const managed of this.managedSessions.values()) {
+        await managed.resourceLoader.reload();
+      }
+    }
+  }
+
   async listSessions(): Promise<SessionInfo[]> {
     return Array.from(this.managedSessions.values()).map((s) => ({
       id: s.id,
