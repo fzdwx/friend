@@ -31,6 +31,7 @@ import {
   createSetThemeTool,
   createGrepTool,
   createGlobTool,
+  createRenameSessionTool,
 } from "./tools";
 import type { IAgentManager } from "./tools";
 
@@ -169,6 +170,7 @@ export class AgentManager implements IAgentManager {
           createSetThemeTool(this),
           createGrepTool(),
           createGlobTool(),
+          createRenameSessionTool(this),
         ],
       });
 
@@ -339,6 +341,7 @@ export class AgentManager implements IAgentManager {
         createSetThemeTool(this),
         createGrepTool(),
         createGlobTool(),
+        createRenameSessionTool(this),
       ],
     });
 

@@ -230,6 +230,72 @@ Set the active theme for the application.
 
 - `themeId` (string or 'light'/'dark'): Theme ID or shortcut
 
+### Rename Session (`rename_session`)
+
+**File:** `renameSession.ts`
+
+Rename a session to make it easier to identify and organize conversations. This tool allows you to change the name of any session at any time.
+
+#### Features
+
+- ✅ Rename any existing session
+- ✅ Automatic session ID validation
+- ✅ Prevents unnecessary renames (same name check)
+- ✅ Broadcasts `session_renamed` event for real-time UI updates
+- ✅ Returns old and new names for confirmation
+
+#### Parameters
+
+- `sessionId` (string, required): The ID of the session to rename. This is a unique identifier for the session.
+- `newName` (string, required): The new name for the session. Should be brief and descriptive (≤50 characters recommended).
+
+#### Usage Examples
+
+```typescript
+// Simple rename
+await tool.execute("rename-1", {
+  sessionId: "session-abc123",
+  newName: "Debugging API errors",
+}, signal, undefined, ctx);
+
+// Rename with AI-generated title
+const aiTitle = await generateTitle(sessionContext);
+await tool.execute("rename-2", {
+  sessionId: session.id,
+  newName: aiTitle,
+}, signal, undefined, ctx);
+
+// Rename to organize projects
+await tool.execute("rename-3", {
+  sessionId: "session-def456",
+  newName: "React hooks refactoring",
+}, signal, undefined, ctx);
+```
+
+#### Response Details
+
+```typescript
+{
+  content: [{
+    type: "text",
+    text: "Successfully renamed session from 'Session 1' to 'Debugging API errors'."
+  }],
+  details: {
+    sessionId: "session-abc123",
+    oldName: "Session 1",
+    newName: "Debugging API errors"
+  }
+}
+```
+
+#### Error Handling
+
+The tool handles various error scenarios:
+
+- **Session not found**: Returns error message if the sessionId doesn't exist
+- **Same name**: Returns message if the new name is the same as the current name
+- **Rename failure**: Returns error if the rename operation fails internally
+
 ## Usage
 
 Tools are imported and registered in the `AgentManager`:
@@ -242,6 +308,7 @@ import {
   createSetThemeTool,
   createGrepTool,
   createGlobTool,
+  createRenameSessionTool,
 } from "./tools/index.js";
 
 // Create tools with an agent manager instance
@@ -252,6 +319,7 @@ const tools = [
   createSetThemeTool(agentManager),
   createGrepTool(),
   createGlobTool(),
+  createRenameSessionTool(agentManager),
 ];
 
 // Use with AgentSession
@@ -319,6 +387,7 @@ customTools: [
   createSetThemeTool(this),
   createGrepTool(),
   createGlobTool(),
+  createRenameSessionTool(this),
   createMyTool(this),
 ];
 ```

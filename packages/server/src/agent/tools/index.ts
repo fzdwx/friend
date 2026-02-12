@@ -13,3 +13,6 @@ export { createSetThemeTool, SetThemeParams } from "./setTheme.js";
 // Search Tools
 export { createGrepTool, GrepParams } from "./grep.js";
 export { createGlobTool, GlobParams } from "./glob.js";
+
+// Session Management Tools
+export { createRenameSessionTool, RenameSessionParams } from "./renameSession.js";
