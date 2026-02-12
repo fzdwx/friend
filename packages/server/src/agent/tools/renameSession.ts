@@ -17,7 +17,7 @@ export function createRenameSessionTool(manager: IAgentManager): ToolDefinition 
   return {
     name: "rename_session",
     label: "Rename Session",
-    description: "Rename a session to make it easier to identify and organize conversations.",
+    description: "Rename a session to make it easier to identify and organize conversations. This broadcasts a session_renamed event to update the UI in real-time.",
     parameters: RenameSessionParams,
     async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       try {

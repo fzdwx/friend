@@ -430,15 +430,25 @@ export class AgentManager implements IAgentManager {
     return true;
   }
 
-  async renameSession(id: string, name: string): Promise<boolean> {
+  async renameSession(id: string, name: string, broadcastEvent = true): Promise<boolean> {
     const managed = this.managedSessions.get(id);
     if (!managed) return false;
 
+    const oldName = managed.name;
     managed.name = name;
     managed.updatedAt = new Date().toISOString();
 
     // Update DB
     await prisma.session.update({ where: { id }, data: { name } }).catch(() => {});
+
+    // Broadcast rename event to update UI in real-time
+    if (broadcastEvent) {
+      this.broadcast(managed, {
+        type: "session_renamed",
+        newName: name,
+        oldName,
+      });
+    }
 
     return true;
   }
@@ -851,13 +861,6 @@ Your output must be:
 
     await this.renameSession(managed.id, newName);
     managed.autoRenamed = true;
-
-    // Broadcast rename event
-    this.broadcast(managed, {
-      type: "session_renamed",
-      newName,
-      oldName,
-    });
   }
 }
 
