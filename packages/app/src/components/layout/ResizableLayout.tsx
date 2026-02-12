@@ -70,7 +70,8 @@ export function ResizableLayout({ sidebar, main, activity, statusBar }: Resizabl
   );
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden">
+    <div className="flex flex-col h-screen w-screen overflow-hidden relative">
+      {statusBar}
       <div ref={containerRef} className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         {!sidebarCollapsed && (
@@ -107,9 +108,6 @@ export function ResizableLayout({ sidebar, main, activity, statusBar }: Resizabl
           </>
         )}
       </div>
-
-      {/* Status Bar */}
-      {statusBar}
     </div>
   );
 }
