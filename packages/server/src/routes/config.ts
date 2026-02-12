@@ -24,6 +24,46 @@ const CustomProviderSchema = t.Object({
   models: t.Array(CustomModelSchema),
 });
 
+const ColorDefSchema = t.Object({
+  l: t.Number(),
+  c: t.Number(),
+  h: t.Number(),
+});
+
+const ColorSetSchema = t.Object({
+  background: ColorDefSchema,
+  foreground: ColorDefSchema,
+  card: ColorDefSchema,
+  cardForeground: ColorDefSchema,
+  popover: ColorDefSchema,
+  popoverForeground: ColorDefSchema,
+  primary: ColorDefSchema,
+  primaryForeground: ColorDefSchema,
+  secondary: ColorDefSchema,
+  secondaryForeground: ColorDefSchema,
+  muted: ColorDefSchema,
+  mutedForeground: ColorDefSchema,
+  accent: ColorDefSchema,
+  accentForeground: ColorDefSchema,
+  destructive: ColorDefSchema,
+  destructiveForeground: ColorDefSchema,
+  border: ColorDefSchema,
+  input: ColorDefSchema,
+  ring: ColorDefSchema,
+  sidebar: ColorDefSchema,
+  sidebarForeground: ColorDefSchema,
+  sidebarBorder: ColorDefSchema,
+});
+
+const ThemeSchema = t.Object({
+  id: t.String(),
+  name: t.String(),
+  mode: t.String(),
+  colors: ColorSetSchema,
+  isPreset: t.Optional(t.Boolean()),
+  isBuiltIn: t.Optional(t.Boolean()),
+});
+
 export const configRoutes = new Elysia({ prefix: "/api/config" })
   .get("/", () => {
     return { ok: true, data: getAgentManager().getConfig() };
@@ -47,4 +87,49 @@ export const configRoutes = new Elysia({ prefix: "/api/config" })
     const ok = await getAgentManager().removeCustomProvider(name);
     if (!ok) return { ok: false, error: "Provider not found" };
     return { ok: true };
-  });
+  })
+
+  // Theme management
+  .get("/themes", async () => {
+    const themes = await getAgentManager().getAllThemes();
+    return { ok: true, data: themes };
+  })
+
+  .get("/themes/custom", async () => {
+    const themes = await getAgentManager().getCustomThemes();
+    return { ok: true, data: themes };
+  })
+
+  .post(
+    "/themes",
+    async ({ body }) => {
+      await getAgentManager().addCustomTheme(body as any);
+      return { ok: true };
+    },
+    { body: ThemeSchema },
+  )
+
+  .put(
+    "/themes/:id",
+    async ({ params: { id }, body }) => {
+      const updated = await getAgentManager().updateCustomTheme(id, body as any);
+      if (!updated) return { ok: false, error: "Theme not found" };
+      return { ok: true, data: updated };
+    },
+    { body: t.Partial(ThemeSchema) },
+  )
+
+  .delete("/themes/:id", async ({ params: { id } }) => {
+    const ok = await getAgentManager().deleteCustomTheme(id);
+    if (!ok) return { ok: false, error: "Theme not found" };
+    return { ok: true };
+  })
+
+  .put(
+    "/active-theme",
+    async ({ body }) => {
+      await getAgentManager().setActiveTheme(body.themeId);
+      return { ok: true };
+    },
+    { body: t.Object({ themeId: t.String() }) },
+  );

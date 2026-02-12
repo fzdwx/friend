@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useSessionStore } from "@/stores/sessionStore";
 import { useToolStore } from "@/stores/toolStore";
+import { useConfigStore } from "@/stores/configStore";
 import type { GlobalSSEEvent, ToolCall } from "@friend/shared";
 
 export function useGlobalSSE() {
@@ -25,7 +26,24 @@ export function useGlobalSSE() {
 
     const handleEvent = (e: MessageEvent) => {
       const event: GlobalSSEEvent = JSON.parse(e.data);
+
+      // Handle global config events (sessionId: "__system__") before session filter
+      if (event.type === "config_updated") {
+        useConfigStore.getState()._applyConfigEvent(event);
+        return;
+      }
+
       if (event.sessionId !== activeSessionRef.current) return;
+
+      // Ensure streaming mode is on for events that imply active streaming
+      // (handles page refresh where agent_start was missed)
+      const impliesStreaming = event.type === "message_start"
+        || event.type === "message_update"
+        || event.type === "tool_execution_start"
+        || event.type === "tool_execution_update";
+      if (impliesStreaming && !useSessionStore.getState().isStreaming) {
+        setStreaming(true);
+      }
 
       switch (event.type) {
         case "agent_start":
@@ -126,6 +144,7 @@ export function useGlobalSSE() {
       "auto_compaction_start", "auto_compaction_end",
       "auto_retry_start", "auto_retry_end",
       "error", "session_updated",
+      "config_updated",
     ];
     for (const t of eventTypes) {
       es.addEventListener(t, handleEvent);

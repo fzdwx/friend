@@ -20,6 +20,7 @@ model Session {
 model AppConfig {
   id            String @id @default("singleton")
   thinkingLevel String @default("medium")
+  activeThemeId String @default("default-dark")
 }
 
 model CustomProvider {

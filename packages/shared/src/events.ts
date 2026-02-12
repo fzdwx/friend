@@ -2,6 +2,7 @@
 // Re-use SDK event types directly; only define app-specific extras.
 
 import type { AgentSessionEvent } from "@mariozechner/pi-coding-agent";
+import type { ThemeConfig } from "./models.js";
 
 export type { AgentSessionEvent };
 
@@ -16,7 +17,15 @@ export interface SessionUpdatedEvent {
   sessionId: string;
 }
 
-export type SSEEvent = AgentSessionEvent | ErrorEvent | SessionUpdatedEvent;
+export interface ConfigUpdatedEvent {
+  type: "config_updated";
+  activeThemeId?: string;
+  addedTheme?: ThemeConfig;
+  updatedTheme?: ThemeConfig;
+  deletedThemeId?: string;
+}
+
+export type SSEEvent = AgentSessionEvent | ErrorEvent | SessionUpdatedEvent | ConfigUpdatedEvent;
 
 /** Wire format: every event carries a sessionId for multiplexing */
 export type GlobalSSEEvent = SSEEvent & { sessionId: string };

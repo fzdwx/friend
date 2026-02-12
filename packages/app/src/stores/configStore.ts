@@ -1,42 +1,8 @@
 import { create } from "zustand";
 import type { AppConfig, CustomProviderConfig, ThemeConfig } from "@friend/shared";
-import { BUILT_IN_THEMES } from "@/lib/themePresets";
-import { generateId, applyThemeToDOM, removeThemeFromDOM } from "@/lib/theme";
-
-const ACTIVE_THEME_STORAGE_KEY = "friend-active-theme-id";
-const CUSTOM_THEMES_STORAGE_KEY = "friend-custom-themes";
-
-function loadActiveThemeId(): string {
-  try {
-    const stored = localStorage.getItem(ACTIVE_THEME_STORAGE_KEY);
-    if (stored) {
-      return stored;
-    }
-  } catch {}
-  return "default-dark";
-}
-
-function saveActiveThemeId(themeId: string): void {
-  try {
-    localStorage.setItem(ACTIVE_THEME_STORAGE_KEY, themeId);
-  } catch {}
-}
-
-function loadCustomThemes(): ThemeConfig[] {
-  try {
-    const stored = localStorage.getItem(CUSTOM_THEMES_STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch {}
-  return [];
-}
-
-function saveCustomThemes(customThemes: ThemeConfig[]): void {
-  try {
-    localStorage.setItem(CUSTOM_THEMES_STORAGE_KEY, JSON.stringify(customThemes));
-  } catch {}
-}
+import { BUILT_IN_THEMES } from "@friend/shared";
+import { applyThemeToDOM } from "@/lib/theme";
+import { api } from "@/lib/api";
 
 interface ConfigState {
   config: AppConfig;
@@ -52,88 +18,153 @@ interface ConfigState {
   setIsSettingsOpen: (open: boolean) => void;
   setActiveThemeId: (themeId: string) => void;
   addCustomTheme: (theme: ThemeConfig) => void;
-  updateCustomTheme: (themeId: string, theme: Partial<ThemeConfig>) => void;
+  updateCustomTheme: (themeId: string, updates: Partial<ThemeConfig>) => void;
   deleteCustomTheme: (themeId: string) => void;
   getAllThemes: () => ThemeConfig[];
   getActiveTheme: () => ThemeConfig;
+  loadCustomThemes: () => Promise<void>;
+
+  // Called from SSE handler — updates local state without calling backend
+  _applyConfigEvent: (event: {
+    activeThemeId?: string;
+    addedTheme?: ThemeConfig;
+    updatedTheme?: ThemeConfig;
+    deletedThemeId?: string;
+  }) => void;
 }
 
-export const useConfigStore = create<ConfigState>((set, get) => {
-  const initialActiveThemeId = loadActiveThemeId();
-  const initialCustomThemes = loadCustomThemes();
+export const useConfigStore = create<ConfigState>((set, get) => ({
+  config: { thinkingLevel: "medium", customProviders: [], activeThemeId: "default-dark" },
+  customProviders: [],
+  isSettingsOpen: false,
+  activeThemeId: "default-dark",
+  customThemes: [],
 
-  return {
-    config: { thinkingLevel: "medium", customProviders: [], activeThemeId: initialActiveThemeId },
-    customProviders: [],
-    isSettingsOpen: false,
-    activeThemeId: initialActiveThemeId,
-    customThemes: initialCustomThemes,
+  setConfig: (config) => {
+    set({ config, customProviders: config.customProviders || [] });
+    // Apply activeThemeId from backend config
+    if (config.activeThemeId && config.activeThemeId !== get().activeThemeId) {
+      const allThemes = [...BUILT_IN_THEMES, ...get().customThemes];
+      const theme = allThemes.find((t) => t.id === config.activeThemeId);
+      set({ activeThemeId: config.activeThemeId });
+      if (theme) applyThemeToDOM(theme);
+    }
+  },
+  setCustomProviders: (providers) => set({ customProviders: providers }),
+  addCustomProvider: (provider) =>
+    set((s) => ({
+      customProviders: [...s.customProviders.filter((p) => p.name !== provider.name), provider],
+    })),
+  removeCustomProvider: (name) =>
+    set((s) => ({
+      customProviders: s.customProviders.filter((p) => p.name !== name),
+    })),
+  setIsSettingsOpen: (isSettingsOpen) => set({ isSettingsOpen }),
 
-    setConfig: (config) => set({ config, customProviders: config.customProviders || [] }),
-    setCustomProviders: (providers) => set({ customProviders: providers }),
-    addCustomProvider: (provider) =>
-      set((s) => ({
-        customProviders: [...s.customProviders.filter((p) => p.name !== provider.name), provider],
-      })),
-    removeCustomProvider: (name) =>
-      set((s) => ({
-        customProviders: s.customProviders.filter((p) => p.name !== name),
-      })),
-    setIsSettingsOpen: (isSettingsOpen) => set({ isSettingsOpen }),
+  setActiveThemeId: (themeId) => {
+    const allThemes = get().getAllThemes();
+    const theme = allThemes.find((t) => t.id === themeId);
+    if (theme) {
+      set({ activeThemeId: themeId });
+      applyThemeToDOM(theme);
+      // Persist to backend
+      api.setActiveTheme(themeId).catch((err) =>
+        console.error("Failed to set active theme:", err),
+      );
+    }
+  },
 
-    setActiveThemeId: (themeId) => {
-      const allThemes = get().getAllThemes();
-      const theme = allThemes.find((t) => t.id === themeId);
+  addCustomTheme: (theme) => {
+    const withDefaults = { ...theme, isPreset: false, isBuiltIn: false };
+    set((s) => ({ customThemes: [...s.customThemes, withDefaults] }));
+    // Persist to backend
+    api.addTheme(withDefaults).catch((err) =>
+      console.error("Failed to add custom theme:", err),
+    );
+  },
 
-      if (theme) {
-        set({ activeThemeId: themeId });
-        saveActiveThemeId(themeId);
-        applyThemeToDOM(theme);
+  updateCustomTheme: (themeId, updates) => {
+    set((s) => ({
+      customThemes: s.customThemes.map((t) => (t.id === themeId ? { ...t, ...updates } : t)),
+    }));
+    // Re-apply if this is the active theme
+    const state = get();
+    if (state.activeThemeId === themeId) {
+      const theme = state.customThemes.find((t) => t.id === themeId);
+      if (theme) applyThemeToDOM(theme);
+    }
+    // Persist to backend
+    api.updateTheme(themeId, updates).catch((err) =>
+      console.error("Failed to update custom theme:", err),
+    );
+  },
+
+  deleteCustomTheme: (themeId) => {
+    set((s) => {
+      const filtered = s.customThemes.filter((t) => t.id !== themeId);
+      if (s.activeThemeId === themeId) {
+        const defaultTheme = BUILT_IN_THEMES.find((t) => t.id === "default-dark") ?? BUILT_IN_THEMES[0];
+        applyThemeToDOM(defaultTheme);
+        return { customThemes: filtered, activeThemeId: "default-dark" };
       }
-    },
+      return { customThemes: filtered };
+    });
+    // Persist to backend
+    api.deleteTheme(themeId).catch((err) =>
+      console.error("Failed to delete custom theme:", err),
+    );
+  },
 
-    addCustomTheme: (theme) => {
-      set((s) => ({
-        customThemes: [
-          ...s.customThemes,
-          { ...theme, id: generateId(), isPreset: false, isBuiltIn: false },
-        ],
-      }));
-      saveCustomThemes(get().customThemes);
-    },
+  getAllThemes: () => {
+    return [...BUILT_IN_THEMES, ...get().customThemes];
+  },
 
-    updateCustomTheme: (themeId, updates) => {
-      set((s) => ({
-        customThemes: s.customThemes.map((t) => (t.id === themeId ? { ...t, ...updates } : t)),
-      }));
-      saveCustomThemes(get().customThemes);
-    },
+  getActiveTheme: () => {
+    return (
+      get()
+        .getAllThemes()
+        .find((t) => t.id === get().activeThemeId) || BUILT_IN_THEMES[0]
+    );
+  },
 
-    deleteCustomTheme: (themeId) => {
+  loadCustomThemes: async () => {
+    const res = await api.getCustomThemes();
+    if (res.ok && res.data) {
+      set({ customThemes: res.data });
+    }
+  },
+
+  _applyConfigEvent: (event) => {
+    if (event.addedTheme) {
       set((s) => {
-        const filtered = s.customThemes.filter((t) => t.id !== themeId);
-        const currentThemeId = s.activeThemeId;
-
-        if (currentThemeId === themeId) {
-          set({ activeThemeId: "default-dark" });
-          saveActiveThemeId("default-dark");
+        // Avoid duplicates
+        if (s.customThemes.some((t) => t.id === event.addedTheme!.id)) return s;
+        return { customThemes: [...s.customThemes, event.addedTheme!] };
+      });
+    }
+    if (event.updatedTheme) {
+      set((s) => ({
+        customThemes: s.customThemes.map((t) =>
+          t.id === event.updatedTheme!.id ? event.updatedTheme! : t,
+        ),
+      }));
+    }
+    if (event.deletedThemeId) {
+      set((s) => {
+        const filtered = s.customThemes.filter((t) => t.id !== event.deletedThemeId);
+        if (s.activeThemeId === event.deletedThemeId) {
+          const defaultTheme = BUILT_IN_THEMES.find((t) => t.id === "default-dark") ?? BUILT_IN_THEMES[0];
+          applyThemeToDOM(defaultTheme);
+          return { customThemes: filtered, activeThemeId: "default-dark" };
         }
-
         return { customThemes: filtered };
       });
-      saveCustomThemes(get().customThemes);
-    },
-
-    getAllThemes: () => {
-      return [...BUILT_IN_THEMES, ...get().customThemes];
-    },
-
-    getActiveTheme: () => {
-      return (
-        get()
-          .getAllThemes()
-          .find((t) => t.id === get().activeThemeId) || BUILT_IN_THEMES[0]
-      );
-    },
-  };
-});
+    }
+    if (event.activeThemeId) {
+      const allThemes = [...BUILT_IN_THEMES, ...get().customThemes];
+      const theme = allThemes.find((t) => t.id === event.activeThemeId);
+      set({ activeThemeId: event.activeThemeId });
+      if (theme) applyThemeToDOM(theme);
+    }
+  },
+}));

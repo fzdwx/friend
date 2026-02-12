@@ -1,11 +1,7 @@
 import { Type } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
-import type { ThemeConfig } from "@friend/shared";
-import { prisma } from "@friend/db";
 import { getAllBuiltInThemes } from "./themeUtils.js";
 import type { IAgentManager } from "./addCustomProvider.js";
-
-// ─── Tool Parameters Schema ────────────────────────────────
 
 export const SetThemeParams = Type.Object({
   themeId: Type.Union(
@@ -18,9 +14,8 @@ export const SetThemeParams = Type.Object({
   ),
 });
 
-// ─── Tool Definition ───────────────────────────────────────
-
-export function createSetThemeTool(manager: IAgentManager): ToolDefinition {  return {
+export function createSetThemeTool(manager: IAgentManager): ToolDefinition {
+  return {
     name: "set_theme",
     label: "Set Theme",
     description: "Set the active theme for the application. Changes the visual appearance.",
@@ -28,78 +23,32 @@ export function createSetThemeTool(manager: IAgentManager): ToolDefinition {  re
     async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       try {
         const p = params as { themeId: string };
-
         let themeId = p.themeId;
 
-        // Handle shortcuts
-        if (themeId === "light") {
-          themeId = "default-light";
-        } else if (themeId === "dark") {
-          themeId = "default-dark";
-        }
+        if (themeId === "light") themeId = "default-light";
+        else if (themeId === "dark") themeId = "default-dark";
 
-        // Verify theme exists
-        const builtInThemes = getAllBuiltInThemes();
-        const builtInTheme = builtInThemes.find((t) => t.id === themeId);
-
-        if (!builtInTheme) {
-          // Check custom themes
-          const customTheme = await prisma.customTheme.findUnique({
-            where: { id: themeId },
-          });
-
-          if (!customTheme) {
-            return {
-              content: [
-                {
-                  type: "text" as const,
-                  text: `Theme "${themeId}" not found. Use get_themes to see available themes.`,
-                },
-              ],
-              details: undefined,
-            };
-          }
-        }
-
-        // Update config
-        if (manager.updateConfig) {
-          await manager.updateConfig({ activeThemeId: themeId });
-        } else {
+        if (!manager.setActiveTheme) {
           return {
-            content: [
-              {
-                type: "text" as const,
-                text: "Theme setting is not supported on this agent manager.",
-              },
-            ],
+            content: [{ type: "text" as const, text: "Theme setting is not supported." }],
             details: undefined,
           };
         }
 
-        const themeName = builtInTheme?.name || `Custom theme (${themeId})`;
-        const themeMode = builtInTheme?.mode || "system";
+        await manager.setActiveTheme(themeId);
+
+        const builtIn = getAllBuiltInThemes().find((t) => t.id === themeId);
+        const themeName = builtIn?.name || `Custom theme (${themeId})`;
 
         return {
           content: [
-            {
-              type: "text" as const,
-              text: `Successfully set theme to "${themeName}" (${themeMode}). The active theme ID is: ${themeId}`,
-            },
+            { type: "text" as const, text: `Successfully set theme to "${themeName}". Active theme ID: ${themeId}` },
           ],
-          details: {
-            themeId,
-            themeName,
-            themeMode,
-          },
+          details: { themeId, themeName },
         };
       } catch (err) {
         return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Failed to set theme: ${String(err)}`,
-            },
-          ],
+          content: [{ type: "text" as const, text: `Failed to set theme: ${String(err)}` }],
           details: undefined,
         };
       }

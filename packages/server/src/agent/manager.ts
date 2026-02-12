@@ -15,8 +15,10 @@ import type {
   AppConfig,
   ModelInfo,
   CustomProviderConfig,
+  ThemeConfig,
 } from "@friend/shared";
-import type { SSEEvent, GlobalSSEEvent } from "@friend/shared";
+import { BUILT_IN_THEMES } from "@friend/shared";
+import type { SSEEvent, GlobalSSEEvent, ConfigUpdatedEvent } from "@friend/shared";
 import { prisma } from "@friend/db";
 import { stat, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -120,6 +122,7 @@ export class AgentManager implements IAgentManager {
     const config = await prisma.appConfig.findFirst({ where: { id: "singleton" } });
     if (config) {
       this.config.thinkingLevel = config.thinkingLevel as ThinkingLevel;
+      this.config.activeThemeId = config.activeThemeId ?? "default-dark";
     }
 
     // 2. Load CustomProviders (with models)
@@ -497,10 +500,88 @@ export class AgentManager implements IAgentManager {
         update: { thinkingLevel: updates.thinkingLevel },
       });
     }
-    if (updates.activeThemeId) {
-      this.config.activeThemeId = updates.activeThemeId;
-    }
     return this.getConfig();
+  }
+
+  // ─── Theme management ──────────────────────────────────────
+
+  async setActiveTheme(themeId: string): Promise<void> {
+    this.config.activeThemeId = themeId;
+    await prisma.appConfig.upsert({
+      where: { id: "singleton" },
+      create: { id: "singleton", activeThemeId: themeId },
+      update: { activeThemeId: themeId },
+    });
+    this.broadcastGlobal({ type: "config_updated", activeThemeId: themeId });
+  }
+
+  async getCustomThemes(): Promise<ThemeConfig[]> {
+    const rows = await prisma.customTheme.findMany({ orderBy: { updatedAt: "desc" } });
+    return rows.map((ct) => ({
+      id: ct.id,
+      name: ct.name,
+      mode: ct.mode as "light" | "dark" | "system",
+      isPreset: false,
+      isBuiltIn: false,
+      colors: JSON.parse(ct.colors),
+    }));
+  }
+
+  async getAllThemes(): Promise<ThemeConfig[]> {
+    const custom = await this.getCustomThemes();
+    return [...BUILT_IN_THEMES, ...custom];
+  }
+
+  async addCustomTheme(theme: ThemeConfig): Promise<void> {
+    await prisma.customTheme.create({
+      data: {
+        id: theme.id,
+        name: theme.name,
+        mode: theme.mode,
+        colors: JSON.stringify(theme.colors),
+      },
+    });
+    this.broadcastGlobal({ type: "config_updated", addedTheme: theme });
+  }
+
+  async updateCustomTheme(themeId: string, updates: Partial<ThemeConfig>): Promise<ThemeConfig | null> {
+    const existing = await prisma.customTheme.findUnique({ where: { id: themeId } });
+    if (!existing) return null;
+
+    const data: Record<string, unknown> = {};
+    if (updates.name) data.name = updates.name;
+    if (updates.mode) data.mode = updates.mode;
+    if (updates.colors) data.colors = JSON.stringify(updates.colors);
+
+    await prisma.customTheme.update({ where: { id: themeId }, data });
+
+    const updated: ThemeConfig = {
+      id: existing.id,
+      name: (updates.name ?? existing.name),
+      mode: (updates.mode ?? existing.mode) as "light" | "dark" | "system",
+      isPreset: false,
+      isBuiltIn: false,
+      colors: updates.colors ?? JSON.parse(existing.colors),
+    };
+    this.broadcastGlobal({ type: "config_updated", updatedTheme: updated });
+    return updated;
+  }
+
+  async deleteCustomTheme(themeId: string): Promise<boolean> {
+    const existing = await prisma.customTheme.findUnique({ where: { id: themeId } });
+    if (!existing) return false;
+    await prisma.customTheme.delete({ where: { id: themeId } });
+    // If deleted theme was active, reset to default
+    if (this.config.activeThemeId === themeId) {
+      this.config.activeThemeId = "default-dark";
+      await prisma.appConfig.upsert({
+        where: { id: "singleton" },
+        create: { id: "singleton", activeThemeId: "default-dark" },
+        update: { activeThemeId: "default-dark" },
+      });
+    }
+    this.broadcastGlobal({ type: "config_updated", deletedThemeId: themeId });
+    return true;
   }
 
   setApiKey(provider: string, apiKey: string): void {
@@ -583,6 +664,13 @@ export class AgentManager implements IAgentManager {
 
   private broadcast(managed: ManagedSession, event: SSEEvent): void {
     const globalEvent: GlobalSSEEvent = { ...event, sessionId: managed.id };
+    for (const sub of this.globalSubscribers) {
+      sub.push(globalEvent);
+    }
+  }
+
+  private broadcastGlobal(event: ConfigUpdatedEvent): void {
+    const globalEvent: GlobalSSEEvent = { ...event, sessionId: "__system__" };
     for (const sub of this.globalSubscribers) {
       sub.push(globalEvent);
     }

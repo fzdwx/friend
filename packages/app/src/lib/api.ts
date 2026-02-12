@@ -1,4 +1,4 @@
-import type { CustomProviderConfig, ModelInfo } from "@friend/shared";
+import type { CustomProviderConfig, ModelInfo, ThemeConfig } from "@friend/shared";
 
 const API_BASE = "/api";
 
@@ -58,5 +58,28 @@ export const api = {
   removeProvider: (name: string) =>
     request<void>(`/config/providers/${encodeURIComponent(name)}`, {
       method: "DELETE",
+    }),
+
+  // Themes
+  getThemes: () => request<ThemeConfig[]>("/config/themes"),
+  getCustomThemes: () => request<ThemeConfig[]>("/config/themes/custom"),
+  addTheme: (theme: ThemeConfig) =>
+    request<void>("/config/themes", {
+      method: "POST",
+      body: JSON.stringify(theme),
+    }),
+  updateTheme: (id: string, updates: Partial<ThemeConfig>) =>
+    request<ThemeConfig>(`/config/themes/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify(updates),
+    }),
+  deleteTheme: (id: string) =>
+    request<void>(`/config/themes/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
+  setActiveTheme: (themeId: string) =>
+    request<void>("/config/active-theme", {
+      method: "PUT",
+      body: JSON.stringify({ themeId }),
     }),
 };

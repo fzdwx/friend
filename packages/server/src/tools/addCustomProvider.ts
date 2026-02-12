@@ -1,6 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
-import type { CustomProviderConfig } from "@friend/shared";
+import type { CustomProviderConfig, ThemeConfig } from "@friend/shared";
 
 // ─── Tool Parameters Schema ────────────────────────────────
 
@@ -63,7 +63,8 @@ export const AddCustomProviderParams = Type.Object({
 
 export interface IAgentManager {
   addCustomProvider(provider: CustomProviderConfig): void;
-  updateConfig?(updates: { activeThemeId?: string }): Promise<{ activeThemeId: string }>;
+  setActiveTheme?(themeId: string): Promise<void>;
+  addCustomTheme?(theme: ThemeConfig): Promise<void>;
 }
 
 // ─── Tool Definition ───────────────────────────────────────
