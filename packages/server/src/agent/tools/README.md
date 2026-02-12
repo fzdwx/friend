@@ -7,13 +7,13 @@ This directory contains custom tools that extend the capabilities of the AI agen
 ```
 tools/
 ├── index.ts                 # Main export file
-├── addCustomProvider.ts     # Tool for adding custom providers
+├── custom-provider-add.ts     # Tool for adding custom providers
 ├── grep.ts                 # Tool for searching file contents using ripgrep
 ├── glob.ts                 # Tool for finding files using glob patterns
-├── getThemes.ts            # Tool for getting available themes
-├── generateTheme.ts        # Tool for generating custom themes
-├── setTheme.ts             # Tool for setting active theme
-├── themeUtils.ts           # Theme utility functions
+├── theme-get.ts            # Tool for getting available themes
+├── theme-generate.ts        # Tool for generating custom themes
+├── theme-set.ts             # Tool for setting active theme
+├── theme-utils.ts           # Theme utility functions
 └── README.md               # This file
 ```
 
@@ -172,7 +172,7 @@ The tool returns both a formatted text output and a details object:
 
 ### Add Custom Provider (`add_custom_provider`)
 
-**File:** `addCustomProvider.ts`
+**File:** `custom-provider-add.ts`
 
 Registers a custom OpenAI-compatible LLM provider.
 
@@ -197,7 +197,7 @@ Registers a custom OpenAI-compatible LLM provider.
 
 ### Get Themes (`get_themes`)
 
-**File:** `getThemes.ts`
+**File:** `theme-get.ts`
 
 Get a list of all available themes including built-in and custom themes.
 
@@ -208,7 +208,7 @@ Get a list of all available themes including built-in and custom themes.
 
 ### Generate Theme (`generate_theme`)
 
-**File:** `generateTheme.ts`
+**File:** `theme-generate.ts`
 
 Generate a custom theme based on a base hue and saturation.
 
@@ -222,7 +222,7 @@ Generate a custom theme based on a base hue and saturation.
 
 ### Set Theme (`set_theme`)
 
-**File:** `setTheme.ts`
+**File:** `theme-set.ts`
 
 Set the active theme for the application.
 
@@ -232,7 +232,7 @@ Set the active theme for the application.
 
 ### Rename Session (`rename_session`)
 
-**File:** `renameSession.ts`
+**File:** `session-rename.ts`
 
 Rename a session to make it easier to identify and organize conversations. This tool allows you to change the name of any session at any time.
 
@@ -298,7 +298,7 @@ The tool handles various error scenarios:
 
 ### Get Session Info (`get_session`)
 
-**File:** `getSession.ts`
+**File:** `session-get.ts`
 
 Get detailed information about the current session or a specific session, including meta data and optionally the full message history.
 

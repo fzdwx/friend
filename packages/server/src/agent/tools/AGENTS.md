@@ -10,11 +10,11 @@
 ```
 tools/
 ├── index.ts                    # Tool factory registry
-├── addCustomProvider.ts        # Add OpenAI-compatible AI provider
-├── getThemes.ts                # List available themes
-├── generateTheme.ts            # AI-generate custom theme
-├── setTheme.ts                 # Switch active theme
-├── themeUtils.ts               # Theme utility functions
+├── custom-provider-add.ts        # Add OpenAI-compatible AI provider
+├── theme-get.ts                # List available themes
+├── theme-generate.ts            # AI-generate custom theme
+├── theme-set.ts                 # Switch active theme
+├── theme-utils.ts               # Theme utility functions
 ├── README.md                   # Tool implementation guide
 └── THEME_TOOLS.md              # Theme tools documentation
 ```
@@ -26,9 +26,9 @@ tools/
 | Task             | File                   |
 | ---------------- | ---------------------- |
 | 工具注册         | `index.ts`             |
-| 添加 AI 提供商   | `addCustomProvider.ts` |
-| 主题生成工具     | `generateTheme.ts`     |
-| 主题工具实用函数 | `themeUtils.ts`        |
+| 添加 AI 提供商   | `custom-provider-add.ts` |
+| 主题生成工具     | `theme-generate.ts`     |
+| 主题工具实用函数 | `theme-utils.ts`        |
 
 ---
 
@@ -97,10 +97,10 @@ export function createTools(manager: IAgentManager): ToolDefinition[] {
 
 | Tool                  | Purpose                        | Key Files              |
 | --------------------- | ------------------------------ | ---------------------- |
-| `get_themes`          | Query available themes         | `getThemes.ts`         |
-| `generate_theme`      | AI-generate custom theme       | `generateTheme.ts`     |
-| `set_theme`           | Switch active theme            | `setTheme.ts`          |
-| `add_custom_provider` | Add OpenAI-compatible provider | `addCustomProvider.ts` |
+| `get_themes`          | Query available themes         | `theme-get.ts`         |
+| `generate_theme`      | AI-generate custom theme       | `theme-generate.ts`     |
+| `set_theme`           | Switch active theme            | `theme-set.ts`          |
+| `add_custom_provider` | Add OpenAI-compatible provider | `custom-provider-add.ts` |
 
 ---
 

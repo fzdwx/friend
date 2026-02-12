@@ -1,7 +1,7 @@
 import { Type } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
-import { getAllBuiltInThemes } from "./themeUtils.js";
-import type { IAgentManager } from "./addCustomProvider.js";
+import { getAllBuiltInThemes } from "./theme-utils";
+import type { IAgentManager } from "./custom-provider-add";
 
 export const SetThemeParams = Type.Object({
   themeId: Type.Union(

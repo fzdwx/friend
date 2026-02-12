@@ -110,11 +110,11 @@ just build-tauri
 │   │       │   ├── manager.ts    # AgentManager 核心
 │   │       │   └── tools/        # 自定义工具 ⭐
 │   │       │       ├── index.ts
-│   │       │       ├── addCustomProvider.ts
-│   │       │       ├── getThemes.ts
-│   │       │       ├── generateTheme.ts
-│   │       │       ├── setTheme.ts
-│   │       │       └── themeUtils.ts
+│   │       │       ├── custom-provider-add.ts
+│   │       │       ├── theme-get.ts
+│   │       │       ├── theme-generate.ts
+│   │       │       ├── theme-set.ts
+│   │       │       └── theme-utils.ts
 │   │       ├── routes/
 │   │       │   ├── sessions.ts   # 会话 CRUD
 │   │       │   ├── models.ts     # 模型列表
