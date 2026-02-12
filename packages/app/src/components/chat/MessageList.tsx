@@ -101,25 +101,11 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
     <div ref={containerRef} className="relative flex-1 overflow-y-auto px-4 pt-4 pb-10 space-y-3">
       {chatMessagesWithTurns.map(({ msg, turnIndex }, i) => {
         if (msg.role === "user") {
-          return (
-            <div
-              key={`user-${msg.timestamp}-${i}`}
-              className="cursor-pointer"
-              onClick={() => setActiveTurnIndex(turnIndex)}
-            >
-              <UserMessage message={msg as PiUserMessage} />
-            </div>
-          );
+          return <UserMessage key={`user-${msg.timestamp}-${i}`} message={msg as PiUserMessage} />;
         }
         if (msg.role === "assistant") {
           return (
-            <div
-              key={`assistant-${msg.timestamp}-${i}`}
-              className="cursor-pointer"
-              onClick={() => setActiveTurnIndex(turnIndex)}
-            >
-              <AssistantMessage message={msg as PiAssistantMessage} />
-            </div>
+            <AssistantMessage key={`assistant-${msg.timestamp}-${i}`} message={msg as PiAssistantMessage} />
           );
         }
         return null;
