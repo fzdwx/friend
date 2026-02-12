@@ -6,9 +6,13 @@ This directory contains custom tools that extend the capabilities of the AI agen
 
 ```
 tools/
-├── index.ts           # Main export file
-├── addCustomProvider.ts  # Tool for adding custom providers
-└── README.md          # This file
+├── index.ts                 # Main export file
+├── addCustomProvider.ts     # Tool for adding custom providers
+├── getThemes.ts            # Tool for getting available themes
+├── generateTheme.ts        # Tool for generating custom themes
+├── setTheme.ts             # Tool for setting active theme
+├── themeUtils.ts           # Theme utility functions
+└── README.md               # This file
 ```
 
 ## Overview
@@ -42,19 +46,64 @@ Registers a custom OpenAI-compatible LLM provider.
     - `cacheRead` (number): Cost per 1M cache-read tokens in USD
     - `cacheWrite` (number): Cost per 1M cache-write tokens in USD
 
+### Get Themes (`get_themes`)
+
+**File:** `getThemes.ts`
+
+Get a list of all available themes including built-in and custom themes.
+
+#### Parameters
+
+- `mode` (string, optional): Filter by mode ('light', 'dark', or 'system')
+- `builtInOnly` (boolean, optional): If true, only return built-in themes
+
+### Generate Theme (`generate_theme`)
+
+**File:** `generateTheme.ts`
+
+Generate a custom theme based on a base hue and saturation.
+
+#### Parameters
+
+- `name` (string, optional): Name for the generated theme
+- `mode` (string): Theme mode ('light' or 'dark')
+- `hue` (number, 0-360): Base hue value for the primary color
+- `saturation` (number, 0-0.25): Base saturation value for the primary color
+- `save` (boolean): If true, save the theme to database (default: true)
+
+### Set Theme (`set_theme`)
+
+**File:** `setTheme.ts`
+
+Set the active theme for the application.
+
+#### Parameters
+
+- `themeId` (string or 'light'/'dark'): Theme ID or shortcut
+
 ## Usage
 
 Tools are imported and registered in the `AgentManager`:
 
 ```typescript
-import { createAddProviderTool } from "./tools/index.js";
+import {
+  createAddProviderTool,
+  createGetThemesTool,
+  createGenerateThemeTool,
+  createSetThemeTool,
+} from "./tools/index.js";
 
-// Create the tool with an agent manager instance
-const tool = createAddProviderTool(agentManager);
+// Create tools with an agent manager instance
+const tools = [
+  createAddProviderTool(agentManager),
+  createGetThemesTool(agentManager),
+  createGenerateThemeTool(agentManager),
+  createSetThemeTool(agentManager),
+];
 
 // Use with AgentSession
 await createAgentSession({
-  customTools: [tool],
+  customTools: tools,
   // ... other options
 });
 ```
@@ -73,10 +122,6 @@ To add a new custom tool:
 // myTool.ts
 import { Type } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
-
-interface IAgentManager {
-  // Define the methods your tool needs from the manager
-}
 
 export function createMyTool(manager: IAgentManager): ToolDefinition {
   return {
@@ -111,10 +156,16 @@ export { createMyTool } from "./myTool.js";
 And register it in `agent/manager.ts`:
 
 ```typescript
-import { createAddProviderTool, createMyTool } from "../tools/index.js";
+import { createMyTool } from "../tools/index.js";
 
 // In createAgentSession calls
-customTools: [createAddProviderTool(this), createMyTool(this)]
+customTools: [
+  createAddProviderTool(this),
+  createGetThemesTool(this),
+  createGenerateThemeTool(this),
+  createSetThemeTool(this),
+  createMyTool(this),
+]
 ```
 
 ## Tool Implementation Guidelines
@@ -124,3 +175,4 @@ customTools: [createAddProviderTool(this), createMyTool(this)]
 3. **Error handling**: Return error messages in the text content if something goes wrong
 4. **Signal handling**: Respect the `signal` parameter for cancellation support
 5. **Progress updates**: Use `onUpdate` to provide progress information if needed
+6. **Database persistence**: Use `@friend/db` prisma client for data persistence

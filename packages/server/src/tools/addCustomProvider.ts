@@ -63,6 +63,7 @@ export const AddCustomProviderParams = Type.Object({
 
 export interface IAgentManager {
   addCustomProvider(provider: CustomProviderConfig): void;
+  updateConfig?(updates: { activeThemeId?: string }): Promise<{ activeThemeId: string }>;
 }
 
 // ─── Tool Definition ───────────────────────────────────────

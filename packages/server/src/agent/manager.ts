@@ -21,7 +21,12 @@ import { prisma } from "@friend/db";
 import { stat, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { createAddProviderTool } from "../tools";
+import {
+  createAddProviderTool,
+  createGetThemesTool,
+  createGenerateThemeTool,
+  createSetThemeTool,
+} from "../tools";
 import type { IAgentManager } from "../tools";
 
 const SESSIONS_DIR = join(homedir(), ".config", "friend", "sessions");
@@ -146,7 +151,12 @@ export class AgentManager implements IAgentManager {
         authStorage: this.authStorage,
         modelRegistry: this.modelRegistry,
         thinkingLevel: this.config.thinkingLevel,
-        customTools: [createAddProviderTool(this)],
+        customTools: [
+          createAddProviderTool(this),
+          createGetThemesTool(this),
+          createGenerateThemeTool(this),
+          createSetThemeTool(this),
+        ],
       });
 
       const managed: ManagedSession = {
@@ -307,7 +317,12 @@ export class AgentManager implements IAgentManager {
       authStorage: this.authStorage,
       modelRegistry: this.modelRegistry,
       thinkingLevel: this.config.thinkingLevel,
-      customTools: [createAddProviderTool(this)],
+      customTools: [
+        createAddProviderTool(this),
+        createGetThemesTool(this),
+        createGenerateThemeTool(this),
+        createSetThemeTool(this),
+      ],
     });
 
     // Set default model if none selected
@@ -554,6 +569,15 @@ export class AgentManager implements IAgentManager {
     };
 
     this.globalSubscribers.add(subscriber);
+
+    // Send synthetic agent_start for any session that is currently streaming
+    // so late-joining clients (e.g. after page refresh) enter streaming mode
+    for (const managed of this.managedSessions.values()) {
+      if (managed.session.isStreaming) {
+        subscriber.push({ type: "agent_start", sessionId: managed.id });
+      }
+    }
+
     return subscriber;
   }
 

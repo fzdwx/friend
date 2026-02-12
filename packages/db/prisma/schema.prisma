@@ -47,3 +47,12 @@ model CustomModel {
 
   @@unique([providerName, modelId])
 }
+
+model CustomTheme {
+  id      String @id @default(uuid())
+  name    String
+  mode    String // "light" or "dark"
+  colors  String // JSON string of ColorSet
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
