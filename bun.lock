@@ -65,6 +65,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@mariozechner/pi-ai": "0.52.9",
+        "@mariozechner/pi-coding-agent": "0.52.9",
       },
       "devDependencies": {
         "typescript": "^5.8.0",

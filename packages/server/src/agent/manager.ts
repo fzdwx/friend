@@ -83,7 +83,6 @@ interface ManagedSession {
   session: AgentSession;
   createdAt: string;
   updatedAt: string;
-  currentToolCalls: Map<string, { toolName: string; argsJson: string }>;
   workingPath?: string;
 }
 
@@ -226,7 +225,6 @@ export class AgentManager {
         session,
         createdAt: s.createdAt.toISOString(),
         updatedAt: s.updatedAt.toISOString(),
-        currentToolCalls: new Map(),
         workingPath: s.workingPath ?? undefined,
       };
 
@@ -396,7 +394,6 @@ export class AgentManager {
       session,
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
-      currentToolCalls: new Map(),
       workingPath: opts?.workingPath,
     };
 
@@ -644,140 +641,8 @@ export class AgentManager {
   }
 
   private handleSDKEvent(managed: ManagedSession, event: AgentSessionEvent): void {
-    switch (event.type) {
-      case "agent_start":
-        this.broadcast(managed, { type: "agent_start" });
-        break;
-
-      case "agent_end":
-        this.broadcast(managed, { type: "agent_end" });
-        break;
-
-      case "turn_start":
-        this.broadcast(managed, { type: "turn_start" });
-        break;
-
-      case "turn_end":
-        this.broadcast(managed, { type: "turn_end" });
-        break;
-
-      case "message_start": {
-        managed.currentToolCalls.clear();
-        this.broadcast(managed, {
-          type: "message_start",
-          messageId: crypto.randomUUID(),
-          role: "assistant",
-        });
-        break;
-      }
-
-      case "message_update": {
-        const ame = event.assistantMessageEvent;
-        switch (ame.type) {
-          case "text_delta":
-            this.broadcast(managed, {
-              type: "text_delta",
-              content: ame.delta,
-            });
-            break;
-
-          case "thinking_delta":
-            this.broadcast(managed, {
-              type: "thinking_delta",
-              content: ame.delta,
-            });
-            break;
-
-          case "toolcall_start": {
-            const tc = ame.partial.content[ame.contentIndex];
-            const toolCallId = tc && "id" in tc ? (tc as any).id : crypto.randomUUID();
-            const toolName = tc && "name" in tc ? (tc as any).name : "unknown";
-            managed.currentToolCalls.set(toolCallId, {
-              toolName,
-              argsJson: "",
-            });
-            this.broadcast(managed, {
-              type: "tool_call_start",
-              toolCallId,
-              toolName,
-            });
-            break;
-          }
-
-          case "toolcall_delta": {
-            const tcContent = ame.partial.content[ame.contentIndex];
-            const tcId = tcContent && "id" in tcContent ? (tcContent as any).id : undefined;
-            if (tcId && managed.currentToolCalls.has(tcId)) {
-              const tc = managed.currentToolCalls.get(tcId)!;
-              tc.argsJson += ame.delta;
-            }
-            this.broadcast(managed, {
-              type: "tool_call_delta",
-              toolCallId: tcId ?? "",
-              content: ame.delta,
-            });
-            break;
-          }
-
-          case "toolcall_end": {
-            const tcEnd = ame.toolCall;
-            const toolCallId = tcEnd.id;
-            const entry = managed.currentToolCalls.get(toolCallId);
-            this.broadcast(managed, {
-              type: "tool_call_end",
-              toolCallId,
-              toolName: entry?.toolName ?? tcEnd.name,
-              args: JSON.stringify(tcEnd.arguments),
-            });
-            break;
-          }
-        }
-        break;
-      }
-
-      case "message_end": {
-        const message = event.message;
-        if (message.role === "assistant") {
-          this.broadcast(managed, { type: "message_end", message });
-        }
-        managed.currentToolCalls.clear();
-        break;
-      }
-
-      case "tool_execution_start":
-        this.broadcast(managed, {
-          type: "tool_execution_start",
-          toolCallId: event.toolCallId,
-          toolName: event.toolName,
-          args: event.args,
-        });
-        break;
-
-      case "tool_execution_update":
-        this.broadcast(managed, {
-          type: "tool_execution_update",
-          toolCallId: event.toolCallId,
-          toolName: event.toolName,
-          result:
-            typeof event.partialResult === "string"
-              ? event.partialResult
-              : JSON.stringify(event.partialResult),
-        });
-        break;
-
-      case "tool_execution_end": {
-        const resultText =
-          typeof event.result === "string" ? event.result : JSON.stringify(event.result);
-        this.broadcast(managed, {
-          type: "tool_execution_end",
-          toolCallId: event.toolCallId,
-          toolName: event.toolName,
-          result: resultText,
-          isError: event.isError,
-        });
-        break;
-      }
-    }
+    // Forward SDK events directly to SSE subscribers
+    this.broadcast(managed, event);
   }
 
 }

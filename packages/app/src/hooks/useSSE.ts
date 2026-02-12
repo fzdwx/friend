@@ -44,34 +44,39 @@ export function useGlobalSSE() {
           setStreamingPhase("started");
           break;
 
-        case "text_delta":
-          appendStreamingText(event.content);
-          setStreamingPhase("generating");
-          break;
-
-        case "thinking_delta":
-          appendStreamingThinking(event.content);
-          setStreamingPhase("thinking");
-          break;
-
-        case "tool_call_start":
-          setStreamingPhase("tool_calling");
-          break;
-
-        case "tool_call_end":
-          {
-            const block: ToolCall = {
-              type: "toolCall",
-              id: event.toolCallId,
-              name: event.toolName,
-              arguments: JSON.parse(event.args),
-            };
-            addStreamingBlock(block);
+        case "message_update": {
+          const ame = event.assistantMessageEvent;
+          switch (ame.type) {
+            case "text_delta":
+              appendStreamingText(ame.delta);
+              setStreamingPhase("generating");
+              break;
+            case "thinking_delta":
+              appendStreamingThinking(ame.delta);
+              setStreamingPhase("thinking");
+              break;
+            case "toolcall_start":
+              setStreamingPhase("tool_calling");
+              break;
+            case "toolcall_end": {
+              const tc = ame.toolCall;
+              const block: ToolCall = {
+                type: "toolCall",
+                id: tc.id,
+                name: tc.name,
+                arguments: tc.arguments,
+              };
+              addStreamingBlock(block);
+              break;
+            }
           }
           break;
+        }
 
         case "message_end":
-          addMessage(event.message);
+          if (event.message.role === "assistant") {
+            addMessage(event.message);
+          }
           resetStreaming();
           break;
 
@@ -86,13 +91,23 @@ export function useGlobalSSE() {
           });
           break;
 
-        case "tool_execution_update":
-          updateExecution(event.toolCallId, event.result);
+        case "tool_execution_update": {
+          const result =
+            typeof event.partialResult === "string"
+              ? event.partialResult
+              : JSON.stringify(event.partialResult);
+          updateExecution(event.toolCallId, result);
           break;
+        }
 
-        case "tool_execution_end":
-          completeExecution(event.toolCallId, event.result, event.isError);
+        case "tool_execution_end": {
+          const result =
+            typeof event.result === "string"
+              ? event.result
+              : JSON.stringify(event.result);
+          completeExecution(event.toolCallId, result, event.isError);
           break;
+        }
 
         case "error":
           console.error("SSE error:", event.message);
@@ -102,22 +117,19 @@ export function useGlobalSSE() {
       }
     };
 
-    es.addEventListener("agent_start", handleEvent);
-    es.addEventListener("agent_end", handleEvent);
-    es.addEventListener("message_start", handleEvent);
-    es.addEventListener("text_delta", handleEvent);
-    es.addEventListener("thinking_delta", handleEvent);
-    es.addEventListener("tool_call_start", handleEvent);
-    es.addEventListener("tool_call_delta", handleEvent);
-    es.addEventListener("tool_call_end", handleEvent);
-    es.addEventListener("message_end", handleEvent);
-    es.addEventListener("tool_execution_start", handleEvent);
-    es.addEventListener("tool_execution_update", handleEvent);
-    es.addEventListener("tool_execution_end", handleEvent);
-    es.addEventListener("error", handleEvent);
-    es.addEventListener("turn_start", handleEvent);
-    es.addEventListener("turn_end", handleEvent);
-    es.addEventListener("session_updated", handleEvent);
+    // SDK events use top-level type names
+    const eventTypes = [
+      "agent_start", "agent_end",
+      "turn_start", "turn_end",
+      "message_start", "message_update", "message_end",
+      "tool_execution_start", "tool_execution_update", "tool_execution_end",
+      "auto_compaction_start", "auto_compaction_end",
+      "auto_retry_start", "auto_retry_end",
+      "error", "session_updated",
+    ];
+    for (const t of eventTypes) {
+      es.addEventListener(t, handleEvent);
+    }
 
     return () => {
       es.close();
