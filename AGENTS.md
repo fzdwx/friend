@@ -1,8 +1,9 @@
 # PROJECT KNOWLEDGE BASE: Friend
 
-**Generated:** 2026-02-11  
-**Tech Stack:** Bun + React + Tauri + Elysia + Prisma  
+**Generated:** 2026-02-12
+**Tech Stack:** Bun + React + Tauri + Elysia + Prisma
 **Type:** AI Coding Agent Desktop App (Monorepo)
+**Stats:** 3159 files, 6104 TS lines, 4 packages
 
 ---
 
@@ -103,14 +104,15 @@ just db-push      # 推送 schema
 
 ## NOTES
 
-- **无测试框架**: 项目目前没有配置测试
+- **无测试框架**: 项目目前没有配置测试（仅有 ad-hoc test_tool.js 手动测试）
 - **无 CI/CD**: 无 `.github/workflows` 目录
 - **Tauri 图标**: `packages/app/src-tauri/icons/` 包含多平台图标
-- **SSE 代理**: Vite dev server代理 `/api` 到 `:3001`
-- **主题系统**: 15 组内置主题（5 亮色 + 10 暗色），使用 oklch 颜色格式，支持自定义主题导入/导出
+- **SSE 代理**: Vite dev server 代理 `/api` 到 `:3001`
+- **主题系统**: 15 组内置主题（5 亮色 + 10 暗色），使用 oklch 颜色格式，支持自定义主题导入/导出。注意：`BUILT_IN_THEMES` 运行时数据在 `@friend/shared` 中，而非纯类型
 - **数据库混合存储**: Session 元数据在 SQLite，消息历史在 JSON 文件 (`~/.config/friend/sessions/*.json`)
 - **Tauri Dialog 插件**: 已配置 `dialog:default` 权限，前端通过 `@tauri-apps/plugin-dialog` 选择目录
-- **自定义工具**: `packages/custom-tools/` 包含工厂函数模式创建 Agent 工具
+- **自定义工具**: `packages/server/src/agent/tools/` 包含工厂函数模式创建 Agent 工具（getThemes, generateTheme, setTheme, addCustomProvider）
+- **@friend/shared 运行时代码**: 虽然 AGENTS.md 声明纯类型定义，但 `themes.ts` 导出 `BUILT_IN_THEMES` 常量数组（469 行主题数据），被 server 和 app 共享
 
 ---
 

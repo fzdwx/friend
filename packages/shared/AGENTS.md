@@ -67,7 +67,7 @@ export type ChatMessage = UserChatMessage | AssistantChatMessage | ToolResultCha
 
 ## ANTI-PATTERNS
 
-- **不要在此包中添加运行时代码**: 纯类型定义
+- **不要在此包中添加运行时代码**: 纯类型定义（例外: `themes.ts` 导出 `BUILT_IN_THEMES` 运行时常量）
 - **不要导入 node: 或 browser API**: 保持平台无关
 - **不要使用枚举**: 使用字符串字面量联合类型
 

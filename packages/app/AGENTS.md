@@ -20,12 +20,15 @@ src/
 
 ## WHERE TO LOOK
 
-| Task       | Location                              |
-| ---------- | ------------------------------------- |
-| 根组件     | `src/App.tsx`                         |
-| API 调用   | `src/lib/api.ts`                      |
-| SSE 连接   | `src/hooks/useSSE.ts`                 |
-| 主题系统   | `src/lib/theme.ts` + `themePresets.ts` |
+| Task         | Location                              |
+| ------------ | ------------------------------------- |
+| 根组件       | `src/App.tsx`                         |
+| API 调用     | `src/lib/api.ts`                      |
+| SSE 连接     | `src/hooks/useSSE.ts`                 |
+| 主题系统     | `src/lib/theme.ts` + `themePresets.ts` |
+| 状态管理     | `src/stores/`                         |
+| 配置 UI      | `src/components/config/`              |
+| 工具渲染器   | `src/components/tools/registry/renderers/` |
 
 ---
 
@@ -65,6 +68,7 @@ if (res.ok && res.data) { }
 ### Tool Renderer Registry (Depth 11)
 **Location**: `src/components/tools/registry/renderers/`
 
+**Pattern**: Self-registration via side-effect imports
 ```typescript
 import { registerToolRenderer } from "./registry.js";
 import { Icon } from "lucide-react";
@@ -76,3 +80,5 @@ registerToolRenderer("bash", {
 });
 ```
 **Convention**: Side-effect imports only, icon `w-3.5 h-3.5`, truncation 2000-3000 chars, `ResultComponent` optional
+
+详见: `src/components/tools/registry/renderers/AGENTS.md`
