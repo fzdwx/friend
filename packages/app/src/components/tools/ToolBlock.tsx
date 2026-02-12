@@ -3,15 +3,25 @@ import { Loader2, Check, X, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToolStore } from "@/stores/toolStore";
 import { getToolRenderer } from "./registry/registry.js";
+import type { ToolResultMessage } from "@friend/shared";
 
 interface ToolBlockProps {
   toolCallId: string;
   toolName: string;
   args: string;
   isStreaming?: boolean;
+  toolResult?: ToolResultMessage;
 }
 
-export function ToolBlock({ toolCallId, toolName, args, isStreaming }: ToolBlockProps) {
+/** Extract text from a ToolResultMessage's content array */
+function extractResultText(tr: ToolResultMessage): string {
+  return tr.content
+    .filter((c): c is { type: "text"; text: string } => c.type === "text")
+    .map((c) => c.text)
+    .join("\n");
+}
+
+export function ToolBlock({ toolCallId, toolName, args, isStreaming, toolResult }: ToolBlockProps) {
   const [expanded, setExpanded] = useState(false);
 
   const execution = useToolStore((s) =>
@@ -22,21 +32,28 @@ export function ToolBlock({ toolCallId, toolName, args, isStreaming }: ToolBlock
   try {
     parsedArgs = JSON.parse(args);
   } catch {
-    // use execution args as fallback
     if (execution) parsedArgs = execution.args;
   }
 
   const renderer = getToolRenderer(toolName);
   const summary = renderer.getSummary(parsedArgs);
 
-  // Derive phase from execution state
-  const phase = !execution
-    ? "calling"
-    : execution.status === "running"
+  // Derive result from toolStore execution (streaming) or toolResult prop (historical)
+  const resultText = execution?.result ?? (toolResult ? extractResultText(toolResult) : undefined);
+  const isError = execution?.isError ?? toolResult?.isError ?? false;
+
+  // Derive phase
+  const phase = execution
+    ? execution.status === "running"
       ? "executing"
       : execution.isError
         ? "error"
-        : "completed";
+        : "completed"
+    : toolResult
+      ? toolResult.isError
+        ? "error"
+        : "completed"
+      : "calling";
 
   const statusIcon =
     phase === "calling" || phase === "executing" ? (
@@ -47,7 +64,7 @@ export function ToolBlock({ toolCallId, toolName, args, isStreaming }: ToolBlock
       <Check className="w-3 h-3 text-emerald-500" />
     );
 
-  const hasResult = execution?.result != null;
+  const hasResult = resultText != null;
   const hasResultRenderer = renderer.ResultComponent != null;
   const canExpand = hasResult && hasResultRenderer;
 
@@ -82,8 +99,8 @@ export function ToolBlock({ toolCallId, toolName, args, isStreaming }: ToolBlock
         <div className="border-t border-border/50 max-h-60 overflow-y-auto">
           <renderer.ResultComponent
             args={parsedArgs}
-            result={execution!.result!}
-            isError={execution!.isError ?? false}
+            result={resultText!}
+            isError={isError}
           />
         </div>
       )}

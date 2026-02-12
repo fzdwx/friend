@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from "react";
-import type { Message, UserMessage as PiUserMessage, AssistantMessage as PiAssistantMessage } from "@friend/shared";
+import type { Message, UserMessage as PiUserMessage, AssistantMessage as PiAssistantMessage, ToolResultMessage } from "@friend/shared";
 import { UserMessage } from "./UserMessage";
 import { AssistantMessage } from "./AssistantMessage";
 import { ThinkingBlock } from "./ThinkingBlock";
@@ -73,6 +73,17 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
     }
   }, [messages, scrollToBottom]);
 
+  // Build a map of toolCallId → ToolResultMessage for historical tool results
+  const toolResultsById = useMemo(() => {
+    const map = new Map<string, ToolResultMessage>();
+    for (const m of messages) {
+      if (m.role === "toolResult") {
+        map.set(m.toolCallId, m as ToolResultMessage);
+      }
+    }
+    return map;
+  }, [messages]);
+
   const chatMessages = useMemo(
     () =>
       messages.filter((m) => {
@@ -98,7 +109,7 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
           return <UserMessage key={`user-${msg.timestamp}-${i}`} message={msg as PiUserMessage} />;
         }
         if (msg.role === "assistant") {
-          return <AssistantMessage key={`assistant-${msg.timestamp}-${i}`} message={msg as PiAssistantMessage} />;
+          return <AssistantMessage key={`assistant-${msg.timestamp}-${i}`} message={msg as PiAssistantMessage} toolResults={toolResultsById} />;
         }
         return null;
       })}

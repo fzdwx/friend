@@ -1,5 +1,5 @@
 import { memo } from "react";
-import type { AssistantMessage as PiAssistantMessage, TextContent, ThinkingContent, ToolCall } from "@friend/shared";
+import type { AssistantMessage as PiAssistantMessage, TextContent, ThinkingContent, ToolCall, ToolResultMessage } from "@friend/shared";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolBlock } from "@/components/tools/ToolBlock";
 import { Bot } from "lucide-react";
@@ -9,9 +9,10 @@ import remarkGfm from "remark-gfm";
 interface AssistantMessageProps {
   message: PiAssistantMessage;
   isStreaming?: boolean;
+  toolResults?: Map<string, ToolResultMessage>;
 }
 
-export const AssistantMessage = memo(function AssistantMessage({ message, isStreaming }: AssistantMessageProps) {
+export const AssistantMessage = memo(function AssistantMessage({ message, isStreaming, toolResults }: AssistantMessageProps) {
   return (
     <div className="flex gap-3">
       <div className="flex-shrink-0 w-7 h-7 rounded-full bg-accent flex items-center justify-center">
@@ -23,14 +24,14 @@ export const AssistantMessage = memo(function AssistantMessage({ message, isStre
           {isStreaming && <span className="ml-2 text-yellow-500 animate-pulse">streaming...</span>}
         </div>
         {message.content.map((block, i) => (
-          <ContentBlock key={i} block={block} />
+          <ContentBlock key={i} block={block} toolResults={toolResults} />
         ))}
       </div>
     </div>
   );
 });
 
-function ContentBlock({ block }: { block: TextContent | ThinkingContent | ToolCall }) {
+function ContentBlock({ block, toolResults }: { block: TextContent | ThinkingContent | ToolCall; toolResults?: Map<string, ToolResultMessage> }) {
   switch (block.type) {
     case "text":
       return (
@@ -40,9 +41,16 @@ function ContentBlock({ block }: { block: TextContent | ThinkingContent | ToolCa
       );
     case "thinking":
       return <ThinkingBlock content={block.thinking} />;
-    case "toolCall":
+    case "toolCall": {
+      const toolResult = toolResults?.get(block.id);
       return (
-        <ToolBlock toolCallId={block.id} toolName={block.name} args={JSON.stringify(block.arguments)} />
+        <ToolBlock
+          toolCallId={block.id}
+          toolName={block.name}
+          args={JSON.stringify(block.arguments)}
+          toolResult={toolResult}
+        />
       );
+    }
   }
 }
