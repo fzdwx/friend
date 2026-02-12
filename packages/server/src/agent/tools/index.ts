@@ -14,5 +14,6 @@ export { createSetThemeTool, SetThemeParams } from "./setTheme.js";
 export { createGrepTool, GrepParams } from "./grep.js";
 export { createGlobTool, GlobParams } from "./glob.js";
 
-// Session Management Tools
+// Session Tools
 export { createRenameSessionTool, RenameSessionParams } from "./renameSession.js";
+export { createGetSessionTool, GetSessionParams } from "./getSession.js";

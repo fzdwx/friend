@@ -296,6 +296,76 @@ The tool handles various error scenarios:
 - **Same name**: Returns message if the new name is the same as the current name
 - **Rename failure**: Returns error if the rename operation fails internally
 
+### Get Session Info (`get_session`)
+
+**File:** `getSession.ts`
+
+Get detailed information about the current session or a specific session, including meta data and optionally the full message history.
+
+#### Features
+
+- ✅ Auto-detects current session if no sessionId is provided
+- ✅ Returns complete session meta information
+- ✅ Optional full message history or preview
+- ✅ Useful for understanding session context before renaming or other operations
+
+#### Parameters
+
+- `sessionId` (string, optional): The ID of the session to get details for. If not provided, uses the current interactive session.
+- `includeMessages` (boolean, optional): Whether to include the full message history. Defaults to false (meta info only).
+
+#### Usage Examples
+
+```typescript
+// Get info about current session (auto-detected)
+await tool.execute("get-1", {}, signal, undefined, ctx);
+
+// Get info with full message history
+await tool.execute("get-2", {
+  includeMessages: true,
+}, signal, undefined, ctx);
+
+// Get info about specific session
+await tool.execute("get-3", {
+  sessionId: "session-abc123",
+}, signal, undefined, ctx);
+
+// Check session before renaming
+const sessionInfo = await tool.execute("get-4", {}, signal, undefined, ctx);
+const currentName = sessionInfo.details.session.name;
+// Now rename with context...
+```
+
+#### Response Details
+
+```typescript
+{
+  content: [{
+    type: "text",
+    text: `Session "Debugging API errors" (abc-123-def)
+
+📊 Meta Information:
+  - Name: Debugging API errors
+  - Model: openai/gpt-4o
+  - Working Path: /home/user/project
+  - Message Count: 15
+  - Created: 2/12/2026, 10:30:00 AM
+  - Updated: 2/12/2026, 4:25:00 PM
+
+💬 Last 3 messages:
+- [user] How do I fix this API error?
+- [assistant] Let me check the logs...
+- [user] That worked! Thanks!
+
+Use includeMessages=true to get the full message history.`
+  }],
+  details: {
+    session: { id, name, model, workingPath, ... },
+    messagePreview: [...]
+  }
+}
+```
+
 ## Usage
 
 Tools are imported and registered in the `AgentManager`:
@@ -309,6 +379,7 @@ import {
   createGrepTool,
   createGlobTool,
   createRenameSessionTool,
+  createGetSessionTool,
 } from "./tools/index.js";
 
 // Create tools with an agent manager instance
@@ -320,6 +391,7 @@ const tools = [
   createGrepTool(),
   createGlobTool(),
   createRenameSessionTool(agentManager),
+  createGetSessionTool(agentManager),
 ];
 
 // Use with AgentSession

@@ -32,6 +32,7 @@ import {
   createGrepTool,
   createGlobTool,
   createRenameSessionTool,
+  createGetSessionTool,
 } from "./tools";
 import type { IAgentManager } from "./tools";
 
@@ -171,6 +172,7 @@ export class AgentManager implements IAgentManager {
           createGrepTool(),
           createGlobTool(),
           createRenameSessionTool(this),
+          createGetSessionTool(this),
         ],
       });
 
@@ -342,6 +344,7 @@ export class AgentManager implements IAgentManager {
         createGrepTool(),
         createGlobTool(),
         createRenameSessionTool(this),
+        createGetSessionTool(this),
       ],
     });
 
@@ -440,6 +443,7 @@ export class AgentManager implements IAgentManager {
 
     managed.name = name;
     managed.updatedAt = new Date().toISOString();
+    managed.autoRenamed = true;
 
     // Update DB
     await prisma.session.update({ where: { id }, data: { name } }).catch(() => {});
@@ -863,7 +867,6 @@ Your output must be:
     if (newName === oldName) return;
 
     await this.renameSession(managed.id, newName);
-    managed.autoRenamed = true;
   }
 }
 
