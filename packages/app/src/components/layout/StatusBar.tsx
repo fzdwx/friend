@@ -8,7 +8,7 @@ export function StatusBar() {
   return (
     <div
       className={cn(
-        "fixed bottom-3 right-3 z-50 flex items-center gap-1.5 px-2.5 py-1 rounded-full",
+        "fixed top-16 right-3 z-50 flex items-center gap-1.5 px-2.5 py-1 rounded-full",
         "bg-background/90 backdrop-blur-sm border border-border/50",
         "text-xs text-muted-foreground select-none shadow-sm",
         "transition-all duration-200 hover:shadow-md",
