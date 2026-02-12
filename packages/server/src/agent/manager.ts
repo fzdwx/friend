@@ -28,8 +28,8 @@ import {
   createGetThemesTool,
   createGenerateThemeTool,
   createSetThemeTool,
-} from "../tools";
-import type { IAgentManager } from "../tools";
+} from "./tools";
+import type { IAgentManager } from "./tools";
 
 const SESSIONS_DIR = join(homedir(), ".config", "friend", "sessions");
 
