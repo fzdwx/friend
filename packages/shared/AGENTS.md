@@ -22,10 +22,48 @@ packages/shared/src/
 
 | Type          | File        | Key Exports                                              |
 | ------------- | ----------- | -------------------------------------------------------- |
-| Session types | `models.ts` | `SessionInfo`, `SessionDetail`                           |
-| Message types | `models.ts` | `ChatMessage`, `UserChatMessage`, `AssistantChatMessage` |
+| Session types | `models.ts` | `SessionInfo`, `SessionDetail`, `workingPath?`               |
+| Message types | `models.ts` | `ChatMessage`, `UserChatMessage`, `AssistantChatMessage` | SDK re-exports |
 | API types     | `api.ts`    | `ApiResponse<T>`, request/response types                 |
-| SSE events    | `events.ts` | `SSEEvent`, `TextDeltaEvent`, `ToolCallStartEvent`       |
+| SSE events    | `events.ts` | `SSEEvent`, `ErrorEvent`, `SessionUpdatedEvent`      | SDK + app-specific |
+
+---
+
+## PATTERNS
+
+### SDK Re-Export Pattern
+**Purpose**: Share SDK types with app-specific extensions
+
+```typescript
+// models.ts
+export type { Message, UserMessage, AssistantMessage, ToolResultMessage, ... } from "@mariozechner/pi-ai";
+
+// events.ts
+export type { AgentSessionEvent, ... } from "@mariozechner/pi-coding-agent";
+```
+
+**Convention**:
+- Named re-exports only (no wildcard)
+- SDK types imported as-is, not redefined
+- App-specific events extend SDK base via union types
+
+### Extension Pattern
+**Purpose**: Reuse shared definitions with app-specific additions
+
+```typescript
+export interface SessionDetail extends SessionInfo {
+  messages: Message[];  // Adds message list to SessionInfo
+}
+
+export interface AddCustomProviderRequest extends CustomProviderConfig {
+  // Inherits all CustomProviderConfig fields
+}
+```
+
+**Convention**:
+- Extension pattern over redefinition
+- Prevents duplication of shared fields
+- Maintains single source of truth
 
 ---
 

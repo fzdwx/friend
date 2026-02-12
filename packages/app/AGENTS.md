@@ -105,3 +105,34 @@ if (res.ok && res.data) {
 - **Dev URL:** http://localhost:5173
 - **Window:** 1280x800 (min: 900x600)
 - **Dist:** ../dist
+
+---
+
+## PATTERNS
+
+### Tool Renderer Registry (Deep Module - Depth 11)
+**Location**: `packages/app/src/components/tools/registry/renderers/`
+
+**Pattern**: Self-registration via side-effect imports
+```typescript
+// Each renderer module:
+import { registerToolRenderer } from "./registry.js";
+import { Icon } from "lucide-react";
+
+registerToolRenderer("bash", {
+  icon: <Icon className="w-3. h-3.5" />,
+  getSummary: (args) => args.path || "...",
+  ResultComponent: BashResult,
+});
+
+// index.ts - barrel imports all as side effects:
+import "./bash.js";
+import "./edit.js";
+```
+
+**Convention**:
+- Side-effect imports only (no exports)
+- Consistent icon sizing: `w-3.5 h-3.5`
+- Truncation: bash/read 3000 chars, others 2000 chars
+- `args.path || args.file_path || ""` pattern for flexible param names
+- `ResultComponent` optional - complex tools (bash, read, edit) use it, simple tools omit

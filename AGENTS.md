@@ -29,19 +29,15 @@ Friend 是一个 AI 编程助手桌面应用，使用 Tauri + React 构建前端
 
 ## WHERE TO LOOK
 
-| Task                    | Location                          | Notes                          |
-|-------------------------|-----------------------------------|--------------------------------|
-| 启动开发环境            | `just dev`                        | 同时启动 server + frontend     |
-| API 路由                | `packages/server/src/routes/`     | Elysia 路由模块                |
-| Agent 核心逻辑          | `packages/server/src/agent/`      | SessionManager 编排 AI 调用    |
-| React 组件              | `packages/app/src/components/`    | 按功能分: chat/layout/config   |
-| 状态管理                | `packages/app/src/stores/`        | Zustand stores                 |
-| 共享类型                | `packages/shared/src/`            | models/api/events              |
-| 数据库 Schema           | `packages/db/prisma/schema.prisma`| SQLite + Prisma                |
-| API 客户端              | `packages/app/src/lib/api.ts`     | 封装 fetch，返回统一格式       |
-| 主题系统                | `packages/app/src/lib/theme.ts`   | 主题工具函数 + 颜色转换        |
-| 主题预设                | `packages/app/src/lib/themePresets.ts` | 15 组内置配色               |
-| 外观设置                | `packages/app/src/components/config/AppearanceContent.tsx` | 主题编辑器  |
+| Task                    | Location                          |
+|-------------------------|-----------------------------------|
+| 启动开发环境            | `just dev`                        |
+| API 路由                | `packages/server/src/routes/`     |
+| Agent 核心逻辑          | `packages/server/src/agent/`      |
+| React 组件              | `packages/app/src/components/`    |
+| 状态管理                | `packages/app/src/stores/`        |
+| 共享类型                | `packages/shared/src/`            |
+| 数据库 Schema           | `packages/db/prisma/schema.prisma`|
 
 ---
 
@@ -93,22 +89,14 @@ interface ApiResponse<T> {
 ## COMMANDS
 
 ```bash
-# 开发
-just dev              # 启动所有服务
-just dev-server       # 仅后端 (:3001)
-just dev-app          # 仅前端 (:5173)
-just dev-tauri        # 桌面应用
-
-# 代码质量
-just fmt              # 格式化 (oxfmt)
-just lint             # 检查 (oxlint)
-just fix              # 自动修复
-just typecheck        # TypeScript 检查
-
-# 数据库
-just db-generate      # 生成 Prisma Client
-just db-push          # 推送 schema
-just db-studio        # Prisma Studio
+just dev          # 启动所有服务
+just dev-server   # 仅后端 (:3001)
+just dev-app      # 仅前端 (:5173)
+just dev-tauri    # 桌面应用
+just fmt          # 格式化 (oxfmt)
+just lint         # 检查 (oxlint)
+just db-generate  # 生成 Prisma Client
+just db-push      # 推送 schema
 ```
 
 ---
@@ -118,5 +106,38 @@ just db-studio        # Prisma Studio
 - **无测试框架**: 项目目前没有配置测试
 - **无 CI/CD**: 无 `.github/workflows` 目录
 - **Tauri 图标**: `packages/app/src-tauri/icons/` 包含多平台图标
-- **SSE 代理**: Vite dev server 代理 `/api` 到 `:3001`
+- **SSE 代理**: Vite dev server代理 `/api` 到 `:3001`
 - **主题系统**: 15 组内置主题（5 亮色 + 10 暗色），使用 oklch 颜色格式，支持自定义主题导入/导出
+- **数据库混合存储**: Session 元数据在 SQLite，消息历史在 JSON 文件 (`~/.config/friend/sessions/*.json`)
+- **Tauri Dialog 插件**: 已配置 `dialog:default` 权限，前端通过 `@tauri-apps/plugin-dialog` 选择目录
+- **自定义工具**: `packages/custom-tools/` 包含工厂函数模式创建 Agent 工具
+
+---
+
+## PATTERNS
+
+### Tool Renderer Registry (Deep Module - Depth 11)
+**Location**: `packages/app/src/components/tools/registry/renderers/`
+
+**Pattern**: Self-registration via side-effect imports
+```typescript
+// Each renderer module:
+import { registerToolRenderer } from "./registry.js";
+import { Icon } from "lucide-react";
+
+registerToolRenderer("bash", {
+  icon: <Icon className="w-3.5 h-3.5" />,
+  getSummary: (args) => args.path || "...",
+  ResultComponent: BashResult,
+});
+
+// index.ts - barrel imports all as side effects:
+import "./bash.js";
+import "./read.js";
+```
+
+**Convention**:
+- Side-effect imports only (no exports)
+- Consistent icon sizing: `w-3.5 h-3.5`
+- Truncation at 2000-3000 chars with `... (truncated)`
+- `args.path || args.file_path || ""` pattern for flexible param names

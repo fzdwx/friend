@@ -106,3 +106,41 @@ prisma.session.update({...}).catch((err) =>
 - `tool_execution_start/update/end` - 工具执行
 - `error` - 错误事件
 - `session_updated` - 会话状态更新
+
+---
+
+## PATTERNS
+
+### Working Path Selection (Recent Feature)
+
+**Location**: `src/routes/sessions.ts`, `src/agent/manager.ts`
+
+**Pattern**: Optional working path in session creation with database persistence
+
+```typescript
+// Route handler with optional workingPath
+.post(
+  "/",
+  async ({ body }) => {
+    const session = await getAgentManager().createSession(body);
+    return { ok: true, data: session };
+  },
+  { body: t.Object({ name: t.Optional(t.String()), workingPath: t.Optional(t.String()) }) },
+)
+
+// Manager stores working path in Prisma
+const session = await prisma.session.create({
+  data: {
+    name,
+    model: undefined,
+    workingPath: params.workingPath || null, // Optional field
+    sessionFile: null,
+  },
+});
+```
+
+**Convention**:
+- `workingPath` is optional in CreateSessionRequest
+- Stored as nullable string in SQLite (String?)
+- Returned in SessionInfo via GET /api/sessions
+- Client-side handles both Tauri (native dialog) and browser (file input) selection
