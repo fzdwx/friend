@@ -97,7 +97,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       streamingText: "",
       streamingThinking: "",
       streamingBlocks: [],
-      streamingPhase: "idle" as StreamingPhase,
     }),
   finalizeAssistantMessage: (id, blocks) =>
     set((s) => ({

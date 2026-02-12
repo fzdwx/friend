@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { AssistantChatMessage, AssistantContentBlock } from "@friend/shared";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolCallBlock } from "./ToolCallBlock";
@@ -10,7 +11,7 @@ interface AssistantMessageProps {
   isStreaming?: boolean;
 }
 
-export function AssistantMessage({ message, isStreaming }: AssistantMessageProps) {
+export const AssistantMessage = memo(function AssistantMessage({ message, isStreaming }: AssistantMessageProps) {
   return (
     <div className="flex gap-3">
       <div className="flex-shrink-0 w-7 h-7 rounded-full bg-accent flex items-center justify-center">
@@ -27,7 +28,7 @@ export function AssistantMessage({ message, isStreaming }: AssistantMessageProps
       </div>
     </div>
   );
-}
+});
 
 function ContentBlock({ block }: { block: AssistantContentBlock }) {
   switch (block.type) {

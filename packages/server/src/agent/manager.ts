@@ -5,11 +5,8 @@ import {
   SessionManager,
   type AgentSession,
   type AgentSessionEvent,
-  type SessionStats,
-  type ToolDefinition,
+  type SessionStats, ToolDefinition,
 } from "@mariozechner/pi-coding-agent";
-import type { Model } from "@mariozechner/pi-ai";
-import { Type } from "@sinclair/typebox";
 import type {
   SessionInfo,
   SessionDetail,
@@ -19,11 +16,11 @@ import type {
   AppConfig,
   ModelInfo,
   CustomProviderConfig,
-  CustomModelConfig,
 } from "@friend/shared";
 import type { SSEEvent, GlobalSSEEvent } from "@friend/shared";
 import { prisma, type Prisma } from "@friend/db";
 import { stat } from "node:fs/promises";
+import {Type} from "@sinclair/typebox";
 
 // ─── DB mapping types ──────────────────────────────────────
 
@@ -242,7 +239,7 @@ function createAddProviderTool(manager: AgentManager): ToolDefinition {
 
 // ─── AgentManager ──────────────────────────────────────────
 
-class AgentManager {
+export class AgentManager {
   private managedSessions = new Map<string, ManagedSession>();
   private globalSubscribers = new Set<EventSubscriber>();
   private authStorage: AuthStorage;

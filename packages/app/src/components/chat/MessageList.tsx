@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import type { ChatMessage } from "@friend/shared";
 import { UserMessage } from "./UserMessage";
 import { AssistantMessage } from "./AssistantMessage";
@@ -10,26 +10,16 @@ import { ArrowDown } from "lucide-react";
 
 interface MessageListProps {
   messages: ChatMessage[];
-  streamingText: string;
-  streamingThinking: string;
   isStreaming: boolean;
 }
 
 const SCROLL_THRESHOLD = 80;
 
-export function MessageList({
-  messages,
-  streamingText,
-  streamingThinking,
-  isStreaming,
-}: MessageListProps) {
+export function MessageList({ messages, isStreaming }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const userScrolledRef = useRef(false);
-  const streamingBlocks = useSessionStore((s) => s.streamingBlocks);
-  const streamingPhase = useSessionStore((s) => s.streamingPhase);
-  const activeSessionId = useSessionStore((s) => s.activeSessionId);
 
   const checkAtBottom = useCallback(() => {
     const el = containerRef.current;
@@ -66,19 +56,6 @@ export function MessageList({
     return () => el.removeEventListener("scroll", onScroll);
   }, [checkAtBottom]);
 
-  // Auto-scroll when new content arrives, but only if user hasn't scrolled up
-  useEffect(() => {
-    if (!userScrolledRef.current) {
-      scrollToBottom();
-    }
-  }, [messages, streamingText, streamingThinking, streamingBlocks, scrollToBottom]);
-
-  useEffect(() => {
-    if (!userScrolledRef.current && streamingPhase != "idle") {
-      scrollToBottom();
-    }
-  }, [messages, streamingPhase, scrollToBottom]);
-
   // Always scroll to bottom when user sends a new message
   useEffect(() => {
     const last = messages[messages.length - 1];
@@ -89,17 +66,28 @@ export function MessageList({
     }
   }, [messages.length, scrollToBottom]);
 
-  const chatMessages = messages.filter((m) => {
-    if (m.role === "user") return true;
-    if (m.role === "assistant") {
-      const content = m.content;
-      if (!content || content.length === 0) return false;
-      return content.some(
-        (block) => block.type === "tool_call" || (block.text && block.text.trim() !== ""),
-      );
+  // Auto-scroll when messages change (e.g. finalized assistant message)
+  useEffect(() => {
+    if (!userScrolledRef.current) {
+      scrollToBottom();
     }
-    return false;
-  });
+  }, [messages, scrollToBottom]);
+
+  const chatMessages = useMemo(
+    () =>
+      messages.filter((m) => {
+        if (m.role === "user") return true;
+        if (m.role === "assistant") {
+          const content = m.content;
+          if (!content || content.length === 0) return false;
+          return content.some(
+            (block) => block.type === "tool_call" || (block.text && block.text.trim() !== ""),
+          );
+        }
+        return false;
+      }),
+    [messages],
+  );
 
   return (
     <div ref={containerRef} className="relative flex-1 overflow-y-auto px-4 py-4 space-y-4">
@@ -113,8 +101,61 @@ export function MessageList({
         return null;
       })}
 
-      {/* Streaming content */}
-      {isStreaming && (streamingText || streamingThinking || streamingBlocks.length > 0) && (
+      {/* Streaming content - isolated to avoid re-rendering historical messages */}
+      {isStreaming && (
+        <StreamingContent
+          scrollToBottom={scrollToBottom}
+          userScrolledRef={userScrolledRef}
+        />
+      )}
+
+      <div ref={bottomRef} />
+
+      {/* Scroll to bottom button */}
+      {!isAtBottom && (
+        <button
+          onClick={() => {
+            userScrolledRef.current = false;
+            setIsAtBottom(true);
+            scrollToBottom();
+          }}
+          className="sticky bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center justify-center w-8 h-8 rounded-full bg-secondary border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shadow-lg cursor-pointer"
+        >
+          <ArrowDown className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Reads streaming state from the store directly.
+ * Re-renders independently from the historical message list.
+ */
+function StreamingContent({
+  scrollToBottom,
+  userScrolledRef,
+}: {
+  scrollToBottom: () => void;
+  userScrolledRef: React.RefObject<boolean>;
+}) {
+  const streamingText = useSessionStore((s) => s.streamingText);
+  const streamingThinking = useSessionStore((s) => s.streamingThinking);
+  const streamingBlocks = useSessionStore((s) => s.streamingBlocks);
+  const streamingPhase = useSessionStore((s) => s.streamingPhase);
+
+  // Auto-scroll when streaming content changes
+  useEffect(() => {
+    if (!userScrolledRef.current) {
+      scrollToBottom();
+    }
+  }, [streamingText, streamingThinking, streamingBlocks, streamingPhase, scrollToBottom, userScrolledRef]);
+
+  const hasContent = streamingText || streamingThinking || streamingBlocks.length > 0;
+
+  return (
+    <>
+      {hasContent && (
         <div className="space-y-2">
           {streamingThinking && <ThinkingBlock content={streamingThinking} isStreaming />}
           {streamingBlocks
@@ -145,23 +186,7 @@ export function MessageList({
         </div>
       )}
 
-      {isStreaming && <SessionStatus />}
-
-      <div ref={bottomRef} />
-
-      {/* Scroll to bottom button */}
-      {!isAtBottom && (
-        <button
-          onClick={() => {
-            userScrolledRef.current = false;
-            setIsAtBottom(true);
-            scrollToBottom();
-          }}
-          className="sticky bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center justify-center w-8 h-8 rounded-full bg-secondary border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shadow-lg cursor-pointer"
-        >
-          <ArrowDown className="w-4 h-4" />
-        </button>
-      )}
-    </div>
+      <SessionStatus />
+    </>
   );
 }

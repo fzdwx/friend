@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { UserChatMessage } from "@friend/shared";
 import { User } from "lucide-react";
 
@@ -5,7 +6,7 @@ interface UserMessageProps {
   message: UserChatMessage;
 }
 
-export function UserMessage({ message }: UserMessageProps) {
+export const UserMessage = memo(function UserMessage({ message }: UserMessageProps) {
   return (
     <div className="flex gap-3">
       <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
@@ -17,4 +18,4 @@ export function UserMessage({ message }: UserMessageProps) {
       </div>
     </div>
   );
-}
+});

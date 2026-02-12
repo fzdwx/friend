@@ -1,13 +1,10 @@
 import { useSession } from "@/hooks/useSession";
-import { useSessionStore } from "@/stores/sessionStore";
 import { MessageList } from "@/components/chat/MessageList";
 import { InputArea } from "@/components/chat/InputArea";
 import { MessageSquarePlus } from "lucide-react";
 
 export function ChatPanel() {
   const { sessionId, messages, isStreaming, sendMessage, abort } = useSession();
-  const streamingText = useSessionStore((s) => s.streamingText);
-  const streamingThinking = useSessionStore((s) => s.streamingThinking);
 
   if (!sessionId) {
     return (
@@ -20,12 +17,7 @@ export function ChatPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <MessageList
-        messages={messages}
-        streamingText={streamingText}
-        streamingThinking={streamingThinking}
-        isStreaming={isStreaming}
-      />
+      <MessageList messages={messages} isStreaming={isStreaming} />
       <InputArea
         onSend={sendMessage}
         onAbort={abort}

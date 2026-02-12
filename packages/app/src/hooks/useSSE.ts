@@ -86,6 +86,7 @@ export function useGlobalSSE() {
               content: [...blocksRef.current],
               timestamp: new Date().toISOString(),
             });
+            // Only clear content, keep phase — next event will set it
             resetStreaming();
             messageIdRef.current = null;
             blocksRef.current = [];
@@ -123,6 +124,7 @@ export function useGlobalSSE() {
         case "error":
           console.error("SSE error:", event.message);
           setStreaming(false);
+          setStreamingPhase("idle");
           break;
       }
     };
