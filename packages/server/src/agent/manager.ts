@@ -3,9 +3,12 @@ import {
   AuthStorage,
   ModelRegistry,
   SessionManager,
+  DefaultResourceLoader,
+  loadSkillsFromDir,
   type AgentSession,
   type AgentSessionEvent,
   type SessionStats,
+  type Skill,
 } from "@mariozechner/pi-coding-agent";
 import { completeSimple } from "@mariozechner/pi-ai";
 import type {
@@ -22,8 +25,6 @@ import { BUILT_IN_THEMES } from "@friend/shared";
 import type { SSEEvent, GlobalSSEEvent, ConfigUpdatedEvent } from "@friend/shared";
 import { prisma } from "@friend/db";
 import { stat, unlink } from "node:fs/promises";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import {
   createAddProviderTool,
   createGetThemesTool,
@@ -35,8 +36,8 @@ import {
   createGetSessionTool,
 } from "./tools";
 import type { IAgentManager } from "./tools";
-
-const SESSIONS_DIR = join(homedir(), ".config", "friend", "sessions");
+import { GLOBAL_SKILLS_DIR, getProjectSkillsDir, SkillWatcher, ensureSkillsDir } from "./skills.js";
+import { SESSIONS_DIR } from "./paths.js";
 
 // ─── DB mapping types ──────────────────────────────────────
 
@@ -94,6 +95,7 @@ interface ManagedSession {
   id: string;
   name: string;
   session: AgentSession;
+  resourceLoader: DefaultResourceLoader;
   createdAt: string;
   updatedAt: string;
   workingPath?: string;
@@ -111,8 +113,9 @@ interface EventSubscriber {
 export class AgentManager implements IAgentManager {
   private managedSessions = new Map<string, ManagedSession>();
   private globalSubscribers = new Set<EventSubscriber>();
-  private authStorage: AuthStorage;
-  private modelRegistry: ModelRegistry;
+  private readonly authStorage: AuthStorage;
+  private readonly modelRegistry: ModelRegistry;
+  private skillWatcher: SkillWatcher | null = null;
   private config: AppConfig = {
     thinkingLevel: "medium",
     customProviders: [],
@@ -122,6 +125,54 @@ export class AgentManager implements IAgentManager {
   constructor() {
     this.authStorage = new AuthStorage();
     this.modelRegistry = new ModelRegistry(this.authStorage);
+  }
+
+  private async createAgentSessionWithSkills(
+    cwd: string,
+    sessionManager: SessionManager,
+  ): Promise<{ session: AgentSession; resourceLoader: DefaultResourceLoader }> {
+    const resourceLoader = new DefaultResourceLoader({
+      cwd,
+      noSkills: true,
+      noExtensions: true,
+      noPromptTemplates: true,
+      noThemes: true,
+      skillsOverride: () => {
+        const globalResult = loadSkillsFromDir({ dir: GLOBAL_SKILLS_DIR, source: "user" });
+        const projectResult = loadSkillsFromDir({ dir: getProjectSkillsDir(cwd), source: "project" });
+
+        const skillMap = new Map<string, Skill>();
+        for (const s of globalResult.skills) skillMap.set(s.name, s);
+        for (const s of projectResult.skills) skillMap.set(s.name, s);
+
+        return {
+          skills: Array.from(skillMap.values()),
+          diagnostics: [...globalResult.diagnostics, ...projectResult.diagnostics],
+        };
+      },
+    });
+    await resourceLoader.reload();
+
+    const { session } = await createAgentSession({
+      cwd,
+      sessionManager,
+      resourceLoader,
+      authStorage: this.authStorage,
+      modelRegistry: this.modelRegistry,
+      thinkingLevel: this.config.thinkingLevel,
+      customTools: [
+        createAddProviderTool(this),
+        createGetThemesTool(this),
+        createGenerateThemeTool(this),
+        createSetThemeTool(this),
+        createGrepTool(),
+        createGlobTool(),
+        createRenameSessionTool(this),
+        createGetSessionTool(this),
+      ],
+    });
+
+    return { session, resourceLoader };
   }
 
   async init(): Promise<void> {
@@ -158,28 +209,13 @@ export class AgentManager implements IAgentManager {
         sessionManager = SessionManager.inMemory(cwd);
       }
 
-      const { session } = await createAgentSession({
-        cwd,
-        sessionManager,
-        authStorage: this.authStorage,
-        modelRegistry: this.modelRegistry,
-        thinkingLevel: this.config.thinkingLevel,
-        customTools: [
-          createAddProviderTool(this),
-          createGetThemesTool(this),
-          createGenerateThemeTool(this),
-          createSetThemeTool(this),
-          createGrepTool(),
-          createGlobTool(),
-          createRenameSessionTool(this),
-          createGetSessionTool(this),
-        ],
-      });
+      const { session, resourceLoader } = await this.createAgentSessionWithSkills(cwd, sessionManager);
 
       const managed: ManagedSession = {
         id: s.id,
         name: s.name,
         session,
+        resourceLoader,
         createdAt: s.createdAt.toISOString(),
         updatedAt: s.updatedAt.toISOString(),
         workingPath: s.workingPath ?? undefined,
@@ -205,6 +241,31 @@ export class AgentManager implements IAgentManager {
     console.log(
       `Loaded ${sessions.length} session(s), ${providers.length} custom provider(s) from database`,
     );
+
+    // 4. Initialize SkillWatcher
+    await ensureSkillsDir(GLOBAL_SKILLS_DIR);
+
+    this.skillWatcher = new SkillWatcher((scope) => {
+      if (scope === "global") {
+        for (const managed of this.managedSessions.values()) {
+          managed.resourceLoader.reload().catch(console.error);
+        }
+      } else {
+        for (const managed of this.managedSessions.values()) {
+          const sessionCwd = managed.workingPath ?? process.cwd();
+          if (sessionCwd === scope) {
+            managed.resourceLoader.reload().catch(console.error);
+          }
+        }
+      }
+    });
+    this.skillWatcher.start();
+
+    const cwds = new Set<string>();
+    for (const managed of this.managedSessions.values()) {
+      cwds.add(managed.workingPath ?? process.cwd());
+    }
+    for (const cwd of cwds) this.skillWatcher.watchProject(cwd);
   }
 
   // Custom provider management
@@ -330,23 +391,7 @@ export class AgentManager implements IAgentManager {
     const cwd = opts?.workingPath ?? process.cwd();
     const sessionManager = SessionManager.create(cwd, SESSIONS_DIR);
 
-    const { session } = await createAgentSession({
-      cwd,
-      sessionManager,
-      authStorage: this.authStorage,
-      modelRegistry: this.modelRegistry,
-      thinkingLevel: this.config.thinkingLevel,
-      customTools: [
-        createAddProviderTool(this),
-        createGetThemesTool(this),
-        createGenerateThemeTool(this),
-        createSetThemeTool(this),
-        createGrepTool(),
-        createGlobTool(),
-        createRenameSessionTool(this),
-        createGetSessionTool(this),
-      ],
-    });
+    const { session, resourceLoader } = await this.createAgentSessionWithSkills(cwd, sessionManager);
 
     // Set default model if none selected
     if (!session.model) {
@@ -360,6 +405,7 @@ export class AgentManager implements IAgentManager {
       id,
       name,
       session,
+      resourceLoader,
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
       workingPath: opts?.workingPath,
@@ -369,6 +415,7 @@ export class AgentManager implements IAgentManager {
 
     this.setupEventListeners(managed);
     this.managedSessions.set(id, managed);
+    this.skillWatcher?.watchProject(cwd);
 
     const modelStr = session.model ? `${session.model.provider}/${session.model.id}` : undefined;
 
@@ -422,8 +469,17 @@ export class AgentManager implements IAgentManager {
     const managed = this.managedSessions.get(id);
     if (!managed) return false;
     const sessionFile = managed.session.sessionManager.getSessionFile();
+    const deletedCwd = managed.workingPath ?? process.cwd();
     managed.session.dispose();
     this.managedSessions.delete(id);
+
+    // Unwatch project directory if no other session uses it
+    const remainingCwds = new Set(
+      [...this.managedSessions.values()].map((s) => s.workingPath ?? process.cwd()),
+    );
+    if (!remainingCwds.has(deletedCwd)) {
+      this.skillWatcher?.unwatchProject(deletedCwd);
+    }
 
     // Delete from DB
     await prisma.session.delete({ where: { id } }).catch(() => {});

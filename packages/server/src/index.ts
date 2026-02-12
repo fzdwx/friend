@@ -1,3 +1,9 @@
+import { DB_PATH } from "./agent/paths.js";
+
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = `file:${DB_PATH}`;
+}
+
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { initAgentManager } from "./agent/manager";
