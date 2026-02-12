@@ -1,7 +1,7 @@
 import { memo } from "react";
 import type { AssistantChatMessage, AssistantContentBlock } from "@friend/shared";
 import { ThinkingBlock } from "./ThinkingBlock";
-import { ToolCallBlock } from "./ToolCallBlock";
+import { ToolBlock } from "@/components/tools/ToolBlock";
 import { Bot } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -42,7 +42,7 @@ function ContentBlock({ block }: { block: AssistantContentBlock }) {
       return <ThinkingBlock content={block.text} />;
     case "tool_call":
       return (
-        <ToolCallBlock toolCallId={block.toolCallId} toolName={block.toolName} args={block.args} />
+        <ToolBlock toolCallId={block.toolCallId} toolName={block.toolName} args={block.args} />
       );
   }
 }

@@ -1,9 +1,8 @@
-interface FileReadProps {
-  filePath: string;
-  content: string;
-}
+import { FileText } from "lucide-react";
+import { createElement } from "react";
+import { registerToolRenderer } from "../registry.js";
 
-export function FileRead({ filePath, content }: FileReadProps) {
+function FileRead({ filePath, content }: { filePath: string; content: string }) {
   const lines = content.split("\n");
   const lineCount = lines.length;
 
@@ -20,3 +19,13 @@ export function FileRead({ filePath, content }: FileReadProps) {
     </div>
   );
 }
+
+registerToolRenderer("read", {
+  icon: createElement(FileText, { className: "w-3.5 h-3.5" }),
+  getSummary: (args) => String(args.path || args.file_path || ""),
+  ResultComponent: ({ args, result }) =>
+    createElement(FileRead, {
+      filePath: String(args.path || args.file_path || ""),
+      content: result,
+    }),
+});

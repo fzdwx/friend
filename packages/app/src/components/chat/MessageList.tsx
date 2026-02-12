@@ -3,7 +3,7 @@ import type { ChatMessage } from "@friend/shared";
 import { UserMessage } from "./UserMessage";
 import { AssistantMessage } from "./AssistantMessage";
 import { ThinkingBlock } from "./ThinkingBlock";
-import { ToolCallBlock } from "./ToolCallBlock";
+import { ToolBlock } from "@/components/tools/ToolBlock";
 import { SessionStatus } from "./SessionStatus";
 import { useSessionStore } from "@/stores/sessionStore";
 import { ArrowDown } from "lucide-react";
@@ -90,7 +90,7 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
   );
 
   return (
-    <div ref={containerRef} className="relative flex-1 overflow-y-auto px-4 py-4 space-y-4">
+    <div ref={containerRef} className="relative flex-1 overflow-y-auto px-4 pt-4 pb-10 space-y-4">
       {chatMessages.map((msg) => {
         if (msg.role === "user") {
           return <UserMessage key={msg.id} message={msg} />;
@@ -162,11 +162,12 @@ function StreamingContent({
             .filter((b) => b.type === "tool_call")
             .map((b) =>
               b.type === "tool_call" ? (
-                <ToolCallBlock
+                <ToolBlock
                   key={b.toolCallId}
                   toolCallId={b.toolCallId}
                   toolName={b.toolName}
                   args={b.args}
+                  isStreaming
                 />
               ) : null,
             )}

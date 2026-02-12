@@ -1,10 +1,8 @@
-interface FileChangeProps {
-  filePath: string;
-  result: string;
-}
+import { FileEdit } from "lucide-react";
+import { createElement } from "react";
+import { registerToolRenderer } from "../registry.js";
 
-export function FileChange({ filePath, result }: FileChangeProps) {
-  // Parse the result to detect diff-like content
+function FileChange({ filePath, result }: { filePath: string; result: string }) {
   const lines = result.split("\n");
 
   return (
@@ -32,3 +30,13 @@ export function FileChange({ filePath, result }: FileChangeProps) {
     </div>
   );
 }
+
+registerToolRenderer("edit", {
+  icon: createElement(FileEdit, { className: "w-3.5 h-3.5" }),
+  getSummary: (args) => String(args.path || args.file_path || ""),
+  ResultComponent: ({ args, result }) =>
+    createElement(FileChange, {
+      filePath: String(args.path || args.file_path || ""),
+      result,
+    }),
+});
