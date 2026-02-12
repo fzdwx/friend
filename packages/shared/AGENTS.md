@@ -20,74 +20,47 @@ packages/shared/src/
 
 ## WHERE TO LOOK
 
-| Type          | File        | Key Exports                                              |
-| ------------- | ----------- | -------------------------------------------------------- |
-| Session types | `models.ts` | `SessionInfo`, `SessionDetail`, `workingPath?`               |
-| Message types | `models.ts` | `ChatMessage`, `UserChatMessage`, `AssistantChatMessage` | SDK re-exports |
-| API types     | `api.ts`    | `ApiResponse<T>`, request/response types                 |
-| SSE events    | `events.ts` | `SSEEvent`, `ErrorEvent`, `SessionUpdatedEvent`      | SDK + app-specific |
+| Type          | File        | Key Exports                                  |
+| ------------- | ----------- | -------------------------------------------- |
+| Session types | `models.ts` | `SessionInfo`, `SessionDetail`, `workingPath?` |
+| Message types | `models.ts` | `ChatMessage` (SDK re-exports)              |
+| API types     | `api.ts`    | `ApiResponse<T>`, request/response types     |
+| SSE events    | `events.ts` | `SSEEvent`, `ErrorEvent` (SDK + app-specific) |
 
 ---
 
 ## PATTERNS
 
 ### SDK Re-Export Pattern
-**Purpose**: Share SDK types with app-specific extensions
-
 ```typescript
 // models.ts
-export type { Message, UserMessage, AssistantMessage, ToolResultMessage, ... } from "@mariozechner/pi-ai";
+export type { Message, UserMessage, AssistantMessage } from "@mariozechner/pi-ai";
 
 // events.ts
 export type { AgentSessionEvent, ... } from "@mariozechner/pi-coding-agent";
 ```
-
-**Convention**:
-- Named re-exports only (no wildcard)
-- SDK types imported as-is, not redefined
-- App-specific events extend SDK base via union types
+**Convention**: Named re-exports only, SDK types imported as-is
 
 ### Extension Pattern
-**Purpose**: Reuse shared definitions with app-specific additions
-
 ```typescript
 export interface SessionDetail extends SessionInfo {
   messages: Message[];  // Adds message list to SessionInfo
 }
-
-export interface AddCustomProviderRequest extends CustomProviderConfig {
-  // Inherits all CustomProviderConfig fields
-}
 ```
-
-**Convention**:
-- Extension pattern over redefinition
-- Prevents duplication of shared fields
-- Maintains single source of truth
+**Convention**: Extension pattern over redefinition, single source of truth
 
 ---
 
 ## CONVENTIONS
 
-### 类型导出
-
 ```typescript
-// index.ts
+// Barrel exports (index.ts)
 export * from "./models.js";
 export * from "./api.js";
 export * from "./events.js";
-```
 
-### Discriminated Unions
-
-```typescript
+// Discriminated unions
 export type ChatMessage = UserChatMessage | AssistantChatMessage | ToolResultChatMessage;
-
-export interface UserChatMessage {
-  role: "user";
-  content: string;
-  // ...
-}
 ```
 
 ---
@@ -103,9 +76,5 @@ export interface UserChatMessage {
 ## USAGE
 
 ```typescript
-// Frontend
-import type { SessionInfo, ChatMessage } from "@friend/shared";
-
-// Backend
 import type { SessionInfo, ChatMessage } from "@friend/shared";
 ```

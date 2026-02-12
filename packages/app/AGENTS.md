@@ -1,138 +1,78 @@
 # APP PACKAGE KNOWLEDGE BASE
 
 **Package:** @friend/app  
-**Stack:** React 19 + Vite 6 + Tailwind CSS v4 + Tauri v2  
-**Purpose:** 桌面应用前端
+**Stack:** React 19 + Vite 6 + Tailwind CSS v4 + Tauri v2
 
 ---
 
 ## STRUCTURE
 
 ```
-packages/app/src/
-├── components/
-│   ├── layout/         # ResizableLayout, Sidebar, ChatPanel, ActivityPanel
-│   ├── chat/           # MessageList, InputArea, UserMessage, AssistantMessage
-│   ├── config/         # ModelSelector, ThinkingLevelSelector, ApiKeySettings
-│   └── tools/          # ToolExecution, BashOutput, FileChange, FileRead
-├── hooks/              # useApi, useSSE, useSession, useSessions
-├── stores/             # sessionStore, configStore, toolStore (Zustand)
-├── lib/                # api.ts (API client), utils.ts (cn helper)
-├── styles/             # globals.css (Tailwind v4 theme)
-└── main.tsx            # React entry
+src/
+├── components/   # layout, chat, config, tools
+├── hooks/        # useApi, useSSE, useSession
+├── stores/       # sessionStore, configStore (Zustand)
+├── lib/          # api.ts, theme.ts, themePresets.ts
+└── main.tsx
 ```
 
 ---
 
 ## WHERE TO LOOK
 
-| Task       | Location                                      | Notes                    |
-| ---------- | --------------------------------------------- | ------------------------ |
-| 根组件     | `src/App.tsx`                                 | 布局组合 + SSEConnector  |
-| 可拖拽布局 | `src/components/layout/ResizableLayout.tsx`   | 三栏可拖拽布局           |
-| API 调用   | `src/lib/api.ts`                              | 封装 fetch，统一错误处理 |
-| SSE 连接   | `src/hooks/useSSE.ts`                         | Server-Sent Events 订阅  |
-| 状态管理   | `src/stores/*Store.ts`                        | Zustand，selector 模式   |
-| 主题系统   | `src/lib/theme.ts`                            | 主题工具 + 颜色转换      |
-| 主题预设   | `src/lib/themePresets.ts`                     | 15 组内置配色            |
-| 外观设置   | `src/components/config/AppearanceContent.tsx` | 主题编辑器               |
-| 颜色选择器 | `src/components/config/ColorPicker.tsx`       | hex 输入 + 原生选择器    |
-| 主题卡片   | `src/components/config/PresetCard.tsx`        | 预设主题卡片             |
+| Task       | Location                              |
+| ---------- | ------------------------------------- |
+| 根组件     | `src/App.tsx`                         |
+| API 调用   | `src/lib/api.ts`                      |
+| SSE 连接   | `src/hooks/useSSE.ts`                 |
+| 主题系统   | `src/lib/theme.ts` + `themePresets.ts` |
 
 ---
 
 ## CONVENTIONS
 
-### 组件
-
 ```typescript
-interface ComponentProps {
-  propName: Type;
-}
+// Component
+export function ComponentName({ propName }: ComponentProps) { }
 
-export function ComponentName({ propName }: ComponentProps) {
-  // implementation
-}
-```
+// Store
+export const useStoreName = create<StoreState>((set, get) => ({}));
 
-### Store 定义
-
-```typescript
-export const useStoreName = create<StoreState>((set, get) => ({
-  // state
-  // actions
-}));
-```
-
-### API 调用
-
-```typescript
+// API
 const res = await api.someEndpoint();
-if (res.ok && res.data) {
-  // handle success
-} else {
-  // handle error
-}
+if (res.ok && res.data) { }
 ```
 
 ---
 
 ## ANTI-PATTERNS
 
-- **不要在组件内直接 fetch**: 使用 `lib/api.ts` 中的封装方法
-- **不要直接操作 DOM**: 使用 React ref 或 state
-- **不要在 render 中创建对象**: 使用 `useMemo` 或提升到外部
+- 不要在组件内直接 fetch: 使用 `lib/api.ts`
+- 不要直接操作 DOM: 使用 React ref 或 state
+- 不要在 render 中创建对象: 使用 `useMemo`
 
 ---
 
-## VITE CONFIG
+## CONFIG
 
-```typescript
-// vite.config.ts
-{
-  resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
-  server: {
-    port: 5173,
-    proxy: { "/api": { target: "http://localhost:3001" } }
-  }
-}
-```
-
----
-
-## TAURI CONFIG
-
-- **Dev URL:** http://localhost:5173
-- **Window:** 1280x800 (min: 900x600)
-- **Dist:** ../dist
+**Vite**: Port 5173, proxy `/api` → `localhost:3001`  
+**Tauri**: Dev URL `http://localhost:5173`, Window 1280x800
 
 ---
 
 ## PATTERNS
 
-### Tool Renderer Registry (Deep Module - Depth 11)
-**Location**: `packages/app/src/components/tools/registry/renderers/`
+### Tool Renderer Registry (Depth 11)
+**Location**: `src/components/tools/registry/renderers/`
 
-**Pattern**: Self-registration via side-effect imports
 ```typescript
-// Each renderer module:
 import { registerToolRenderer } from "./registry.js";
 import { Icon } from "lucide-react";
 
 registerToolRenderer("bash", {
-  icon: <Icon className="w-3. h-3.5" />,
+  icon: <Icon className="w-3.5 h-3.5" />,
   getSummary: (args) => args.path || "...",
-  ResultComponent: BashResult,
+  ResultComponent: BashResult, // Optional
 });
-
-// index.ts - barrel imports all as side effects:
-import "./bash.js";
-import "./edit.js";
 ```
-
-**Convention**:
-- Side-effect imports only (no exports)
-- Consistent icon sizing: `w-3.5 h-3.5`
-- Truncation: bash/read 3000 chars, others 2000 chars
-- `args.path || args.file_path || ""` pattern for flexible param names
-- `ResultComponent` optional - complex tools (bash, read, edit) use it, simple tools omit
+**Convention**: Side-effect imports only, icon `w-3.5 h-3.5`, truncation 2000-3000 chars, `ResultComponent` optional
