@@ -6,12 +6,21 @@ import { cn } from "@/lib/utils";
 import { selectDirectory, isTauri } from "@/lib/tauri";
 
 export function Sidebar() {
-  const { sessions, activeSessionId, loadSessions, createSession, switchSession, deleteSession } =
-    useSessions();
+  const {
+    sessions,
+    activeSessionId,
+    loadSessions,
+    createSession,
+    switchSession,
+    deleteSession,
+    renameSession,
+  } = useSessions();
   const setIsSettingsOpen = useConfigStore((s) => s.setIsSettingsOpen);
   const [showPathInput, setShowPathInput] = useState(false);
   const [pathValue, setPathValue] = useState("");
   const [pathError, setPathError] = useState("");
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
 
   const handleNewSession = async () => {
     if (isTauri()) {
@@ -35,6 +44,30 @@ export function Sidebar() {
       setShowPathInput(false);
       setPathValue("");
     }
+  };
+
+  const handleStartRename = (sessionId: string, currentName: string) => {
+    setEditingSessionId(sessionId);
+    setEditingName(currentName);
+  };
+
+  const handleRenameSubmit = async () => {
+    if (!editingSessionId) return;
+    const trimmed = editingName.trim();
+    if (!trimmed) return;
+
+    const result = await renameSession(editingSessionId, trimmed);
+    if (result.error) {
+      setPathError(result.error);
+    } else {
+      setEditingSessionId(null);
+      setEditingName("");
+    }
+  };
+
+  const handleRenameCancel = () => {
+    setEditingSessionId(null);
+    setEditingName("");
   };
 
   useEffect(() => {
@@ -77,9 +110,7 @@ export function Sidebar() {
               pathError ? "border-destructive" : "border-border",
             )}
           />
-          {pathError && (
-            <p className="text-xs text-destructive">{pathError}</p>
-          )}
+          {pathError && <p className="text-xs text-destructive">{pathError}</p>}
           <div className="flex gap-1.5">
             <button
               onClick={handlePathSubmit}
@@ -110,27 +141,86 @@ export function Sidebar() {
                 ? "bg-accent text-accent-foreground"
                 : "hover:bg-accent/50 text-muted-foreground",
             )}
-            onClick={() => switchSession(session.id)}
           >
             <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0 overflow-hidden">
-              <span className="truncate block">{session.name}</span>
-              {session.workingPath && (
+              {editingSessionId === session.id ? (
+                <input
+                  type="text"
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleRenameSubmit();
+                    if (e.key === "Escape") handleRenameCancel();
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  autoFocus
+                  className="w-full bg-secondary border border-border rounded px-1.5 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+              ) : (
+                <span
+                  className="truncate block group-hover:text-foreground transition-colors"
+                  onDoubleClick={() => handleStartRename(session.id, session.name)}
+                >
+                  {session.name}
+                </span>
+              )}
+              {session.workingPath && editingSessionId !== session.id && (
                 <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground/70">
                   <Folder className="w-3 h-3 flex-shrink-0" />
                   <span className="truncate">{session.workingPath}</span>
                 </div>
               )}
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                deleteSession(session.id);
-              }}
-              className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-destructive/20 transition-all flex-shrink-0"
-            >
-              <Trash2 className="w-3 h-3 text-muted-foreground" />
-            </button>
+            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              {editingSessionId === session.id ? (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRenameSubmit();
+                    }}
+                    className="p-0.5 rounded hover:bg-green-500/20 transition-all flex-shrink-0"
+                    title="Save"
+                  >
+                    ✓
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRenameCancel();
+                    }}
+                    className="p-0.5 rounded hover:bg-destructive/20 transition-all flex-shrink-0"
+                    title="Cancel"
+                  >
+                    ✕
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStartRename(session.id, session.name);
+                    }}
+                    className="p-0.5 rounded hover:bg-accent transition-all flex-shrink-0"
+                    title="Rename"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteSession(session.id);
+                    }}
+                    className="p-0.5 rounded hover:bg-destructive/20 transition-all flex-shrink-0"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-3 h-3 text-muted-foreground" />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         ))}
         {sessions.length === 0 && (

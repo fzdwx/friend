@@ -22,9 +22,7 @@ export function StreamingTurn() {
 
       {/* Content */}
       <div className="px-3 pb-2 space-y-2">
-        {streamingThinking && (
-          <ThinkingBlock content={streamingThinking} isStreaming />
-        )}
+        {streamingThinking && <ThinkingBlock content={streamingThinking} isStreaming />}
         {streamingBlocks.map((tc) => (
           <ToolBlock
             key={tc.id}

@@ -23,6 +23,11 @@ export const api = {
     }),
   getSession: (id: string) => request<any>(`/sessions/${id}`),
   deleteSession: (id: string) => request<any>(`/sessions/${id}`, { method: "DELETE" }),
+  renameSession: (id: string, name: string) =>
+    request<void>(`/sessions/${id}/name`, {
+      method: "PATCH",
+      body: JSON.stringify({ name }),
+    }),
   prompt: (id: string, message: string) =>
     request<void>(`/sessions/${id}/prompt`, {
       method: "POST",

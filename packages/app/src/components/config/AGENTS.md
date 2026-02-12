@@ -18,10 +18,10 @@ config/
 
 ## WHERE TO LOOK
 
-| Task                    | File                      |
-| ----------------------- | ------------------------- |
-| AI 提供商配置           | `ProviderSettings.tsx`    |
-| 外观设置（主题）        | `AppearanceSettings.tsx`  |
+| Task             | File                     |
+| ---------------- | ------------------------ |
+| AI 提供商配置    | `ProviderSettings.tsx`   |
+| 外观设置（主题） | `AppearanceSettings.tsx` |
 
 ---
 

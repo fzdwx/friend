@@ -9,9 +9,7 @@ export const AddCustomProviderParams = Type.Object({
   baseUrl: Type.String({
     description: "Base URL of the OpenAI-compatible API",
   }),
-  apiKey: Type.Optional(
-    Type.String({ description: "API key for authentication" }),
-  ),
+  apiKey: Type.Optional(Type.String({ description: "API key for authentication" })),
   api: Type.Optional(
     Type.String({
       description:
@@ -69,9 +67,7 @@ export interface IAgentManager {
 
 // ─── Tool Definition ───────────────────────────────────────
 
-export function createAddProviderTool(
-  manager: IAgentManager,
-): ToolDefinition {
+export function createAddProviderTool(manager: IAgentManager): ToolDefinition {
   return {
     name: "add_custom_provider",
     label: "Add Custom Provider",

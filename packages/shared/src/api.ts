@@ -16,6 +16,10 @@ export interface SteerRequest {
   message: string;
 }
 
+export interface RenameSessionRequest {
+  name: string;
+}
+
 export interface SwitchModelRequest {
   provider: string;
   modelId: string;

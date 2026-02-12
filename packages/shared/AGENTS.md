@@ -20,18 +20,19 @@ packages/shared/src/
 
 ## WHERE TO LOOK
 
-| Type          | File        | Key Exports                                  |
-| ------------- | ----------- | -------------------------------------------- |
+| Type          | File        | Key Exports                                    |
+| ------------- | ----------- | ---------------------------------------------- |
 | Session types | `models.ts` | `SessionInfo`, `SessionDetail`, `workingPath?` |
-| Message types | `models.ts` | `ChatMessage` (SDK re-exports)              |
-| API types     | `api.ts`    | `ApiResponse<T>`, request/response types     |
-| SSE events    | `events.ts` | `SSEEvent`, `ErrorEvent` (SDK + app-specific) |
+| Message types | `models.ts` | `ChatMessage` (SDK re-exports)                 |
+| API types     | `api.ts`    | `ApiResponse<T>`, request/response types       |
+| SSE events    | `events.ts` | `SSEEvent`, `ErrorEvent` (SDK + app-specific)  |
 
 ---
 
 ## PATTERNS
 
 ### SDK Re-Export Pattern
+
 ```typescript
 // models.ts
 export type { Message, UserMessage, AssistantMessage } from "@mariozechner/pi-ai";
@@ -39,14 +40,17 @@ export type { Message, UserMessage, AssistantMessage } from "@mariozechner/pi-ai
 // events.ts
 export type { AgentSessionEvent, ... } from "@mariozechner/pi-coding-agent";
 ```
+
 **Convention**: Named re-exports only, SDK types imported as-is
 
 ### Extension Pattern
+
 ```typescript
 export interface SessionDetail extends SessionInfo {
-  messages: Message[];  // Adds message list to SessionInfo
+  messages: Message[]; // Adds message list to SessionInfo
 }
 ```
+
 **Convention**: Extension pattern over redefinition, single source of truth
 
 ---

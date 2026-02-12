@@ -8,8 +8,11 @@ interface AssistantMessageProps {
   isStreaming?: boolean;
 }
 
-export const AssistantMessage = memo(function AssistantMessage({ message, isStreaming }: AssistantMessageProps) {
-  const textBlocks = message.content.filter(b => b.type === "text" && b.text.trim() !== "");
+export const AssistantMessage = memo(function AssistantMessage({
+  message,
+  isStreaming,
+}: AssistantMessageProps) {
+  const textBlocks = message.content.filter((b) => b.type === "text" && b.text.trim() !== "");
   if (textBlocks.length === 0) return null;
 
   return (

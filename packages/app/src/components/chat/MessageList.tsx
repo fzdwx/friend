@@ -1,5 +1,9 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from "react";
-import type { Message, UserMessage as PiUserMessage, AssistantMessage as PiAssistantMessage } from "@friend/shared";
+import type {
+  Message,
+  UserMessage as PiUserMessage,
+  AssistantMessage as PiAssistantMessage,
+} from "@friend/shared";
 import { UserMessage } from "./UserMessage";
 import { AssistantMessage } from "./AssistantMessage";
 import { useSessionStore } from "@/stores/sessionStore";
@@ -84,9 +88,7 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
       } else if (m.role === "assistant") {
         const content = m.content;
         if (!content || content.length === 0) continue;
-        const hasText = content.some(
-          (block) => block.type === "text" && block.text.trim() !== "",
-        );
+        const hasText = content.some((block) => block.type === "text" && block.text.trim() !== "");
         if (hasText && turnIndex >= 0) {
           result.push({ msg: m, turnIndex });
         }
@@ -125,10 +127,7 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
 
       {/* Streaming text - isolated to avoid re-rendering historical messages */}
       {isStreaming && (
-        <StreamingText
-          scrollToBottom={scrollToBottom}
-          userScrolledRef={userScrolledRef}
-        />
+        <StreamingText scrollToBottom={scrollToBottom} userScrolledRef={userScrolledRef} />
       )}
 
       <div ref={bottomRef} />
@@ -174,11 +173,13 @@ function StreamingText({
     <>
       {streamingText && (
         <AssistantMessage
-          message={{
-            role: "assistant",
-            content: [{ type: "text", text: streamingText }],
-            timestamp: Date.now(),
-          } as PiAssistantMessage}
+          message={
+            {
+              role: "assistant",
+              content: [{ type: "text", text: streamingText }],
+              timestamp: Date.now(),
+            } as PiAssistantMessage
+          }
           isStreaming
         />
       )}

@@ -23,12 +23,12 @@ tools/
 
 ## WHERE TO LOOK
 
-| Task                    | File                      |
-| ----------------------- | ------------------------- |
-| 工具注册                | `index.ts`                |
-| 添加 AI 提供商          | `addCustomProvider.ts`    |
-| 主题生成工具            | `generateTheme.ts`        |
-| 主题工具实用函数        | `themeUtils.ts`           |
+| Task             | File                   |
+| ---------------- | ---------------------- |
+| 工具注册         | `index.ts`             |
+| 添加 AI 提供商   | `addCustomProvider.ts` |
+| 主题生成工具     | `generateTheme.ts`     |
+| 主题工具实用函数 | `themeUtils.ts`        |
 
 ---
 
@@ -95,11 +95,11 @@ export function createTools(manager: IAgentManager): ToolDefinition[] {
 
 ## TOOL RESPONSIBILITIES
 
-| Tool               | Purpose                          | Key Files          |
-| ------------------ | -------------------------------- | ------------------ |
-| `get_themes`       | Query available themes           | `getThemes.ts`     |
-| `generate_theme`   | AI-generate custom theme         | `generateTheme.ts` |
-| `set_theme`        | Switch active theme              | `setTheme.ts`      |
+| Tool                  | Purpose                        | Key Files              |
+| --------------------- | ------------------------------ | ---------------------- |
+| `get_themes`          | Query available themes         | `getThemes.ts`         |
+| `generate_theme`      | AI-generate custom theme       | `generateTheme.ts`     |
+| `set_theme`           | Switch active theme            | `setTheme.ts`          |
 | `add_custom_provider` | Add OpenAI-compatible provider | `addCustomProvider.ts` |
 
 ---

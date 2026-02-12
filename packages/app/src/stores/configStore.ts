@@ -68,9 +68,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       set({ activeThemeId: themeId });
       applyThemeToDOM(theme);
       // Persist to backend
-      api.setActiveTheme(themeId).catch((err) =>
-        console.error("Failed to set active theme:", err),
-      );
+      api.setActiveTheme(themeId).catch((err) => console.error("Failed to set active theme:", err));
     }
   },
 
@@ -78,9 +76,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     const withDefaults = { ...theme, isPreset: false, isBuiltIn: false };
     set((s) => ({ customThemes: [...s.customThemes, withDefaults] }));
     // Persist to backend
-    api.addTheme(withDefaults).catch((err) =>
-      console.error("Failed to add custom theme:", err),
-    );
+    api.addTheme(withDefaults).catch((err) => console.error("Failed to add custom theme:", err));
   },
 
   updateCustomTheme: (themeId, updates) => {
@@ -94,25 +90,24 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       if (theme) applyThemeToDOM(theme);
     }
     // Persist to backend
-    api.updateTheme(themeId, updates).catch((err) =>
-      console.error("Failed to update custom theme:", err),
-    );
+    api
+      .updateTheme(themeId, updates)
+      .catch((err) => console.error("Failed to update custom theme:", err));
   },
 
   deleteCustomTheme: (themeId) => {
     set((s) => {
       const filtered = s.customThemes.filter((t) => t.id !== themeId);
       if (s.activeThemeId === themeId) {
-        const defaultTheme = BUILT_IN_THEMES.find((t) => t.id === "default-dark") ?? BUILT_IN_THEMES[0];
+        const defaultTheme =
+          BUILT_IN_THEMES.find((t) => t.id === "default-dark") ?? BUILT_IN_THEMES[0];
         applyThemeToDOM(defaultTheme);
         return { customThemes: filtered, activeThemeId: "default-dark" };
       }
       return { customThemes: filtered };
     });
     // Persist to backend
-    api.deleteTheme(themeId).catch((err) =>
-      console.error("Failed to delete custom theme:", err),
-    );
+    api.deleteTheme(themeId).catch((err) => console.error("Failed to delete custom theme:", err));
   },
 
   getAllThemes: () => {
@@ -153,7 +148,8 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       set((s) => {
         const filtered = s.customThemes.filter((t) => t.id !== event.deletedThemeId);
         if (s.activeThemeId === event.deletedThemeId) {
-          const defaultTheme = BUILT_IN_THEMES.find((t) => t.id === "default-dark") ?? BUILT_IN_THEMES[0];
+          const defaultTheme =
+            BUILT_IN_THEMES.find((t) => t.id === "default-dark") ?? BUILT_IN_THEMES[0];
           applyThemeToDOM(defaultTheme);
           return { customThemes: filtered, activeThemeId: "default-dark" };
         }

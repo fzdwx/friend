@@ -19,11 +19,11 @@ renderers/
 
 ## WHERE TO LOOK
 
-| Task                    | File                      |
-| ----------------------- | ------------------------- |
-| 工具渲染器注册中心      | `../registry.ts`          |
-| Bash 工具渲染           | `bash.ts`                 |
-| 文件读取渲染            | `read.ts`                 |
+| Task               | File             |
+| ------------------ | ---------------- |
+| 工具渲染器注册中心 | `../registry.ts` |
+| Bash 工具渲染      | `bash.ts`        |
+| 文件读取渲染       | `read.ts`        |
 
 ---
 
@@ -48,6 +48,7 @@ import "./read.js";
 ```
 
 **Convention**:
+
 - Side-effect imports only (no exports from renderer files)
 - Consistent icon sizing: `w-3.5 h-3.5`
 - Truncation at 2000-3000 chars with `... (truncated)`

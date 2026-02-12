@@ -92,6 +92,8 @@ interface ManagedSession {
   createdAt: string;
   updatedAt: string;
   workingPath?: string;
+  userMessageCount: number;
+  autoRenamed?: boolean;
 }
 
 interface EventSubscriber {
@@ -141,7 +143,10 @@ export class AgentManager implements IAgentManager {
         try {
           sessionManager = SessionManager.open(s.sessionFile, SESSIONS_DIR);
         } catch (err) {
-          console.warn(`Failed to open session file ${s.sessionFile}, falling back to inMemory:`, err);
+          console.warn(
+            `Failed to open session file ${s.sessionFile}, falling back to inMemory:`,
+            err,
+          );
           sessionManager = SessionManager.inMemory(cwd);
         }
       } else {
@@ -169,6 +174,8 @@ export class AgentManager implements IAgentManager {
         createdAt: s.createdAt.toISOString(),
         updatedAt: s.updatedAt.toISOString(),
         workingPath: s.workingPath ?? undefined,
+        userMessageCount: session.messages.filter((m) => m.role === "user").length,
+        autoRenamed: !s.name.startsWith("Session "),
       };
 
       // Restore model selection
@@ -343,6 +350,8 @@ export class AgentManager implements IAgentManager {
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
       workingPath: opts?.workingPath,
+      userMessageCount: 0,
+      autoRenamed: false,
     };
 
     this.setupEventListeners(managed);
@@ -409,6 +418,34 @@ export class AgentManager implements IAgentManager {
     if (sessionFile) unlink(sessionFile).catch(() => {});
 
     return true;
+  }
+
+  async renameSession(id: string, name: string): Promise<boolean> {
+    const managed = this.managedSessions.get(id);
+    if (!managed) return false;
+
+    managed.name = name;
+    managed.updatedAt = new Date().toISOString();
+
+    // Update DB
+    await prisma.session.update({ where: { id }, data: { name } }).catch(() => {});
+
+    return true;
+  }
+
+  private generateSessionName(userMessage: string): string {
+    // 提取消息内容生成标题
+    const text = userMessage.trim();
+    if (text.length <= 50) {
+      return text;
+    }
+
+    // 截取前 50 个字符，找到最近的单词边界
+    const first50 = text.substring(0, 50);
+    const lastSpace = first50.lastIndexOf(" ");
+    const trunc = lastSpace > 20 ? first50.substring(0, lastSpace) : first50;
+
+    return trunc + "...";
   }
 
   async prompt(id: string, message: string): Promise<void> {
@@ -544,7 +581,10 @@ export class AgentManager implements IAgentManager {
     this.broadcastGlobal({ type: "config_updated", addedTheme: theme });
   }
 
-  async updateCustomTheme(themeId: string, updates: Partial<ThemeConfig>): Promise<ThemeConfig | null> {
+  async updateCustomTheme(
+    themeId: string,
+    updates: Partial<ThemeConfig>,
+  ): Promise<ThemeConfig | null> {
     const existing = await prisma.customTheme.findUnique({ where: { id: themeId } });
     if (!existing) return null;
 
@@ -557,7 +597,7 @@ export class AgentManager implements IAgentManager {
 
     const updated: ThemeConfig = {
       id: existing.id,
-      name: (updates.name ?? existing.name),
+      name: updates.name ?? existing.name,
       mode: (updates.mode ?? existing.mode) as "light" | "dark" | "system",
       isPreset: false,
       isBuiltIn: false,
@@ -683,10 +723,56 @@ export class AgentManager implements IAgentManager {
   }
 
   private handleSDKEvent(managed: ManagedSession, event: AgentSessionEvent): void {
+    // Track user messages for auto-rename
+    if (event.type === "message_end") {
+      const messages = managed.session.messages.filter((m) => m.role === "user");
+      const currentCount = messages.length;
+
+      // Check if this is a new user message (count increased)
+      if (currentCount > managed.userMessageCount) {
+        managed.userMessageCount = currentCount;
+
+        // Auto-rename after 3rd user message if not already renamed
+        if (currentCount === 3 && !managed.autoRenamed && managed.name.startsWith("Session ")) {
+          const lastUserMessage = messages[messages.length - 1];
+          this.autoRenameSession(managed, lastUserMessage);
+        }
+      }
+    }
+
     // Forward SDK events directly to SSE subscribers
     this.broadcast(managed, event);
   }
 
+  private async autoRenameSession(managed: ManagedSession, userMessage: Message): Promise<void> {
+    if (userMessage.role !== "user") return;
+
+    // Handle both string and array content formats
+    let text = "";
+    if (typeof userMessage.content === "string") {
+      text = userMessage.content;
+    } else {
+      const textContent = userMessage.content.find((c: any) => c.type === "text");
+      if (textContent && "text" in textContent) {
+        text = textContent.text;
+      }
+    }
+
+    if (!text) return;
+
+    const newName = this.generateSessionName(text);
+    if (newName === managed.name) return;
+
+    await this.renameSession(managed.id, newName);
+    managed.autoRenamed = true;
+
+    // Broadcast rename event
+    this.broadcast(managed, {
+      type: "session_renamed",
+      newName,
+      oldName: managed.name,
+    });
+  }
 }
 
 // ─── Singleton export ──────────────────────────────────────

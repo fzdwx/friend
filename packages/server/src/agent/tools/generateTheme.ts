@@ -4,9 +4,7 @@ import { generateThemeFromColor } from "./themeUtils.js";
 import type { IAgentManager } from "./addCustomProvider.js";
 
 export const GenerateThemeParams = Type.Object({
-  name: Type.Optional(
-    Type.String({ description: "Optional name for the generated theme." }),
-  ),
+  name: Type.Optional(Type.String({ description: "Optional name for the generated theme." })),
   mode: Type.Union([Type.Literal("light"), Type.Literal("dark")], {
     description: "Theme mode: 'light' or 'dark'",
   }),
@@ -16,13 +14,15 @@ export const GenerateThemeParams = Type.Object({
     maximum: 360,
   }),
   saturation: Type.Number({
-    description: "Base saturation value (0-0.25) for the primary color. Higher values are more vibrant.",
+    description:
+      "Base saturation value (0-0.25) for the primary color. Higher values are more vibrant.",
     minimum: 0,
     maximum: 0.25,
     default: 0.1,
   }),
   save: Type.Boolean({
-    description: "If true, save the generated theme to the database for future use. Defaults to true.",
+    description:
+      "If true, save the generated theme to the database for future use. Defaults to true.",
     default: true,
   }),
 });

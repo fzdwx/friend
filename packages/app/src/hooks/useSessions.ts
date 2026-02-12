@@ -63,6 +63,20 @@ export function useSessions() {
     [removeSession, activeSessionId, setMessages, clearExecutions],
   );
 
+  const renameSession = useCallback(
+    async (id: string, name: string) => {
+      const res = await api.renameSession(id, name);
+      if (res.ok) {
+        // Update the session name in the store
+        const updatedSessions = sessions.map((s) => (s.id === id ? { ...s, name } : s));
+        setSessions(updatedSessions);
+        return { data: { id, name } };
+      }
+      return { error: res.error || "Failed to rename session" };
+    },
+    [setSessions, sessions],
+  );
+
   return {
     sessions,
     activeSessionId,
@@ -70,5 +84,6 @@ export function useSessions() {
     createSession,
     switchSession,
     deleteSession,
+    renameSession,
   };
 }

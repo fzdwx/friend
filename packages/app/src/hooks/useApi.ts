@@ -6,10 +6,7 @@ export function useApi() {
   const { setConfig, loadCustomThemes } = useConfigStore();
 
   const loadConfig = useCallback(async () => {
-    const [configRes] = await Promise.all([
-      api.getConfig(),
-      loadCustomThemes(),
-    ]);
+    const [configRes] = await Promise.all([api.getConfig(), loadCustomThemes()]);
     if (configRes.ok && configRes.data) {
       setConfig(configRes.data);
     }

@@ -18,10 +18,10 @@ stores/
 
 ## WHERE TO LOOK
 
-| Task                    | File                      |
-| ----------------------- | ------------------------- |
-| 会话状态管理            | `sessionStore.ts`         |
-| 配置状态管理            | `configStore.ts`          |
+| Task         | File              |
+| ------------ | ----------------- |
+| 会话状态管理 | `sessionStore.ts` |
+| 配置状态管理 | `configStore.ts`  |
 
 ---
 
@@ -49,6 +49,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 ```
 
 **Convention**:
+
 - Store name: `use{Domain}Store`
 - State 接口: `{Domain}State`
 - Actions: `set{Property}` 或具体动词 (`loadSessions`, `createSession`)
@@ -74,10 +75,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
 ## STORE RESPONSIBILITIES
 
-| Store               | Purpose                          |
-| ------------------- | -------------------------------- |
-| `sessionStore`      | 会话列表、当前会话 ID、消息      |
-| `configStore`       | 应用配置、主题、Provider 列表    |
+| Store          | Purpose                       |
+| -------------- | ----------------------------- |
+| `sessionStore` | 会话列表、当前会话 ID、消息   |
+| `configStore`  | 应用配置、主题、Provider 列表 |
 
 ---
 

@@ -22,6 +22,5 @@ function BashOutput({ output, isError }: { output: string; isError?: boolean }) 
 registerToolRenderer("bash", {
   icon: createElement(Terminal, { className: "w-3.5 h-3.5" }),
   getSummary: (args) => `$ ${String(args.command || "").slice(0, 120)}`,
-  ResultComponent: ({ result, isError }) =>
-    createElement(BashOutput, { output: result, isError }),
+  ResultComponent: ({ result, isError }) => createElement(BashOutput, { output: result, isError }),
 });

@@ -5,6 +5,7 @@ This guide explains how to use the theme-related tools in the Friend AI agent.
 ## Overview
 
 The theme tools allow the AI to:
+
 1. List all available themes (built-in and custom)
 2. Generate new custom themes based on color preferences
 3. Set the active theme for the application
@@ -63,6 +64,7 @@ Agent: (calls generate_theme with hue=220, saturation=0.12, mode="dark")
 ### Color Palette Generation
 
 The tool generates a complete color palette including:
+
 - Background and foreground colors
 - Card and popover colors
 - Primary, secondary, accent colors

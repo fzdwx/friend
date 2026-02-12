@@ -37,10 +37,11 @@ export function useGlobalSSE() {
 
       // Ensure streaming mode is on for events that imply active streaming
       // (handles page refresh where agent_start was missed)
-      const impliesStreaming = event.type === "message_start"
-        || event.type === "message_update"
-        || event.type === "tool_execution_start"
-        || event.type === "tool_execution_update";
+      const impliesStreaming =
+        event.type === "message_start" ||
+        event.type === "message_update" ||
+        event.type === "tool_execution_start" ||
+        event.type === "tool_execution_update";
       if (impliesStreaming && !useSessionStore.getState().isStreaming) {
         setStreaming(true);
       }
@@ -120,9 +121,7 @@ export function useGlobalSSE() {
 
         case "tool_execution_end": {
           const result =
-            typeof event.result === "string"
-              ? event.result
-              : JSON.stringify(event.result);
+            typeof event.result === "string" ? event.result : JSON.stringify(event.result);
           completeExecution(event.toolCallId, result, event.isError);
           break;
         }
@@ -137,13 +136,22 @@ export function useGlobalSSE() {
 
     // SDK events use top-level type names
     const eventTypes = [
-      "agent_start", "agent_end",
-      "turn_start", "turn_end",
-      "message_start", "message_update", "message_end",
-      "tool_execution_start", "tool_execution_update", "tool_execution_end",
-      "auto_compaction_start", "auto_compaction_end",
-      "auto_retry_start", "auto_retry_end",
-      "error", "session_updated",
+      "agent_start",
+      "agent_end",
+      "turn_start",
+      "turn_end",
+      "message_start",
+      "message_update",
+      "message_end",
+      "tool_execution_start",
+      "tool_execution_update",
+      "tool_execution_end",
+      "auto_compaction_start",
+      "auto_compaction_end",
+      "auto_retry_start",
+      "auto_retry_end",
+      "error",
+      "session_updated",
       "config_updated",
     ];
     for (const t of eventTypes) {

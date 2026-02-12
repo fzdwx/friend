@@ -19,9 +19,13 @@ interface TurnGroupProps {
 }
 
 function getUserPreview(msg: UserMessage): string {
-  const text = typeof msg.content === "string"
-    ? msg.content
-    : msg.content.filter(b => b.type === "text").map(b => b.text).join("");
+  const text =
+    typeof msg.content === "string"
+      ? msg.content
+      : msg.content
+          .filter((b) => b.type === "text")
+          .map((b) => b.text)
+          .join("");
   return text.length > 60 ? text.slice(0, 60) + "..." : text;
 }
 
@@ -74,7 +78,7 @@ export function TurnGroup({ turn, defaultExpanded = false }: TurnGroupProps) {
       {/* Header - clickable to toggle */}
       <button
         type="button"
-        onClick={() => setExpanded(v => !v)}
+        onClick={() => setExpanded((v) => !v)}
         className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-secondary/40 transition-colors"
       >
         <ChevronRight
@@ -90,26 +94,36 @@ export function TurnGroup({ turn, defaultExpanded = false }: TurnGroupProps) {
         <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50 flex-shrink-0">
           {thinkingCount > 0 && <span>{thinkingCount} thinking</span>}
           {thinkingCount > 0 && toolCount > 0 && <span>·</span>}
-          {toolCount > 0 && <span>{toolCount} tool{toolCount > 1 ? "s" : ""}</span>}
+          {toolCount > 0 && (
+            <span>
+              {toolCount} tool{toolCount > 1 ? "s" : ""}
+            </span>
+          )}
         </span>
       </button>
 
       {/* Expanded content - renders in original message order */}
       {expanded && (
         <div className="border-t border-border/50 px-3 py-2 space-y-2">
-          {[...blocks].reverse().map((block, i) =>
-            block.kind === "thinking" ? (
-              <ThinkingBlock key={`thinking-${i}`} content={block.content} defaultExpanded={defaultExpanded} />
-            ) : (
-              <ToolBlock
-                key={block.id}
-                toolCallId={block.id}
-                toolName={block.name}
-                args={block.args}
-                toolResult={turn.toolResults.get(block.id)}
-              />
-            ),
-          )}
+          {[...blocks]
+            .reverse()
+            .map((block, i) =>
+              block.kind === "thinking" ? (
+                <ThinkingBlock
+                  key={`thinking-${i}`}
+                  content={block.content}
+                  defaultExpanded={defaultExpanded}
+                />
+              ) : (
+                <ToolBlock
+                  key={block.id}
+                  toolCallId={block.id}
+                  toolName={block.name}
+                  args={block.args}
+                  toolResult={turn.toolResults.get(block.id)}
+                />
+              ),
+            )}
         </div>
       )}
     </div>

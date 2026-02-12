@@ -24,9 +24,7 @@ function extractResultText(tr: ToolResultMessage): string {
 export function ToolBlock({ toolCallId, toolName, args, isStreaming, toolResult }: ToolBlockProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const execution = useToolStore((s) =>
-    s.executions.find((e) => e.toolCallId === toolCallId),
-  );
+  const execution = useToolStore((s) => s.executions.find((e) => e.toolCallId === toolCallId));
 
   let parsedArgs: Record<string, unknown> = {};
   try {
@@ -110,11 +108,7 @@ export function ToolBlock({ toolCallId, toolName, args, isStreaming, toolResult 
       {/* Result body */}
       {expanded && hasResult && renderer.ResultComponent && (
         <div className="border-t border-border/50 max-h-60 overflow-y-auto">
-          <renderer.ResultComponent
-            args={parsedArgs}
-            result={resultText!}
-            isError={isError}
-          />
+          <renderer.ResultComponent args={parsedArgs} result={resultText!} isError={isError} />
         </div>
       )}
     </div>

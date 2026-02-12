@@ -24,7 +24,8 @@ const GetThemesFilter = Type.Optional(
 
 // ─── Tool Definition ───────────────────────────────────────
 
-export function createGetThemesTool(_manager: IAgentManager): ToolDefinition {  return {
+export function createGetThemesTool(_manager: IAgentManager): ToolDefinition {
+  return {
     name: "get_themes",
     label: "Get Themes",
     description:
@@ -32,7 +33,7 @@ export function createGetThemesTool(_manager: IAgentManager): ToolDefinition {  
     parameters: GetThemesFilter,
     async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       try {
-        const p = params as Record<string, any> || {};
+        const p = (params as Record<string, any>) || {};
 
         // Get all built-in themes
         let themes = getAllBuiltInThemes();
@@ -78,7 +79,10 @@ export function createGetThemesTool(_manager: IAgentManager): ToolDefinition {  
             {
               type: "text" as const,
               text: `Found ${themes.length} available themes:\n${themeList
-                .map((t) => `  - ${t.name} (${t.id}) [${t.mode}${t.isBuiltIn ? ", built-in" : ", custom"}]`)
+                .map(
+                  (t) =>
+                    `  - ${t.name} (${t.id}) [${t.mode}${t.isBuiltIn ? ", built-in" : ", custom"}]`,
+                )
                 .join("\n")}`,
             },
           ],

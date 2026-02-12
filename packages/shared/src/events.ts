@@ -17,6 +17,12 @@ export interface SessionUpdatedEvent {
   sessionId: string;
 }
 
+export interface SessionRenamedEvent {
+  type: "session_renamed";
+  newName: string;
+  oldName: string;
+}
+
 export interface ConfigUpdatedEvent {
   type: "config_updated";
   activeThemeId?: string;
@@ -25,7 +31,12 @@ export interface ConfigUpdatedEvent {
   deletedThemeId?: string;
 }
 
-export type SSEEvent = AgentSessionEvent | ErrorEvent | SessionUpdatedEvent | ConfigUpdatedEvent;
+export type SSEEvent =
+  | AgentSessionEvent
+  | ErrorEvent
+  | SessionUpdatedEvent
+  | SessionRenamedEvent
+  | ConfigUpdatedEvent;
 
 /** Wire format: every event carries a sessionId for multiplexing */
 export type GlobalSSEEvent = SSEEvent & { sessionId: string };

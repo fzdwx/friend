@@ -165,7 +165,7 @@ customTools: [
   createGenerateThemeTool(this),
   createSetThemeTool(this),
   createMyTool(this),
-]
+];
 ```
 
 ## Tool Implementation Guidelines

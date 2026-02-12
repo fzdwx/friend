@@ -23,12 +23,12 @@ src/
 
 ## WHERE TO LOOK
 
-| Task         | Location                  |
-| ------------ | ------------------------- |
-| Agent 管理   | `src/agent/manager.ts`    |
-| 自定义工具   | `src/agent/tools/`        |
-| Session 路由 | `src/routes/sessions.ts`  |
-| SSE 流       | `src/routes/events.ts`    |
+| Task         | Location                 |
+| ------------ | ------------------------ |
+| Agent 管理   | `src/agent/manager.ts`   |
+| 自定义工具   | `src/agent/tools/`       |
+| Session 路由 | `src/routes/sessions.ts` |
+| SSE 流       | `src/routes/events.ts`   |
 
 ---
 

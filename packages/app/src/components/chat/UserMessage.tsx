@@ -6,9 +6,13 @@ interface UserMessageProps {
 }
 
 export const UserMessage = memo(function UserMessage({ message }: UserMessageProps) {
-  const text = typeof message.content === "string"
-    ? message.content
-    : message.content.filter(b => b.type === "text").map(b => b.text).join("");
+  const text =
+    typeof message.content === "string"
+      ? message.content
+      : message.content
+          .filter((b) => b.type === "text")
+          .map((b) => b.text)
+          .join("");
 
   return (
     <div className="flex justify-end">

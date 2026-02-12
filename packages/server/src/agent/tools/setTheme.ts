@@ -6,7 +6,9 @@ import type { IAgentManager } from "./addCustomProvider.js";
 export const SetThemeParams = Type.Object({
   themeId: Type.Union(
     [
-      Type.String({ description: "Theme ID to set as active. Use get_themes to see available themes." }),
+      Type.String({
+        description: "Theme ID to set as active. Use get_themes to see available themes.",
+      }),
       Type.Literal("light", { description: "Use the default light theme" }),
       Type.Literal("dark", { description: "Use the default dark theme" }),
     ],
@@ -42,7 +44,10 @@ export function createSetThemeTool(manager: IAgentManager): ToolDefinition {
 
         return {
           content: [
-            { type: "text" as const, text: `Successfully set theme to "${themeName}". Active theme ID: ${themeId}` },
+            {
+              type: "text" as const,
+              text: `Successfully set theme to "${themeName}". Active theme ID: ${themeId}`,
+            },
           ],
           details: { themeId, themeName },
         };

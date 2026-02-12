@@ -81,15 +81,34 @@ export const sessionRoutes = new Elysia({ prefix: "/api/sessions" })
     return { ok: true, data: stats };
   })
 
-  .post(
-    "/:id/model",
+  .delete("/:id", async ({ params: { id } }) => {
+    const ok = await getAgentManager().deleteSession(id);
+    if (!ok) return { ok: false, error: "Session not found" };
+    return { ok: true };
+  })
+
+  .patch(
+    "/:id/name",
     async ({ params: { id }, body }) => {
       try {
-        const ok = await getAgentManager().setModel(id, body.provider, body.modelId);
+        const ok = await getAgentManager().renameSession(id, body.name);
         return { ok };
       } catch (e) {
         return { ok: false, error: String(e) };
       }
     },
-    { body: t.Object({ provider: t.String(), modelId: t.String() }) },
+    { body: t.Object({ name: t.String() }) },
+  )
+
+  .post(
+    "/:id/prompt",
+    async ({ params: { id }, body }) => {
+      try {
+        await getAgentManager().prompt(id, body.message);
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: String(e) };
+      }
+    },
+    { body: t.Object({ message: t.String() }) },
   );

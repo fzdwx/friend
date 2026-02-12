@@ -15,7 +15,7 @@ dev:
 
 # 启动 Bun 后端 (watch mode, port 3001)
 dev-server:
-    cd packages/server && bun run --watch src/index.ts
+    cd packages/server && bun run  src/index.ts
 
 # 启动 Vite 前端 (port 5173)
 dev-app:
