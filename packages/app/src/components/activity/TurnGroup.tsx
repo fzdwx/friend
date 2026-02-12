@@ -97,7 +97,7 @@ export function TurnGroup({ turn, defaultExpanded = false }: TurnGroupProps) {
       {/* Expanded content - renders in original message order */}
       {expanded && (
         <div className="border-t border-border/50 px-3 py-2 space-y-2">
-          {blocks.map((block, i) =>
+          {[...blocks].reverse().map((block, i) =>
             block.kind === "thinking" ? (
               <ThinkingBlock key={`thinking-${i}`} content={block.content} defaultExpanded={defaultExpanded} />
             ) : (

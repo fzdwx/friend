@@ -5,7 +5,7 @@ node_modules/
 .DS_Store
 dist/
 build/
-*.db
-*.db-journal
+packages/db/prisma/dev.db
+packages/db/prisma/dev.db-journal
 .idea/
 .sisyphus/
