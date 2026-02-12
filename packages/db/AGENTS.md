@@ -33,55 +33,10 @@ prisma/
 
 ## MODELS
 
-### Session (元数据存储)
-```prisma
-model Session {
-  id          String    @id @default(uuid())
-  name        String
-  model       String?
-  workingPath String?
-  sessionFile String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-```
-
-### AppConfig (单例配置)
-```prisma
-model AppConfig {
-  id            String @id @default("singleton")
-  thinkingLevel String @default("medium")
-}
-```
-
-### CustomProvider
-```prisma
-model CustomProvider {
-  name    String        @id
-  baseUrl String
-  apiKey  String?
-  api     String?
-  headers String?
-  models  CustomModel[]
-}
-```
-
-### CustomModel
-```prisma
-model CustomModel {
-  id             String  @id @default(uuid())
-  modelId        String
-  name           String
-  reasoning      Boolean @default(false)
-  contextWindow  Int     @default(128000)
-  maxTokens      Int     @default(8192)
-  costInput      Float   @default(0)
-  costOutput     Float   @default(0)
-  providerName   String
-  provider       CustomProvider @relation(fields: [providerName], references: [name], onDelete: Cascade)
-  @@unique([providerName, modelId])
-}
-```
+**Session**: id, name, model?, workingPath?, sessionFile?, createdAt, updatedAt  
+**AppConfig**: id="singleton", thinkingLevel  
+**CustomProvider**: name, baseUrl, apiKey?, api?, headers?, models[]  
+**CustomModel**: id, modelId, name, reasoning, contextWindow, maxTokens, costInput, costOutput, providerName, provider
 
 ---
 

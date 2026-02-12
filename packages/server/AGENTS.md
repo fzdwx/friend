@@ -33,19 +33,9 @@ src/
 
 ## CONVENTIONS
 
-```typescript
-// Route
-export const routes = new Elysia({ prefix: "/api/sessions" }).post(
-  "/:id/prompt", async ({ params, body }) => { },
-  { body: t.Object({ message: t.String() }) },
-);
-
-// Error handling
-try { return { ok: true }; } catch (e) { return { ok: false, error: String(e) }; }
-
-// Fire-and-forget DB
-prisma.session.update({...}).catch((err) => console.error("...", err));
-```
+**Route**: `new Elysia({ prefix: "/api/sessions" }).post("/:id/prompt", handler, { body })`  
+**Error handling**: `try { return { ok: true } } catch { return { ok: false, error: String(e) } }`  
+**Fire-and-forget DB**: `prisma.session.update({...}).catch((err) => console.error("...", err))`
 
 ---
 
@@ -70,21 +60,19 @@ prisma.session.update({...}).catch((err) => console.error("...", err));
 });
 ```
 
----
-
-## EVENT TYPES
-
-`agent_start/end`, `turn_start/end`, `text_delta`, `thinking_delta`, `tool_call_start/delta/end`, `tool_execution_start/update/end`, `error`, `session_updated`
+Events: `agent_start/end`, `turn_start/end`, `text_delta`, `thinking_delta`, `tool_call_start/delta/end`, `tool_execution_start/update/end`, `error`, `session_updated`
 
 ---
 
 ## PATTERNS
 
 ### Working Path Selection
+
+**Convention**: Optional workingPath in CreateSessionRequest, nullable in SQLite, returned in SessionInfo
+
 ```typescript
 .post("/", async ({ body }) => {
   const session = await getAgentManager().createSession(body);
   return { ok: true, data: session };
 }, { body: t.Object({ workingPath: t.Optional(t.String()) }) })
 ```
-**Convention**: Optional workingPath, nullable in SQLite, returned in SessionInfo
