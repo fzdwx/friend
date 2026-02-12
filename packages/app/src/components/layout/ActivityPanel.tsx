@@ -47,7 +47,7 @@ export function ActivityPanel() {
   const hasTurns = turns.length > 0 || isStreaming;
 
   return (
-    <div className="flex flex-col h-full bg-card">
+    <div className="flex flex-col h-full bg-card border-b border-border">
       <div className="p-3 border-b border-border">
         <div className="flex items-center gap-2 text-sm font-medium">
           <Activity className="w-4 h-4" />
