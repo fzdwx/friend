@@ -10,33 +10,22 @@ import {
 import type {
   SessionInfo,
   SessionDetail,
-  ChatMessage,
-  AssistantContentBlock,
+  Message,
   ThinkingLevel,
   AppConfig,
   ModelInfo,
   CustomProviderConfig,
 } from "@friend/shared";
 import type { SSEEvent, GlobalSSEEvent } from "@friend/shared";
-import { prisma, type Prisma } from "@friend/db";
-import { stat } from "node:fs/promises";
+import { prisma } from "@friend/db";
+import { stat, unlink } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import {Type} from "@sinclair/typebox";
 
-// ─── DB mapping types ──────────────────────────────────────
+const SESSIONS_DIR = join(homedir(), ".config", "friend", "sessions");
 
-type DbMessage = {
-  id: string;
-  sessionId: string;
-  orderIndex: number;
-  role: string;
-  content: string | null;
-  contentBlocks: string | null;
-  toolCallId: string | null;
-  toolName: string | null;
-  result: string | null;
-  isError: boolean | null;
-  timestamp: string;
-};
+// ─── DB mapping types ──────────────────────────────────────
 
 type DbCustomProvider = {
   name: string;
@@ -63,37 +52,6 @@ type DbCustomModel = {
 
 // ─── DB ↔ App mapping functions ────────────────────────────
 
-function dbMessageToChatMessage(m: DbMessage): ChatMessage {
-  switch (m.role) {
-    case "user":
-      return {
-        role: "user",
-        id: m.id,
-        content: m.content ?? "",
-        timestamp: m.timestamp,
-      };
-    case "assistant":
-      return {
-        role: "assistant",
-        id: m.id,
-        content: m.contentBlocks ? JSON.parse(m.contentBlocks) : [],
-        timestamp: m.timestamp,
-      };
-    case "tool_result":
-      return {
-        role: "tool_result",
-        id: m.id,
-        toolCallId: m.toolCallId ?? "",
-        toolName: m.toolName ?? "",
-        result: m.result ?? "",
-        isError: m.isError ?? false,
-        timestamp: m.timestamp,
-      };
-    default:
-      throw new Error(`Unknown message role: ${m.role}`);
-  }
-}
-
 function dbProviderToConfig(p: DbCustomProvider): CustomProviderConfig {
   return {
     name: p.name,
@@ -117,35 +75,6 @@ function dbProviderToConfig(p: DbCustomProvider): CustomProviderConfig {
   };
 }
 
-function chatMessageToDbData(
-  sessionId: string,
-  msg: ChatMessage,
-  orderIndex: number,
-): Prisma.MessageUncheckedCreateInput {
-  const base = {
-    id: msg.id,
-    sessionId,
-    orderIndex,
-    role: msg.role,
-    timestamp: msg.timestamp,
-  };
-
-  switch (msg.role) {
-    case "user":
-      return { ...base, content: msg.content };
-    case "assistant":
-      return { ...base, contentBlocks: JSON.stringify(msg.content) };
-    case "tool_result":
-      return {
-        ...base,
-        toolCallId: msg.toolCallId,
-        toolName: msg.toolName,
-        result: msg.result,
-        isError: msg.isError,
-      };
-  }
-}
-
 // ─── ManagedSession & EventSubscriber ──────────────────────
 
 interface ManagedSession {
@@ -154,9 +83,6 @@ interface ManagedSession {
   session: AgentSession;
   createdAt: string;
   updatedAt: string;
-  messages: ChatMessage[];
-  currentAssistantBlocks: AssistantContentBlock[];
-  currentAssistantId: string | null;
   currentToolCalls: Map<string, { toolName: string; argsJson: string }>;
   workingPath?: string;
 }
@@ -270,20 +196,29 @@ export class AgentManager {
     }
 
     // 3. Load all Sessions
-    const sessions = await prisma.session.findMany({
-      include: { messages: { orderBy: { orderIndex: "asc" } } },
-    });
+    const sessions = await prisma.session.findMany();
     for (const s of sessions) {
+      let sessionManager: SessionManager;
+      const cwd = s.workingPath ?? process.cwd();
+      if (s.sessionFile) {
+        try {
+          sessionManager = SessionManager.open(s.sessionFile, SESSIONS_DIR);
+        } catch (err) {
+          console.warn(`Failed to open session file ${s.sessionFile}, falling back to inMemory:`, err);
+          sessionManager = SessionManager.inMemory(cwd);
+        }
+      } else {
+        sessionManager = SessionManager.inMemory(cwd);
+      }
+
       const { session } = await createAgentSession({
-        cwd: s.workingPath ?? undefined,
-        sessionManager: SessionManager.inMemory(),
+        cwd,
+        sessionManager,
         authStorage: this.authStorage,
         modelRegistry: this.modelRegistry,
         thinkingLevel: this.config.thinkingLevel,
         customTools: [createAddProviderTool(this)],
       });
-
-      const messages = s.messages.map(dbMessageToChatMessage);
 
       const managed: ManagedSession = {
         id: s.id,
@@ -291,9 +226,6 @@ export class AgentManager {
         session,
         createdAt: s.createdAt.toISOString(),
         updatedAt: s.updatedAt.toISOString(),
-        messages,
-        currentAssistantBlocks: [],
-        currentAssistantId: null,
         currentToolCalls: new Map(),
         workingPath: s.workingPath ?? undefined,
       };
@@ -423,7 +355,7 @@ export class AgentManager {
       createdAt: s.createdAt,
       updatedAt: s.updatedAt,
       model: s.session.model ? `${s.session.model.provider}/${s.session.model.id}` : undefined,
-      messageCount: s.messages.length,
+      messageCount: s.session.messages.length,
       workingPath: s.workingPath,
     }));
   }
@@ -438,16 +370,25 @@ export class AgentManager {
 
     const id = crypto.randomUUID();
     const name = opts?.name ?? `Session ${this.managedSessions.size + 1}`;
+    const cwd = opts?.workingPath ?? process.cwd();
+    const sessionManager = SessionManager.create(cwd, SESSIONS_DIR);
 
     const { session } = await createAgentSession({
-      cwd: opts?.workingPath,
-      sessionManager: SessionManager.inMemory(),
+      cwd,
+      sessionManager,
       authStorage: this.authStorage,
       modelRegistry: this.modelRegistry,
       thinkingLevel: this.config.thinkingLevel,
       customTools: [createAddProviderTool(this)],
     });
 
+    // Set default model if none selected
+    if (!session.model) {
+      const defaultModel = this.modelRegistry.getAvailable()[0];
+      if (defaultModel) await session.setModel(defaultModel);
+    }
+
+    const sessionFile = sessionManager.getSessionFile() ?? null;
     const now = new Date();
     const managed: ManagedSession = {
       id,
@@ -455,15 +396,14 @@ export class AgentManager {
       session,
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
-      messages: [],
-      currentAssistantBlocks: [],
-      currentAssistantId: null,
       currentToolCalls: new Map(),
       workingPath: opts?.workingPath,
     };
 
     this.setupEventListeners(managed);
     this.managedSessions.set(id, managed);
+
+    const modelStr = session.model ? `${session.model.provider}/${session.model.id}` : undefined;
 
     // Persist to DB
     await prisma.session.create({
@@ -473,6 +413,8 @@ export class AgentManager {
         createdAt: now,
         updatedAt: now,
         workingPath: opts?.workingPath,
+        sessionFile,
+        model: modelStr,
       },
     });
 
@@ -481,7 +423,7 @@ export class AgentManager {
       name,
       createdAt: managed.createdAt,
       updatedAt: managed.updatedAt,
-      model: session.model ? `${session.model.provider}/${session.model.id}` : undefined,
+      model: modelStr,
       messageCount: 0,
       workingPath: opts?.workingPath,
     };
@@ -490,6 +432,11 @@ export class AgentManager {
   async getSession(id: string): Promise<SessionDetail | null> {
     const managed = this.managedSessions.get(id);
     if (!managed) return null;
+
+    const messages = managed.session.messages.filter(
+      (m): m is Message => m.role === "user" || m.role === "assistant" || m.role === "toolResult",
+    );
+
     return {
       id: managed.id,
       name: managed.name,
@@ -498,8 +445,8 @@ export class AgentManager {
       model: managed.session.model
         ? `${managed.session.model.provider}/${managed.session.model.id}`
         : undefined,
-      messageCount: managed.messages.length,
-      messages: managed.messages,
+      messageCount: messages.length,
+      messages,
       workingPath: managed.workingPath,
     };
   }
@@ -507,11 +454,14 @@ export class AgentManager {
   async deleteSession(id: string): Promise<boolean> {
     const managed = this.managedSessions.get(id);
     if (!managed) return false;
+    const sessionFile = managed.session.sessionManager.getSessionFile();
     managed.session.dispose();
     this.managedSessions.delete(id);
 
-    // Delete from DB (cascade deletes messages)
+    // Delete from DB
     await prisma.session.delete({ where: { id } }).catch(() => {});
+    // Clean up session file
+    if (sessionFile) unlink(sessionFile).catch(() => {});
 
     return true;
   }
@@ -520,24 +470,11 @@ export class AgentManager {
     const managed = this.managedSessions.get(id);
     if (!managed) throw new Error(`Session ${id} not found`);
 
-    // Add user message
-    const userMsg: ChatMessage = {
-      role: "user",
-      id: crypto.randomUUID(),
-      content: message,
-      timestamp: new Date().toISOString(),
-    };
-    managed.messages.push(userMsg);
     managed.updatedAt = new Date().toISOString();
-
-    // Persist user message
-    const orderIndex = managed.messages.length - 1;
-    await prisma.message.create({
-      data: chatMessageToDbData(id, userMsg, orderIndex),
-    });
     prisma.session.update({ where: { id }, data: { updatedAt: new Date() } }).catch(() => {});
 
     // Run prompt (non-blocking - returns after agent finishes)
+    // SDK session automatically tracks user + assistant messages
     managed.session.prompt(message).catch((err) => {
       this.broadcast(managed, { type: "error", message: String(err) });
     });
@@ -725,13 +662,10 @@ export class AgentManager {
         break;
 
       case "message_start": {
-        // Start tracking new assistant message
-        const msgId = crypto.randomUUID();
-        managed.currentAssistantId = msgId;
-        managed.currentAssistantBlocks = [];
+        managed.currentToolCalls.clear();
         this.broadcast(managed, {
           type: "message_start",
-          messageId: msgId,
+          messageId: crypto.randomUUID(),
           role: "assistant",
         });
         break;
@@ -745,8 +679,6 @@ export class AgentManager {
               type: "text_delta",
               content: ame.delta,
             });
-            // Update or append text block
-            this.appendToAssistantBlock(managed, "text", ame.delta);
             break;
 
           case "thinking_delta":
@@ -754,7 +686,6 @@ export class AgentManager {
               type: "thinking_delta",
               content: ame.delta,
             });
-            this.appendToAssistantBlock(managed, "thinking", ame.delta);
             break;
 
           case "toolcall_start": {
@@ -774,7 +705,6 @@ export class AgentManager {
           }
 
           case "toolcall_delta": {
-            // Find the tool call being streamed
             const tcContent = ame.partial.content[ame.contentIndex];
             const tcId = tcContent && "id" in tcContent ? (tcContent as any).id : undefined;
             if (tcId && managed.currentToolCalls.has(tcId)) {
@@ -793,12 +723,6 @@ export class AgentManager {
             const tcEnd = ame.toolCall;
             const toolCallId = tcEnd.id;
             const entry = managed.currentToolCalls.get(toolCallId);
-            managed.currentAssistantBlocks.push({
-              type: "tool_call",
-              toolCallId,
-              toolName: entry?.toolName ?? tcEnd.name,
-              args: JSON.stringify(tcEnd.arguments),
-            });
             this.broadcast(managed, {
               type: "tool_call_end",
               toolCallId,
@@ -812,34 +736,11 @@ export class AgentManager {
       }
 
       case "message_end": {
-        // Finalize assistant message
-        if (managed.currentAssistantId) {
-          const assistantMsg: ChatMessage = {
-            role: "assistant",
-            id: managed.currentAssistantId,
-            content: [...managed.currentAssistantBlocks],
-            timestamp: new Date().toISOString(),
-          };
-          managed.messages.push(assistantMsg);
-          managed.updatedAt = new Date().toISOString();
-          this.broadcast(managed, {
-            type: "message_end",
-            messageId: managed.currentAssistantId,
-          });
-
-          // Fire-and-forget: persist assistant message
-          const orderIndex = managed.messages.length - 1;
-          prisma.message
-            .create({ data: chatMessageToDbData(managed.id, assistantMsg, orderIndex) })
-            .catch((err) => console.error("Failed to persist assistant message:", err));
-          prisma.session
-            .update({ where: { id: managed.id }, data: { updatedAt: new Date() } })
-            .catch(() => {});
-
-          managed.currentAssistantId = null;
-          managed.currentAssistantBlocks = [];
-          managed.currentToolCalls.clear();
+        const message = event.message;
+        if (message.role === "assistant") {
+          this.broadcast(managed, { type: "message_end", message });
         }
+        managed.currentToolCalls.clear();
         break;
       }
 
@@ -867,24 +768,6 @@ export class AgentManager {
       case "tool_execution_end": {
         const resultText =
           typeof event.result === "string" ? event.result : JSON.stringify(event.result);
-        // Add tool result message
-        const toolMsg: ChatMessage = {
-          role: "tool_result",
-          id: crypto.randomUUID(),
-          toolCallId: event.toolCallId,
-          toolName: event.toolName,
-          result: resultText,
-          isError: event.isError,
-          timestamp: new Date().toISOString(),
-        };
-        managed.messages.push(toolMsg);
-
-        // Fire-and-forget: persist tool result message
-        const orderIndex = managed.messages.length - 1;
-        prisma.message
-          .create({ data: chatMessageToDbData(managed.id, toolMsg, orderIndex) })
-          .catch((err) => console.error("Failed to persist tool result message:", err));
-
         this.broadcast(managed, {
           type: "tool_execution_end",
           toolCallId: event.toolCallId,
@@ -897,19 +780,6 @@ export class AgentManager {
     }
   }
 
-  private appendToAssistantBlock(
-    managed: ManagedSession,
-    blockType: "text" | "thinking",
-    delta: string,
-  ): void {
-    const blocks = managed.currentAssistantBlocks;
-    const last = blocks[blocks.length - 1];
-    if (last && last.type === blockType) {
-      last.text += delta;
-    } else {
-      blocks.push({ type: blockType, text: delta });
-    }
-  }
 }
 
 // ─── Singleton export ──────────────────────────────────────

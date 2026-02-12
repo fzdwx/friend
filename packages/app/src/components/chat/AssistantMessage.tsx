@@ -1,5 +1,5 @@
 import { memo } from "react";
-import type { AssistantChatMessage, AssistantContentBlock } from "@friend/shared";
+import type { AssistantMessage as PiAssistantMessage, TextContent, ThinkingContent, ToolCall } from "@friend/shared";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolBlock } from "@/components/tools/ToolBlock";
 import { Bot } from "lucide-react";
@@ -7,7 +7,7 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 interface AssistantMessageProps {
-  message: AssistantChatMessage;
+  message: PiAssistantMessage;
   isStreaming?: boolean;
 }
 
@@ -30,7 +30,7 @@ export const AssistantMessage = memo(function AssistantMessage({ message, isStre
   );
 });
 
-function ContentBlock({ block }: { block: AssistantContentBlock }) {
+function ContentBlock({ block }: { block: TextContent | ThinkingContent | ToolCall }) {
   switch (block.type) {
     case "text":
       return (
@@ -39,10 +39,10 @@ function ContentBlock({ block }: { block: AssistantContentBlock }) {
         </div>
       );
     case "thinking":
-      return <ThinkingBlock content={block.text} />;
-    case "tool_call":
+      return <ThinkingBlock content={block.thinking} />;
+    case "toolCall":
       return (
-        <ToolBlock toolCallId={block.toolCallId} toolName={block.toolName} args={block.args} />
+        <ToolBlock toolCallId={block.id} toolName={block.name} args={JSON.stringify(block.arguments)} />
       );
   }
 }

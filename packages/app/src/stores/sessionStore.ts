@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { SessionInfo, ChatMessage, AssistantContentBlock, ModelInfo } from "@friend/shared";
+import type { SessionInfo, Message, AssistantMessage, ToolCall, ModelInfo } from "@friend/shared";
 import { api } from "@/lib/api.js";
 
 export type StreamingPhase =
@@ -13,11 +13,11 @@ export type StreamingPhase =
 interface SessionState {
   sessions: SessionInfo[];
   activeSessionId: string | null;
-  messages: ChatMessage[];
+  messages: Message[];
   isStreaming: boolean;
   streamingText: string;
   streamingThinking: string;
-  streamingBlocks: AssistantContentBlock[];
+  streamingBlocks: ToolCall[];
   streamingPhase: StreamingPhase;
   availableModels: ModelInfo[];
   currentModel: ModelInfo | null;
@@ -27,15 +27,14 @@ interface SessionState {
   addSession: (session: SessionInfo) => void;
   removeSession: (id: string) => void;
   setActiveSession: (id: string | null) => void;
-  setMessages: (messages: ChatMessage[]) => void;
-  addMessage: (message: ChatMessage) => void;
+  setMessages: (messages: Message[]) => void;
+  addMessage: (message: Message) => void;
   setStreaming: (streaming: boolean) => void;
   setStreamingPhase: (phase: StreamingPhase) => void;
   appendStreamingText: (text: string) => void;
   appendStreamingThinking: (text: string) => void;
-  addStreamingBlock: (block: AssistantContentBlock) => void;
+  addStreamingBlock: (block: ToolCall) => void;
   resetStreaming: () => void;
-  finalizeAssistantMessage: (id: string, blocks: AssistantContentBlock[]) => void;
   loadModels: () => Promise<void>;
   setCurrentModel: (sessionId: string, provider: string, modelId: string) => Promise<void>;
 }
@@ -47,7 +46,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   isStreaming: false,
   streamingText: "",
   streamingThinking: "",
-  streamingBlocks: [] as AssistantContentBlock[],
+  streamingBlocks: [] as ToolCall[],
   streamingPhase: "idle" as StreamingPhase,
   availableModels: [],
   currentModel: null,
@@ -98,18 +97,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       streamingThinking: "",
       streamingBlocks: [],
     }),
-  finalizeAssistantMessage: (id, blocks) =>
-    set((s) => ({
-      messages: [
-        ...s.messages,
-        {
-          role: "assistant" as const,
-          id,
-          content: blocks,
-          timestamp: new Date().toISOString(),
-        },
-      ],
-    })),
   loadModels: async () => {
     const res = await api.getModels();
     if (res.ok && res.data) {

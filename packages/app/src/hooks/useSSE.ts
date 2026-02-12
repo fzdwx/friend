@@ -1,12 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useSessionStore } from "@/stores/sessionStore";
 import { useToolStore } from "@/stores/toolStore";
-import type { GlobalSSEEvent, AssistantContentBlock } from "@friend/shared";
+import type { GlobalSSEEvent, ToolCall } from "@friend/shared";
 
 export function useGlobalSSE() {
-  const blocksRef = useRef<AssistantContentBlock[]>([]);
-  const messageIdRef = useRef<string | null>(null);
-
   const activeSessionId = useSessionStore((s) => s.activeSessionId);
   const activeSessionRef = useRef(activeSessionId);
   activeSessionRef.current = activeSessionId;
@@ -43,21 +40,17 @@ export function useGlobalSSE() {
           break;
 
         case "message_start":
-          messageIdRef.current = event.messageId;
-          blocksRef.current = [];
           resetStreaming();
           setStreamingPhase("started");
           break;
 
         case "text_delta":
           appendStreamingText(event.content);
-          appendToBlocks(blocksRef.current, "text", event.content);
           setStreamingPhase("generating");
           break;
 
         case "thinking_delta":
           appendStreamingThinking(event.content);
-          appendToBlocks(blocksRef.current, "thinking", event.content);
           setStreamingPhase("thinking");
           break;
 
@@ -67,30 +60,19 @@ export function useGlobalSSE() {
 
         case "tool_call_end":
           {
-            const block: AssistantContentBlock = {
-              type: "tool_call",
-              toolCallId: event.toolCallId,
-              toolName: event.toolName,
-              args: event.args,
+            const block: ToolCall = {
+              type: "toolCall",
+              id: event.toolCallId,
+              name: event.toolName,
+              arguments: JSON.parse(event.args),
             };
-            blocksRef.current.push(block);
             addStreamingBlock(block);
           }
           break;
 
         case "message_end":
-          if (messageIdRef.current) {
-            addMessage({
-              role: "assistant",
-              id: messageIdRef.current,
-              content: [...blocksRef.current],
-              timestamp: new Date().toISOString(),
-            });
-            // Only clear content, keep phase — next event will set it
-            resetStreaming();
-            messageIdRef.current = null;
-            blocksRef.current = [];
-          }
+          addMessage(event.message);
+          resetStreaming();
           break;
 
         case "tool_execution_start":
@@ -110,15 +92,6 @@ export function useGlobalSSE() {
 
         case "tool_execution_end":
           completeExecution(event.toolCallId, event.result, event.isError);
-          addMessage({
-            role: "tool_result",
-            id: crypto.randomUUID(),
-            toolCallId: event.toolCallId,
-            toolName: event.toolName,
-            result: event.result,
-            isError: event.isError,
-            timestamp: new Date().toISOString(),
-          });
           break;
 
         case "error":
@@ -150,13 +123,4 @@ export function useGlobalSSE() {
       es.close();
     };
   }, []);
-}
-
-function appendToBlocks(blocks: AssistantContentBlock[], type: "text" | "thinking", delta: string) {
-  const last = blocks[blocks.length - 1];
-  if (last && last.type === type) {
-    last.text += delta;
-  } else {
-    blocks.push({ type, text: delta });
-  }
 }

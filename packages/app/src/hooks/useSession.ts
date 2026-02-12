@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { api } from "@/lib/api";
 import { useSessionStore } from "@/stores/sessionStore";
+import type { UserMessage } from "@friend/shared";
 
 export function useSession() {
   const { activeSessionId, messages, isStreaming, addMessage } = useSessionStore();
@@ -9,13 +10,13 @@ export function useSession() {
     async (message: string) => {
       if (!activeSessionId) return;
 
-      // Add user message locally
-      addMessage({
+      // Add user message locally (optimistic)
+      const userMsg: UserMessage = {
         role: "user",
-        id: crypto.randomUUID(),
         content: message,
-        timestamp: new Date().toISOString(),
-      });
+        timestamp: Date.now(),
+      };
+      addMessage(userMsg);
 
       await api.prompt(activeSessionId, message);
     },

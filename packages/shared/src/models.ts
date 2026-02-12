@@ -1,3 +1,19 @@
+// Re-export pi-ai message types
+export type {
+  Message,
+  UserMessage,
+  AssistantMessage,
+  ToolResultMessage,
+  TextContent,
+  ThinkingContent,
+  ToolCall,
+  ImageContent,
+  Usage,
+  StopReason,
+} from "@mariozechner/pi-ai";
+
+import type { Message } from "@mariozechner/pi-ai";
+
 // Session types
 export interface SessionInfo {
   id: string;
@@ -10,40 +26,8 @@ export interface SessionInfo {
 }
 
 export interface SessionDetail extends SessionInfo {
-  messages: ChatMessage[];
+  messages: Message[];
 }
-
-// Message types
-export type ChatMessage = UserChatMessage | AssistantChatMessage | ToolResultChatMessage;
-
-export interface UserChatMessage {
-  role: "user";
-  id: string;
-  content: string;
-  timestamp: string;
-}
-
-export interface AssistantChatMessage {
-  role: "assistant";
-  id: string;
-  content: AssistantContentBlock[];
-  timestamp: string;
-}
-
-export interface ToolResultChatMessage {
-  role: "tool_result";
-  id: string;
-  toolCallId: string;
-  toolName: string;
-  result: string;
-  isError: boolean;
-  timestamp: string;
-}
-
-export type AssistantContentBlock =
-  | { type: "text"; text: string }
-  | { type: "thinking"; text: string }
-  | { type: "tool_call"; toolCallId: string; toolName: string; args: string };
 
 // Model types
 export interface ModelInfo {

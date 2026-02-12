@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from "react";
-import type { ChatMessage } from "@friend/shared";
+import type { Message, UserMessage as PiUserMessage, AssistantMessage as PiAssistantMessage } from "@friend/shared";
 import { UserMessage } from "./UserMessage";
 import { AssistantMessage } from "./AssistantMessage";
 import { ThinkingBlock } from "./ThinkingBlock";
@@ -9,7 +9,7 @@ import { useSessionStore } from "@/stores/sessionStore";
 import { ArrowDown } from "lucide-react";
 
 interface MessageListProps {
-  messages: ChatMessage[];
+  messages: Message[];
   isStreaming: boolean;
 }
 
@@ -81,22 +81,24 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
           const content = m.content;
           if (!content || content.length === 0) return false;
           return content.some(
-            (block) => block.type === "tool_call" || (block.text && block.text.trim() !== ""),
+            (block) =>
+              block.type === "toolCall" ||
+              (block.type === "text" && block.text.trim() !== ""),
           );
         }
-        return false;
+        return false; // filter out toolResult
       }),
     [messages],
   );
 
   return (
     <div ref={containerRef} className="relative flex-1 overflow-y-auto px-4 pt-4 pb-10 space-y-4">
-      {chatMessages.map((msg) => {
+      {chatMessages.map((msg, i) => {
         if (msg.role === "user") {
-          return <UserMessage key={msg.id} message={msg} />;
+          return <UserMessage key={`user-${msg.timestamp}-${i}`} message={msg as PiUserMessage} />;
         }
         if (msg.role === "assistant") {
-          return <AssistantMessage key={msg.id} message={msg} />;
+          return <AssistantMessage key={`assistant-${msg.timestamp}-${i}`} message={msg as PiAssistantMessage} />;
         }
         return null;
       })}
@@ -158,28 +160,23 @@ function StreamingContent({
       {hasContent && (
         <div className="space-y-2">
           {streamingThinking && <ThinkingBlock content={streamingThinking} isStreaming />}
-          {streamingBlocks
-            .filter((b) => b.type === "tool_call")
-            .map((b) =>
-              b.type === "tool_call" ? (
-                <ToolBlock
-                  key={b.toolCallId}
-                  toolCallId={b.toolCallId}
-                  toolName={b.toolName}
-                  args={b.args}
-                  isStreaming
-                />
-              ) : null,
-            )}
+          {streamingBlocks.map((tc) => (
+            <ToolBlock
+              key={tc.id}
+              toolCallId={tc.id}
+              toolName={tc.name}
+              args={JSON.stringify(tc.arguments)}
+              isStreaming
+            />
+          ))}
           {streamingText && (
             <div className="prose prose-invert prose-sm max-w-none">
               <AssistantMessage
                 message={{
                   role: "assistant",
-                  id: "__streaming__",
                   content: [{ type: "text", text: streamingText }],
-                  timestamp: new Date().toISOString(),
-                }}
+                  timestamp: Date.now(),
+                } as PiAssistantMessage}
                 isStreaming
               />
             </div>

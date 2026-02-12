@@ -12,34 +12,9 @@ model Session {
   name        String
   model       String?
   workingPath String?
+  sessionFile String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  messages    Message[]
-}
-
-model Message {
-  id         String  @id @default(uuid())
-  sessionId  String
-  session    Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  orderIndex Int
-
-  role String // "user" | "assistant" | "tool_result"
-
-  // User message
-  content String?
-
-  // Assistant message
-  contentBlocks String? // JSON string of AssistantContentBlock[]
-
-  // Tool result message
-  toolCallId String?
-  toolName   String?
-  result     String?
-  isError    Boolean?
-
-  timestamp String // ISO string
-
-  @@index([sessionId, orderIndex])
 }
 
 model AppConfig {

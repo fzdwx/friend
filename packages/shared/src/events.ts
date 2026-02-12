@@ -1,5 +1,7 @@
 // SSE Event types sent from server to frontend
 
+import type { AssistantMessage } from "@mariozechner/pi-ai";
+
 export type SSEEvent =
   | AgentStartEvent
   | AgentEndEvent
@@ -42,7 +44,7 @@ export interface MessageStartEvent {
 
 export interface MessageEndEvent {
   type: "message_end";
-  messageId: string;
+  message: AssistantMessage;
 }
 
 export interface TextDeltaEvent {
