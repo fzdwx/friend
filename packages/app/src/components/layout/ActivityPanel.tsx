@@ -1,5 +1,5 @@
 import { useMemo, useRef, useEffect } from "react";
-import { Activity } from "lucide-react";
+import { Activity, MessageSquare, Wrench } from "lucide-react";
 import { useSessionStore } from "@/stores/sessionStore";
 import type { Message, UserMessage, AssistantMessage, ToolResultMessage } from "@friend/shared";
 import { TurnGroup, type Turn } from "@/components/activity/TurnGroup";
@@ -46,8 +46,11 @@ export function ActivityPanel() {
 
   const hasTurns = turns.length > 0 || isStreaming;
 
+  const messageCount = messages.filter((m) => m.role === "user" || m.role === "assistant").length;
+  const toolCallCount = messages.filter((m) => m.role === "toolResult").length;
+
   return (
-    <div className="flex flex-col h-full bg-card border-b border-border">
+    <div className="flex flex-col h-full bg-card relative">
       <div className="p-3 border-b border-border">
         <div className="flex items-center gap-2 text-sm font-medium">
           <Activity className="w-4 h-4" />
@@ -72,6 +75,22 @@ export function ActivityPanel() {
             ))}
           </>
         )}
+      </div>
+
+      {/* Footer with stats */}
+      <div className="px-3 py-2 border-t border-border/50 bg-muted/30">
+        <div className="flex items-center justify-around text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <MessageSquare className="w-3 h-3" />
+            <span className="font-medium font-mono">{messageCount}</span>
+            <span className="text-[10px]">msgs</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Wrench className="w-3 h-3" />
+            <span className="font-medium font-mono">{toolCallCount}</span>
+            <span className="text-[10px]">tools</span>
+          </div>
+        </div>
       </div>
     </div>
   );
