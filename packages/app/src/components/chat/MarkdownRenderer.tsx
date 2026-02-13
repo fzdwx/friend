@@ -161,20 +161,24 @@ function CodeBlock({ className, children }: CodeBlockProps) {
 function Table({ children }: { children?: React.ReactNode }) {
   return (
     <div className="overflow-x-auto my-3">
-      <table className="min-w-full border-collapse border border-border text-sm">
+      <table className="min-w-full text-sm border-collapse rounded-lg border border-border">
         {children}
       </table>
     </div>
   );
 }
 
+function Tr({ children }: { children?: React.ReactNode }) {
+  return <tr className="border-b border-border last:border-b-0">{children}</tr>;
+}
+
 function Td({ children }: { children?: React.ReactNode }) {
-  return <td className="border border-border px-3 py-1.5">{children}</td>;
+  return <td className="px-4 py-2">{children}</td>;
 }
 
 function Th({ children }: { children?: React.ReactNode }) {
   return (
-    <th className="border border-border px-3 py-1.5 bg-muted/50 font-medium text-left">
+    <th className="px-4 py-2.5 bg-muted/30 font-medium text-left border-b border-border">
       {children}
     </th>
   );
@@ -198,9 +202,9 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   return (
     <div
       className={cn(
-        "prose prose-invert prose-sm max-w-none break-words",
+        "text-sm max-w-none break-words",
         "[&_p]:leading-relaxed [&_p]:my-2",
-        "[&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5",
+        "[&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4",
         "[&_h1]:text-lg [&_h1]:font-semibold [&_h1]:mt-4 [&_h1]:mb-2",
         "[&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-2",
         "[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1",
@@ -209,11 +213,10 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
         className,
       )}
     >
-      <Markdown
-        remarkPlugins={[remarkGfm]}
-        components={{
+      <Markdown remarkPlugins={[remarkGfm]} components={{
           code: CodeBlock,
           table: Table,
+          tr: Tr,
           td: Td,
           th: Th,
           input: (props) => {
