@@ -6,6 +6,7 @@ import { StreamingTurn } from "@/components/activity/StreamingTurn";
 import { PlanEditor, PlanProgress } from "@/components/plan/PlanEditor";
 import { MessageSquarePlus, Zap } from "lucide-react";
 import { api } from "@/lib/api";
+import { useTranslation } from "react-i18next";
 
 function PendingMessages() {
   const steeringMessages = useSessionStore((s) => s.steeringMessages);

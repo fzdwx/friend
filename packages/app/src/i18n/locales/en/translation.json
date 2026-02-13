@@ -193,7 +193,12 @@
     "thinking": "Thinking...",
     "thought": "Thought",
     "assistant": "Assistant",
-    "user": "User"
+    "user": "User",
+    "selectSession": "Select or create a session to start",
+    "steering": "Steering:",
+    "followUp": "Follow-up:",
+    "planModeActive": "📋 Plan Mode Active",
+    "planModeHint": "— Describe what you want to plan"
   },
   "errors": {
     "failedCreateSession": "Failed to create session",

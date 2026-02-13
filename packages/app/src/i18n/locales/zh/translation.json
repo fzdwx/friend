@@ -193,7 +193,12 @@
     "thinking": "思考中...",
     "thought": "思考",
     "assistant": "助手",
-    "user": "用户"
+    "user": "用户",
+    "selectSession": "选择或创建一个会话开始",
+    "steering": "引导中：",
+    "followUp": "追问：",
+    "planModeActive": "📋 计划模式已激活",
+    "planModeHint": "— 描述您想要计划的内容"
   },
   "errors": {
     "failedCreateSession": "创建会话失败",

@@ -315,69 +315,85 @@ export function getTextContent(message: AssistantMessage): string {
 // ─── Plan Mode Prompts ────────────────────────────────────────────────────
 
 export const PLAN_MODE_CONTEXT_PROMPT = `[PLAN MODE ACTIVE]
-You are in plan mode - a read-only exploration mode for detailed code analysis and planning.
+You are in plan mode - a read-only exploration mode for detailed analysis and planning.
 
-Restrictions:
+## Restrictions
 - You can only use: read, bash (read-only), grep, glob, ls
 - You CANNOT use: edit, write (file modifications are disabled)
-- Bash is restricted to an allowlist of read-only commands
+- Bash is restricted to read-only commands
 
-## Your Task
+## Planning Process
 
-1. First, THOROUGHLY analyze the codebase:
-   - Read relevant source files to understand existing patterns
-   - Check for related implementations that can be referenced
-   - Identify dependencies and imports needed
-   - Find the exact files that need to be modified or created
+Follow this process to create a thorough implementation plan:
 
-2. Then, create a DETAILED execution plan with:
-   - Exact file paths for each file to create/modify
-   - Specific code changes or new code to write
-   - Dependencies to install
-   - Configuration changes needed
+### Phase 1: Understand the Task
+1. Read the user's request carefully
+2. Identify the core requirements and constraints
+3. Consider edge cases and error scenarios
+
+### Phase 2: Explore the Codebase
+1. Find relevant existing code patterns to follow
+2. Identify files that need to be created or modified
+3. Check dependencies and imports needed
+4. Look for similar implementations to reference
+
+### Phase 3: Design the Solution
+1. Break down into logical steps
+2. Consider the order of operations
+3. Identify potential issues and solutions
+4. Plan for testing and verification
+
+### Phase 4: Output the Plan
+Create a detailed, actionable plan with specific file paths, function names, and implementation details.
 
 ## Output Format
 
-Output ONLY the plan. Be specific and detailed.
+Output ONLY the plan. No other content. Be specific and detailed.
 
 Plan:
-1. [Specific action with file path]
-   1.1. [Detailed subtask with specific code/function names]
-   1.2. [Another detailed subtask]
-2. [Next specific action]
+1. [Main task with specific file path]
+   1.1. [Specific implementation detail - what to create/modify]
+   1.2. [Code pattern to follow, specific imports needed]
+2. [Next main task]
+   2.1. [Specific function/variable names to use]
+   2.2. [Expected output/behavior]
 ...
 
-## Plan Quality Guidelines
+## Plan Quality Requirements
 
-GOOD Plan:
-- Specific file paths: "Create packages/server/src/agent/tools/browser.ts"
-- Specific function names: "Implement screenshot() function using playwright"
-- Specific changes: "Add 'playwright' to dependencies in package.json"
-- Includes context: "Follow the pattern from read.ts tool"
+Each step MUST include:
+- Exact file path (e.g., "Create packages/server/src/tools/browser.ts")
+- Specific code changes (e.g., "Add function screenshot() that returns base64")
+- Dependencies (e.g., "Import chromium from 'playwright'")
+- Reference patterns (e.g., "Follow the pattern from read.ts")
 
-BAD Plan (too vague):
-- "Create the tool file"
-- "Implement the function"
-- "Add dependencies"
+Avoid vague steps like:
+- "Create the file" (without specifying what goes in it)
+- "Implement the function" (without describing what it does)
+- "Add dependencies" (without listing them)
 
 ## Example Plan
 
 Plan:
-1. Install playwright dependency
-   1.1. Add "playwright": "^1.42.0" to packages/server/package.json dependencies
-   1.2. Run bun install in packages/server directory
-2. Create browser tool file at packages/server/src/agent/tools/browser.ts
-   2.1. Import chromium from 'playwright' and Type from '@sinclair/typebox'
-   2.2. Define BrowserParams schema with action, url, selector, script fields
-   2.3. Create createBrowserTool() function following pattern from read.ts
-   2.4. Implement screenshot action that returns base64 encoded image
-   2.5. Implement navigate action that opens URL in browser
-3. Register browser tool in packages/server/src/agent/manager.ts
-   3.1. Import createBrowserTool from "./tools/browser.js"
-   3.2. Add createBrowserTool() to customTools array in createSession()
-4. Test the tool by sending a test message
+1. Install playwright dependency in packages/server/package.json
+   1.1. Add "playwright": "^1.42.0" to dependencies object
+   1.2. This enables browser automation capabilities
+2. Create browser tool at packages/server/src/agent/tools/browser.ts
+   2.1. Import: chromium from 'playwright', Type from '@sinclair/typebox'
+   2.2. Define BrowserParams schema: action (screenshot|navigate|click|evaluate), url?, selector?, script?
+   2.3. Create createBrowserTool() following pattern from read.ts (lines 15-30)
+   2.4. Implement screenshot action: launch browser, navigate, screenshot, return base64
+   2.5. Handle errors: browser not installed, timeout, invalid URL
+3. Register tool in packages/server/src/agent/manager.ts
+   3.1. Add import: import { createBrowserTool } from "./tools/browser.js"
+   3.2. In createSession(), add createBrowserTool() to customTools array after readTool
+4. Create frontend renderer at packages/app/src/components/tools/renderers/browser.tsx
+   4.1. Display base64 images with <img src="data:image/png;base64,..." />
+   4.2. Show error messages in red text
+   4.3. Register in renderers/index.ts
+5. Test with curl request to verify screenshot works
 
-Now analyze the codebase thoroughly and create your detailed plan.`;
+Now thoroughly analyze the codebase and create your detailed implementation plan.`;
 
 export function getExecutionContextPrompt(todos: TodoItem[]): string {
   const remaining = todos.filter((t) => !t.completed);
