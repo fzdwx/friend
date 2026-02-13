@@ -101,6 +101,22 @@ export function useGlobalSSE() {
           return;
         }
 
+        // Handle session created event - add to session list and navigate
+        if (event.type === "session_created") {
+          const newSession = {
+            id: event.sessionId,
+            name: event.name,
+            agentId: event.agentId,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            messageCount: 0,
+            workingPath: event.workingPath,
+          };
+          useSessionStore.getState().addSession(newSession);
+          useSessionStore.getState().setActiveSession(event.sessionId);
+          return;
+        }
+
         // Handle session rename before session filter (updates sidebar for any session)
         if (event.type === "session_renamed") {
           const sessions = useSessionStore.getState().sessions;
@@ -237,6 +253,7 @@ export function useGlobalSSE() {
       "error",
       "session_updated",
       "session_renamed",
+      "session_created",
       "config_updated",
     ];
 

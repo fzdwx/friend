@@ -22,7 +22,7 @@ import type {
   ThemeConfig,
 } from "@friend/shared";
 import { BUILT_IN_THEMES, DEFAULT_AGENT_ID } from "@friend/shared";
-import type { SSEEvent, GlobalSSEEvent, ConfigUpdatedEvent } from "@friend/shared";
+import type { SSEEvent, GlobalSSEEvent, ConfigUpdatedEvent, SessionCreatedEvent } from "@friend/shared";
 import { prisma } from "@friend/db";
 import { stat, unlink } from "node:fs/promises";
 import {
@@ -34,6 +34,7 @@ import {
   createGlobTool,
   createRenameSessionTool,
   createGetSessionTool,
+  createCreateSessionTool,
   createMemorySearchTool,
   createMemoryGetTool,
 } from "./tools";
@@ -268,6 +269,7 @@ export class AgentManager implements IAgentManager {
         createGlobTool(),
         createRenameSessionTool(this),
         createGetSessionTool(this),
+        createCreateSessionTool(this, agentId),
         // Memory tools for semantic search and recall
         // Note: API keys are fetched lazily when the tool is first used
         createMemorySearchTool(agentWorkspace, {
@@ -695,6 +697,37 @@ export class AgentManager implements IAgentManager {
       model: modelStr,
       messageCount: 0,
       workingPath: opts?.workingPath,
+    };
+  }
+
+  /**
+   * Create a new session with a specific agent.
+   * Used by the create_session tool to create sessions programmatically.
+   * Broadcasts session_created event to update frontend UI.
+   */
+  async createSessionWithAgent(
+    agentId: string,
+    opts?: { name?: string; workingPath?: string },
+  ): Promise<{ id: string; name: string; agentId: string; workingPath?: string }> {
+    const sessionInfo = await this.createSession({
+      ...opts,
+      agentId,
+    });
+
+    // Broadcast session_created event to update frontend
+    this.broadcastGlobal({
+      type: "session_created",
+      sessionId: sessionInfo.id,
+      agentId: sessionInfo.agentId!,
+      name: sessionInfo.name,
+      workingPath: sessionInfo.workingPath,
+    });
+
+    return {
+      id: sessionInfo.id,
+      name: sessionInfo.name,
+      agentId: sessionInfo.agentId!,
+      workingPath: sessionInfo.workingPath,
     };
   }
 
@@ -1169,7 +1202,7 @@ Your output must be:
     }
   }
 
-  private broadcastGlobal(event: ConfigUpdatedEvent): void {
+  private broadcastGlobal(event: ConfigUpdatedEvent | SessionCreatedEvent): void {
     const globalEvent: GlobalSSEEvent = { ...event, sessionId: "__system__" };
     for (const sub of this.globalSubscribers) {
       sub.push(globalEvent);
