@@ -75,9 +75,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       };
     }),
   setActiveSession: (id) => {
-    // Reset streaming state when switching sessions
+    // Reset streaming state and messages when switching sessions
     set({
       activeSessionId: id,
+      messages: [], // Clear messages when switching sessions
       isStreaming: false,
       streamingPhase: "idle",
       streamingText: "",
