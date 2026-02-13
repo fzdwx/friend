@@ -10,6 +10,18 @@ export type StreamingPhase =
   | "tool_calling"
   | "tool_executing";
 
+export interface SessionStats {
+  messageCount: number;
+  tokenCount: number;
+  cost: number;
+}
+
+export interface ContextUsage {
+  tokens: number;
+  contextWindow: number;
+  percent: number;
+}
+
 interface SessionState {
   sessions: SessionInfo[];
   activeSessionId: string | null;
@@ -27,6 +39,10 @@ interface SessionState {
   // Pending messages (steer/followUp queues)
   steeringMessages: string[];
   followUpMessages: string[];
+
+  // Session stats and context
+  sessionStats: SessionStats | null;
+  contextUsage: ContextUsage | null;
 
   // Actions
   setActiveTurnIndex: (index: number | null) => void;
@@ -54,6 +70,11 @@ interface SessionState {
   removeSteeringMessage: (message: string) => void;
   removeFollowUpMessage: (message: string) => void;
   clearPendingMessages: () => void;
+
+  // Stats actions
+  setSessionStats: (stats: SessionStats | null) => void;
+  setContextUsage: (usage: ContextUsage | null) => void;
+  refreshSessionStats: (sessionId: string) => Promise<void>;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -71,6 +92,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   sseConnected: false,
   steeringMessages: [],
   followUpMessages: [],
+  sessionStats: null,
+  contextUsage: null,
 
   setActiveTurnIndex: (index) => set({ activeTurnIndex: index }),
   setSessions: (sessions) => set({ sessions }),
@@ -175,4 +198,24 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     set((s) => ({ followUpMessages: s.followUpMessages.filter((m) => m !== message) })),
   clearPendingMessages: () =>
     set({ steeringMessages: [], followUpMessages: [] }),
+
+  // Stats actions
+  setSessionStats: (stats) => set({ sessionStats: stats }),
+  setContextUsage: (usage) => set({ contextUsage: usage }),
+  refreshSessionStats: async (sessionId: string) => {
+    const [statsRes, contextRes] = await Promise.all([
+      api.getStats(sessionId),
+      api.getContextUsage(sessionId),
+    ]);
+    set({
+      sessionStats: statsRes.ok && statsRes.data
+        ? {
+            messageCount: statsRes.data.totalMessages || 0,
+            tokenCount: statsRes.data.tokens?.total || 0,
+            cost: statsRes.data.cost || 0,
+          }
+        : null,
+      contextUsage: contextRes.ok && contextRes.data ? contextRes.data : null,
+    });
+  },
 }));

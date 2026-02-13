@@ -94,6 +94,12 @@ export const sessionRoutes = new Elysia({ prefix: "/api/sessions" })
     return { ok: true, data: stats };
   })
 
+  .get("/:id/context", ({ params: { id } }) => {
+    const context = getAgentManager().getContextUsage(id);
+    if (!context) return { ok: false, error: "Session not found or no context" };
+    return { ok: true, data: context };
+  })
+
   .get("/:id/pending", ({ params: { id } }) => {
     const pending = getAgentManager().getPendingMessages(id);
     if (!pending) return { ok: false, error: "Session not found" };

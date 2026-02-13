@@ -1,10 +1,72 @@
 import { useEffect, useState } from "react";
 import { useSessions } from "@/hooks/useSessions";
 import { useConfigStore } from "@/stores/configStore";
-import { Plus, MessageSquare, Trash2, Settings, Folder, Bot } from "lucide-react";
+import { useSessionStore } from "@/stores/sessionStore";
+import { Plus, MessageSquare, Trash2, Settings, Folder, Bot, Hash, Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { selectDirectory, isTauri } from "@/lib/tauri";
 import { AgentSelector } from "@/components/agents/AgentSelector";
+
+function SessionStatsBar() {
+  const activeSessionId = useSessionStore((s) => s.activeSessionId);
+  const sessionStats = useSessionStore((s) => s.sessionStats);
+  const contextUsage = useSessionStore((s) => s.contextUsage);
+  const isStreaming = useSessionStore((s) => s.isStreaming);
+  const refreshSessionStats = useSessionStore((s) => s.refreshSessionStats);
+
+  // Refresh stats periodically when streaming
+  useEffect(() => {
+    if (!activeSessionId) return;
+    refreshSessionStats(activeSessionId);
+
+    if (isStreaming) {
+      const interval = setInterval(() => {
+        refreshSessionStats(activeSessionId);
+      }, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [activeSessionId, isStreaming, refreshSessionStats]);
+
+  if (!activeSessionId) return null;
+
+  return (
+    <div className="px-2 py-1.5 border-t border-sidebar-border text-xs text-muted-foreground space-y-1">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          <Hash className="w-3 h-3" />
+          <span>{sessionStats?.messageCount ?? 0} msgs</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Coins className="w-3 h-3" />
+          <span>{sessionStats?.cost?.toFixed(4) ?? "0.0000"}</span>
+        </div>
+      </div>
+      {contextUsage && (
+        <div className="space-y-0.5">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground/70">Context</span>
+            <span>
+              {((contextUsage.tokens / 1000) | 0)}k / {((contextUsage.contextWindow / 1000) | 0)}k
+            </span>
+          </div>
+          <div className="h-1 bg-secondary rounded-full overflow-hidden">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all",
+                contextUsage.percent > 80
+                  ? "bg-destructive"
+                  : contextUsage.percent > 60
+                    ? "bg-yellow-500"
+                    : "bg-primary",
+              )}
+              style={{ width: `${Math.min(contextUsage.percent, 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function Sidebar() {
   const {
@@ -259,6 +321,7 @@ export function Sidebar() {
         )}
       </div>
 
+      <SessionStatsBar />
       <div className="p-2 border-t border-sidebar-border">
         <button
           onClick={() => setIsSettingsOpen(true)}

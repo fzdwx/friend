@@ -974,6 +974,18 @@ Your output must be:
     return managed.session.getSessionStats();
   }
 
+  getContextUsage(id: string): { tokens: number; contextWindow: number; percent: number } | null {
+    const managed = this.managedSessions.get(id);
+    if (!managed) return null;
+    const usage = managed.session.getContextUsage();
+    if (!usage) return null;
+    return {
+      tokens: usage.tokens,
+      contextWindow: usage.contextWindow,
+      percent: usage.percent,
+    };
+  }
+
   async getModels(): Promise<ModelInfo[]> {
     const all = this.modelRegistry.getAll();
     const available = this.modelRegistry.getAvailable();
@@ -1286,6 +1298,10 @@ Your output must be:
       reserveTokensFloor: 20000,  // Default reserve
       softThreshold: 4000,        // Trigger 4k tokens before compaction
     });
+
+    console.log(
+      `[MemoryFlush] checkMemoryFlush: session=${managed.id}, tokens=${totalTokens}, contextWindow=${contextWindow}, shouldFlush=${shouldFlush}`,
+    );
 
     if (shouldFlush) {
       this.triggerMemoryFlush(managed);

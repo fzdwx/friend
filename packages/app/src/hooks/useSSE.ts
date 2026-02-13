@@ -36,10 +36,13 @@ export function useGlobalSSE() {
   useEffect(() => {
     let es: EventSource | null = null;
     let retryTimeout: NodeJS.Timeout | null = null;
+    let heartbeatInterval: NodeJS.Timeout | null = null;
+    let lastEventTime = 0;
     let retryCount = 0;
     const MAX_RETRIES = 10;
     const INITIAL_RETRY_DELAY = 1000; // 1 second
     const MAX_RETRY_DELAY = 30000; // 30 seconds
+    const HEARTBEAT_TIMEOUT = 25000; // 25 seconds (server pings every 15s)
 
     // Calculate retry delay with exponential backoff
     const getRetryDelay = (): number => {
@@ -87,6 +90,11 @@ export function useGlobalSSE() {
       // Check state immediately and on change
       checkState();
       es.addEventListener("open", checkState);
+
+      // Register data event listeners on this new connection
+      for (const t of eventTypes) {
+        es.addEventListener(t, handleEvent);
+      }
     };
 
     const scheduleReconnect = () => {
@@ -281,22 +289,6 @@ export function useGlobalSSE() {
 
     // Initial connection
     connect();
-
-    // Register event listeners on the current connection
-    const registerListeners = (currentEs: EventSource) => {
-      for (const t of eventTypes) {
-        currentEs.addEventListener(t, handleEvent);
-      }
-    };
-
-    // Track current connection and update listeners
-    const updateListeners = () => {
-      if (es) {
-        registerListeners(es);
-      }
-    };
-
-    updateListeners();
 
     // Cleanup
     return () => {

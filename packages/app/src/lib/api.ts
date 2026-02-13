@@ -92,6 +92,10 @@ export const api = {
   abort: (id: string) => request<void>(`/sessions/${id}/abort`, { method: "POST" }),
   compact: (id: string) => request<void>(`/sessions/${id}/compact`, { method: "POST" }),
   getStats: (id: string) => request<any>(`/sessions/${id}/stats`),
+  getContextUsage: (id: string) =>
+    request<{ tokens: number; contextWindow: number; percent: number } | null>(
+      `/sessions/${id}/context`,
+    ),
   getPendingMessages: (id: string) =>
     request<{ steering: string[]; followUp: string[] }>(`/sessions/${id}/pending`),
 
