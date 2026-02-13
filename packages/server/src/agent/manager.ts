@@ -21,7 +21,7 @@ import type {
   CustomProviderConfig,
   ThemeConfig,
 } from "@friend/shared";
-import { BUILT_IN_THEMES } from "@friend/shared";
+import { BUILT_IN_THEMES, DEFAULT_AGENT_ID } from "@friend/shared";
 import type { SSEEvent, GlobalSSEEvent, ConfigUpdatedEvent } from "@friend/shared";
 import { prisma } from "@friend/db";
 import { stat, unlink } from "node:fs/promises";
@@ -36,10 +36,25 @@ import {
   createGetSessionTool,
 } from "./tools";
 import type { IAgentManager } from "./tools";
-import { GLOBAL_SKILLS_DIR, getProjectSkillsDir, SkillWatcher, ensureSkillsDir } from "./skills.js";
+import { GLOBAL_SKILLS_DIR, SkillWatcher, ensureSkillsDir } from "./skills.js";
 import { SESSIONS_DIR } from "./paths.js";
-import { ensureProjectDefaults } from "./bootstrap.js";
-import { loadWorkspaceFiles, buildWorkspacePrompt } from "./context.js";
+import { ensureAgentWorkspace } from "./bootstrap.js";
+import { loadAgentBootstrapFiles, buildWorkspacePrompt } from "./context.js";
+import {
+  listAgents,
+  getAgent,
+  getDefaultAgent,
+  createAgent,
+  updateAgent,
+  deleteAgent,
+  resolveAgentConfig,
+  resolveAgentWorkspaceDir,
+  resolveAgentSessionsDir,
+  resolveAgentSkillsDir,
+  ensureDefaultAgent,
+  type AgentConfig,
+  type ResolvedAgentConfig,
+} from "./agent-manager.js";
 
 // ─── DB mapping types ──────────────────────────────────────
 
@@ -96,6 +111,7 @@ function dbProviderToConfig(p: DbCustomProvider): CustomProviderConfig {
 interface ManagedSession {
   id: string;
   name: string;
+  agentId: string;  // Agent this session belongs to
   session: AgentSession;
   resourceLoader: DefaultResourceLoader;
   createdAt: string;
@@ -133,8 +149,14 @@ export class AgentManager implements IAgentManager {
   private async createAgentSessionWithSkills(
     cwd: string,
     sessionManager: SessionManager,
+    agentId: string = DEFAULT_AGENT_ID,
   ): Promise<{ session: AgentSession; resourceLoader: DefaultResourceLoader }> {
-    const workspaceFiles = await loadWorkspaceFiles(cwd);
+    // Resolve agent configuration from database
+    const resolvedConfig = await resolveAgentConfig(agentId);
+    const agentWorkspace = resolveAgentWorkspaceDir(agentId);
+    
+    // Load bootstrap files from agent workspace
+    const workspaceFiles = await loadAgentBootstrapFiles(agentWorkspace);
 
     const resourceLoader = new DefaultResourceLoader({
       cwd,
@@ -143,23 +165,27 @@ export class AgentManager implements IAgentManager {
       noPromptTemplates: true,
       noThemes: true,
       systemPromptOverride: (base) => {
-        const workspacePrompt = buildWorkspacePrompt(cwd, workspaceFiles);
-        return [base, workspacePrompt].filter(Boolean).join("\n\n");
+        const workspacePrompt = buildWorkspacePrompt(cwd, workspaceFiles, resolvedConfig.identity, agentWorkspace);
+        const result = [base, workspacePrompt].filter(Boolean).join("\n\n");
+        // Log the full system prompt for verification
+        console.log(`\n${"=".repeat(60)}\n[SYSTEM PROMPT for agent: ${agentId}]\n${"=".repeat(60)}\n${result}\n${"=".repeat(60)}\n`);
+        return result;
       },
       skillsOverride: () => {
+        // Load global skills
         const globalResult = loadSkillsFromDir({ dir: GLOBAL_SKILLS_DIR, source: "user" });
-        const projectResult = loadSkillsFromDir({
-          dir: getProjectSkillsDir(cwd),
-          source: "project",
-        });
+        
+        // Load agent-specific skills
+        const agentSkillsDir = resolveAgentSkillsDir(agentId);
+        const agentResult = loadSkillsFromDir({ dir: agentSkillsDir, source: "agent" });
 
         const skillMap = new Map<string, Skill>();
         for (const s of globalResult.skills) skillMap.set(s.name, s);
-        for (const s of projectResult.skills) skillMap.set(s.name, s);
+        for (const s of agentResult.skills) skillMap.set(s.name, s);
 
         return {
           skills: Array.from(skillMap.values()),
-          diagnostics: [...globalResult.diagnostics, ...projectResult.diagnostics],
+          diagnostics: [...globalResult.diagnostics, ...agentResult.diagnostics],
         };
       },
     });
@@ -171,7 +197,7 @@ export class AgentManager implements IAgentManager {
       resourceLoader,
       authStorage: this.authStorage,
       modelRegistry: this.modelRegistry,
-      thinkingLevel: this.config.thinkingLevel,
+      thinkingLevel: resolvedConfig.thinkingLevel,
       customTools: [
         createAddProviderTool(this),
         createGetThemesTool(this),
@@ -188,31 +214,40 @@ export class AgentManager implements IAgentManager {
   }
 
   async init(): Promise<void> {
-    // 1. Load AppConfig
+    // 1. Ensure default agent exists
+    await ensureDefaultAgent();
+    const defaultAgent = await getDefaultAgent();
+    
+    // 2. Load AppConfig
     const config = await prisma.appConfig.findFirst({ where: { id: "singleton" } });
     if (config) {
       this.config.thinkingLevel = config.thinkingLevel as ThinkingLevel;
       this.config.activeThemeId = config.activeThemeId ?? "default-dark";
     }
 
-    // 2. Load CustomProviders (with models)
+    // 3. Load CustomProviders (with models)
     const providers = await prisma.customProvider.findMany({ include: { models: true } });
     for (const p of providers) {
       const providerConfig = dbProviderToConfig(p);
       this.addCustomProvider(providerConfig, false); // skip DB write during init
     }
 
-    // 3. Load all Sessions
+    // 4. Load all Sessions
     const sessions = await prisma.session.findMany();
     for (const s of sessions) {
       let sessionManager: SessionManager;
       const cwd = s.workingPath ?? process.cwd();
+      const agentId = s.agentId ?? defaultAgent.id;
 
-      await ensureProjectDefaults(cwd);
+      // Ensure agent workspace exists
+      const agentWorkspace = resolveAgentWorkspaceDir(agentId);
+      await ensureAgentWorkspace(agentWorkspace);
 
       if (s.sessionFile) {
         try {
-          sessionManager = SessionManager.open(s.sessionFile, SESSIONS_DIR);
+          // Session files are now stored in agent-specific directories
+          const agentSessionsDir = resolveAgentSessionsDir(agentId);
+          sessionManager = SessionManager.open(s.sessionFile, agentSessionsDir);
         } catch (err) {
           console.warn(
             `Failed to open session file ${s.sessionFile}, falling back to inMemory:`,
@@ -227,11 +262,13 @@ export class AgentManager implements IAgentManager {
       const { session, resourceLoader } = await this.createAgentSessionWithSkills(
         cwd,
         sessionManager,
+        agentId,
       );
 
       const managed: ManagedSession = {
         id: s.id,
         name: s.name,
+        agentId,
         session,
         resourceLoader,
         createdAt: s.createdAt.toISOString(),
@@ -260,30 +297,15 @@ export class AgentManager implements IAgentManager {
       `Loaded ${sessions.length} session(s), ${providers.length} custom provider(s) from database`,
     );
 
-    // 4. Initialize SkillWatcher
+    // 5. Initialize SkillWatcher
     await ensureSkillsDir(GLOBAL_SKILLS_DIR);
 
-    this.skillWatcher = new SkillWatcher((scope) => {
-      if (scope === "global") {
-        for (const managed of this.managedSessions.values()) {
-          managed.resourceLoader.reload().catch(console.error);
-        }
-      } else {
-        for (const managed of this.managedSessions.values()) {
-          const sessionCwd = managed.workingPath ?? process.cwd();
-          if (sessionCwd === scope) {
-            managed.resourceLoader.reload().catch(console.error);
-          }
-        }
+    this.skillWatcher = new SkillWatcher(() => {
+      for (const managed of this.managedSessions.values()) {
+        managed.resourceLoader.reload().catch(console.error);
       }
     });
     this.skillWatcher.start();
-
-    const cwds = new Set<string>();
-    for (const managed of this.managedSessions.values()) {
-      cwds.add(managed.workingPath ?? process.cwd());
-    }
-    for (const cwd of cwds) this.skillWatcher.watchProject(cwd);
   }
 
   // Custom provider management
@@ -429,32 +451,28 @@ export class AgentManager implements IAgentManager {
   }
 
   /**
-   * Get skill directory paths for all sessions.
+   * Get skill directory paths.
    */
   getSkillPaths(): {
     global: string;
-    projects: Array<{ path: string; sessionId: string; sessionName: string }>;
+    agents: Array<{ agentId: string; path: string }>;
   } {
-    const projects: Array<{ path: string; sessionId: string; sessionName: string }> = [];
-    const seenPaths = new Set<string>();
+    const agents: Array<{ agentId: string; path: string }> = [];
+    const seenAgents = new Set<string>();
 
     for (const managed of this.managedSessions.values()) {
-      const cwd = managed.workingPath ?? process.cwd();
-      const projectSkillsDir = getProjectSkillsDir(cwd);
-
-      if (!seenPaths.has(projectSkillsDir)) {
-        seenPaths.add(projectSkillsDir);
-        projects.push({
-          path: projectSkillsDir,
-          sessionId: managed.id,
-          sessionName: managed.name,
+      if (!seenAgents.has(managed.agentId)) {
+        seenAgents.add(managed.agentId);
+        agents.push({
+          agentId: managed.agentId,
+          path: resolveAgentSkillsDir(managed.agentId),
         });
       }
     }
 
     return {
       global: GLOBAL_SKILLS_DIR,
-      projects,
+      agents,
     };
   }
 
@@ -479,6 +497,7 @@ export class AgentManager implements IAgentManager {
     return Array.from(this.managedSessions.values()).map((s) => ({
       id: s.id,
       name: s.name,
+      agentId: s.agentId,
       createdAt: s.createdAt,
       updatedAt: s.updatedAt,
       model: s.session.model ? `${s.session.model.provider}/${s.session.model.id}` : undefined,
@@ -487,7 +506,11 @@ export class AgentManager implements IAgentManager {
     }));
   }
 
-  async createSession(opts?: { name?: string; workingPath?: string }): Promise<SessionInfo> {
+  async createSession(opts?: { 
+    name?: string; 
+    workingPath?: string;
+    agentId?: string;
+  }): Promise<SessionInfo> {
     if (opts?.workingPath) {
       const s = await stat(opts.workingPath).catch(() => null);
       if (!s || !s.isDirectory()) {
@@ -498,20 +521,44 @@ export class AgentManager implements IAgentManager {
     const id = crypto.randomUUID();
     const name = opts?.name ?? `Session ${this.managedSessions.size + 1}`;
     const cwd = opts?.workingPath ?? process.cwd();
+    
+    // Use specified agent or default
+    const agentId = opts?.agentId ?? DEFAULT_AGENT_ID;
+    
+    // Ensure agent workspace exists
+    const agentWorkspace = resolveAgentWorkspaceDir(agentId);
+    await ensureAgentWorkspace(agentWorkspace);
 
-    await ensureProjectDefaults(cwd);
-
-    const sessionManager = SessionManager.create(cwd, SESSIONS_DIR);
+    // Create session file in agent-specific directory
+    const agentSessionsDir = resolveAgentSessionsDir(agentId);
+    const sessionManager = SessionManager.create(cwd, agentSessionsDir);
 
     const { session, resourceLoader } = await this.createAgentSessionWithSkills(
       cwd,
       sessionManager,
+      agentId,
     );
 
-    // Set default model if none selected
+    // Set default model from agent config if none selected
     if (!session.model) {
-      const defaultModel = this.modelRegistry.getAvailable()[0];
-      if (defaultModel) await session.setModel(defaultModel);
+      const resolvedConfig = await resolveAgentConfig(agentId);
+      
+      // Try to set model from agent config
+      if (resolvedConfig.model) {
+        const slashIdx = resolvedConfig.model.indexOf("/");
+        if (slashIdx !== -1) {
+          const provider = resolvedConfig.model.substring(0, slashIdx);
+          const modelId = resolvedConfig.model.substring(slashIdx + 1);
+          const model = this.modelRegistry.find(provider, modelId);
+          if (model) await session.setModel(model);
+        }
+      }
+      
+      // Fallback to first available model
+      if (!session.model) {
+        const defaultModel = this.modelRegistry.getAvailable()[0];
+        if (defaultModel) await session.setModel(defaultModel);
+      }
     }
 
     const sessionFile = sessionManager.getSessionFile() ?? null;
@@ -519,6 +566,7 @@ export class AgentManager implements IAgentManager {
     const managed: ManagedSession = {
       id,
       name,
+      agentId,
       session,
       resourceLoader,
       createdAt: now.toISOString(),
@@ -530,7 +578,6 @@ export class AgentManager implements IAgentManager {
 
     this.setupEventListeners(managed);
     this.managedSessions.set(id, managed);
-    this.skillWatcher?.watchProject(cwd);
 
     const modelStr = session.model ? `${session.model.provider}/${session.model.id}` : undefined;
 
@@ -539,6 +586,7 @@ export class AgentManager implements IAgentManager {
       data: {
         id,
         name,
+        agentId,  // Store agent binding
         createdAt: now,
         updatedAt: now,
         workingPath: opts?.workingPath,
@@ -550,6 +598,7 @@ export class AgentManager implements IAgentManager {
     return {
       id,
       name,
+      agentId,
       createdAt: managed.createdAt,
       updatedAt: managed.updatedAt,
       model: modelStr,
@@ -569,6 +618,7 @@ export class AgentManager implements IAgentManager {
     return {
       id: managed.id,
       name: managed.name,
+      agentId: managed.agentId,
       createdAt: managed.createdAt,
       updatedAt: managed.updatedAt,
       model: managed.session.model
@@ -584,17 +634,8 @@ export class AgentManager implements IAgentManager {
     const managed = this.managedSessions.get(id);
     if (!managed) return false;
     const sessionFile = managed.session.sessionManager.getSessionFile();
-    const deletedCwd = managed.workingPath ?? process.cwd();
     managed.session.dispose();
     this.managedSessions.delete(id);
-
-    // Unwatch project directory if no other session uses it
-    const remainingCwds = new Set(
-      [...this.managedSessions.values()].map((s) => s.workingPath ?? process.cwd()),
-    );
-    if (!remainingCwds.has(deletedCwd)) {
-      this.skillWatcher?.unwatchProject(deletedCwd);
-    }
 
     // Delete from DB
     await prisma.session.delete({ where: { id } }).catch(() => {});

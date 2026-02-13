@@ -18,9 +18,3 @@ export const DB_PATH = join(APP_CONFIG_DIR, "friend.db");
 export const SESSIONS_DIR = join(APP_CONFIG_DIR, "sessions");
 export const GLOBAL_SKILLS_DIR = join(APP_CONFIG_DIR, "skills");
 export const GLOBAL_MEMORY_DIR = join(APP_CONFIG_DIR, "memory");
-export const GLOBAL_AGENTS_MD_PATH = join(APP_CONFIG_DIR, "AGENTS.md");
-
-/** Get project-specific memory directory */
-export function getProjectMemoryDir(cwd: string): string {
-  return join(cwd, ".friend", "memory");
-}

@@ -12,6 +12,7 @@ import { configRoutes } from "./routes/config";
 import { eventRoutes } from "./routes/events";
 import { modelRoutes } from "./routes/models";
 import { skillRoutes } from "./routes/skills";
+import { agentsRoutes, bindingsRoutes } from "./routes/agents.js";
 
 await initAgentManager();
 
@@ -22,6 +23,8 @@ const app = new Elysia()
   .use(eventRoutes)
   .use(modelRoutes)
   .use(skillRoutes)
+  .use(agentsRoutes)
+  .use(bindingsRoutes)
   .listen(3001);
 
 console.log(`Friend server running at http://localhost:3001`);

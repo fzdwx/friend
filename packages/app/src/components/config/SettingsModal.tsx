@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { SettingsSidebar } from "@/components/config/SettingsSidebar";
+import { AgentsContent } from "@/components/config/AgentsContent";
 import { ProvidersContent } from "@/components/config/ProvidersContent";
 import { AppearanceContent } from "@/components/config/AppearanceContent";
 import { SkillsContent } from "@/components/config/SkillsContent";
 import { useConfigStore } from "@/stores/configStore";
 
-const SECTION_TITLES: Record<"providers" | "appearance" | "skills", string> = {
+const SECTION_TITLES: Record<"agents" | "providers" | "appearance" | "skills", string> = {
+  agents: "Agents",
   providers: "Providers",
   appearance: "Appearance",
   skills: "Skills",
@@ -15,8 +17,8 @@ const SECTION_TITLES: Record<"providers" | "appearance" | "skills", string> = {
 export function SettingsModal() {
   const isSettingsOpen = useConfigStore((s) => s.isSettingsOpen);
   const setIsSettingsOpen = useConfigStore((s) => s.setIsSettingsOpen);
-  const [activeSection, setActiveSection] = useState<"providers" | "appearance" | "skills">(
-    "appearance",
+  const [activeSection, setActiveSection] = useState<"agents" | "providers" | "appearance" | "skills">(
+    "agents",
   );
 
   return (
@@ -29,6 +31,7 @@ export function SettingsModal() {
       <div className="flex h-[600px]">
         <SettingsSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
         <div className="flex-1 overflow-y-auto">
+          {activeSection === "agents" && <AgentsContent />}
           {activeSection === "providers" && <ProvidersContent />}
           {activeSection === "appearance" && <AppearanceContent />}
           {activeSection === "skills" && <SkillsContent />}

@@ -16,7 +16,7 @@ export const sessionRoutes = new Elysia({ prefix: "/api/sessions" })
         return { ok: false, error: String(e) };
       }
     },
-    { body: t.Object({ name: t.Optional(t.String()), workingPath: t.Optional(t.String()) }) },
+    { body: t.Object({ name: t.Optional(t.String()), workingPath: t.Optional(t.String()), agentId: t.Optional(t.String()) }) },
   )
 
   .get("/:id", async ({ params: { id } }) => {

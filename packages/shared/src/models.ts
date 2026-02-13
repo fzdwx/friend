@@ -18,6 +18,7 @@ import type { Message } from "@mariozechner/pi-ai";
 export interface SessionInfo {
   id: string;
   name: string;
+  agentId?: string;  // Agent this session belongs to
   createdAt: string;
   updatedAt: string;
   model?: string;

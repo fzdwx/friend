@@ -3,7 +3,7 @@ import { getAgentManager } from "../agent/manager";
 import type { SkillInfo, SkillPaths } from "@friend/shared";
 
 export const skillRoutes = new Elysia({ prefix: "/api/skills" })
-  // List all loaded skills (global + project from all sessions)
+  // List all loaded skills (global + agent)
   .get("/", ({ query }) => {
     const sessionId = query.sessionId;
     const skills = getAgentManager().getAllSkills(sessionId);
@@ -18,12 +18,12 @@ export const skillRoutes = new Elysia({ prefix: "/api/skills" })
     return { ok: true, data };
   })
 
-  // Get skills directory paths (global + all project paths)
+  // Get skills directory paths (global + all agent paths)
   .get("/paths", () => {
     const paths = getAgentManager().getSkillPaths();
     const data: SkillPaths = {
       global: paths.global,
-      projects: paths.projects,
+      agents: paths.agents,
     };
     return { ok: true, data };
   })

@@ -19,10 +19,50 @@ async function request<T>(
   return res.json();
 }
 
+// ─── Types ─────────────────────────────────────────────────────
+
+export interface AgentInfo {
+  id: string;
+  name: string;
+  isDefault?: boolean;
+  identity?: {
+    name?: string;
+    emoji?: string;
+    vibe?: string;
+    avatar?: string;
+  };
+  model?: string;
+  thinkingLevel?: string;
+  workspace?: string;
+}
+
+export interface AgentDetail extends AgentInfo {
+  resolved: {
+    identity: AgentInfo["identity"];
+    model?: string;
+    thinkingLevel?: string;
+  };
+  workspaceStats: {
+    exists: boolean;
+    path: string;
+    files: string[];
+    size: number;
+  };
+}
+
+export interface WorkspaceFile {
+  name: string;
+  path: string;
+  content: string;
+  size: number;
+}
+
+// ─── API ───────────────────────────────────────────────────────
+
 export const api = {
   // Sessions
   listSessions: () => request<any[]>("/sessions"),
-  createSession: (opts?: { name?: string; workingPath?: string }) =>
+  createSession: (opts?: { name?: string; workingPath?: string; agentId?: string }) =>
     request<any>("/sessions", {
       method: "POST",
       body: JSON.stringify(opts),
@@ -105,4 +145,36 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ sessionId }),
     }),
+
+  // ─── Agents ────────────────────────────────────────────────
+  listAgents: () => request<AgentInfo[]>("/agents"),
+  getAgent: (id: string) => request<AgentDetail>(`/agents/${id}`),
+  createAgent: (agent: Partial<AgentInfo> & { id?: string }) =>
+    request<{ agentId: string; success: boolean }>("/agents", {
+      method: "POST",
+      body: JSON.stringify(agent),
+    }),
+  updateAgent: (id: string, updates: Partial<AgentInfo>) =>
+    request<{ success: boolean }>(`/agents/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(updates),
+    }),
+  deleteAgent: (id: string) =>
+    request<{ success: boolean }>(`/agents/${id}`, { method: "DELETE" }),
+
+  getAgentWorkspace: (id: string) => request<WorkspaceFile[]>(`/agents/${id}/workspace`),
+  getAgentWorkspaceFile: (id: string, filename: string) =>
+    request<WorkspaceFile>(`/agents/${id}/workspace/${filename}`),
+  updateAgentWorkspaceFile: (id: string, filename: string, content: string) =>
+    request<{ success: boolean; path: string; size: number }>(
+      `/agents/${id}/workspace/${filename}`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ content }),
+      },
+    ),
+  getAgentStats: (id: string) =>
+    request<{ exists: boolean; path: string; files: string[]; size: number }>(
+      `/agents/${id}/stats`,
+    ),
 };

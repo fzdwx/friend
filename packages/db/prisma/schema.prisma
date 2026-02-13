@@ -10,11 +10,30 @@ datasource db {
 model Session {
   id          String    @id @default(uuid())
   name        String
+  agentId     String    @default("main") // Agent this session belongs to
   model       String?
-  workingPath String?
+  workingPath String?                    // Project working directory
   sessionFile String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@index([agentId])
+}
+
+model Agent {
+  id             String   @id
+  name           String
+  isDefault      Boolean  @default(false)
+  emoji          String?
+  vibe           String?
+  avatar         String?
+  defaultModel   String?
+  thinkingLevel  String?
+  workspacePath  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([isDefault])
 }
 
 model AppConfig {

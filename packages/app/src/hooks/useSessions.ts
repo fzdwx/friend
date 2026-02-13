@@ -23,7 +23,7 @@ export function useSessions() {
   }, [setSessions]);
 
   const createSession = useCallback(
-    async (opts?: { name?: string; workingPath?: string }) => {
+    async (opts?: { name?: string; workingPath?: string; agentId?: string }) => {
       const res = await api.createSession(opts);
       if (res.ok && res.data) {
         addSession(res.data);

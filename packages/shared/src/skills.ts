@@ -11,22 +11,20 @@ export interface SkillInfo {
   filePath: string;
   /** Base directory containing the skill */
   baseDir: string;
-  /** Source identifier (e.g., "user", "project") */
+  /** Source identifier (e.g., "user", "agent") */
   source: string;
   /** Whether the skill is disabled from model invocation */
   disableModelInvocation: boolean;
 }
 
 /**
- * Project skill path information.
+ * Agent skill path information.
  */
-export interface ProjectSkillPath {
-  /** Path to the project skills directory */
+export interface AgentSkillPath {
+  /** Agent ID */
+  agentId: string;
+  /** Path to the agent skills directory */
   path: string;
-  /** Session ID that uses this path */
-  sessionId: string;
-  /** Session name for display */
-  sessionName: string;
 }
 
 /**
@@ -35,8 +33,8 @@ export interface ProjectSkillPath {
 export interface SkillPaths {
   /** Global skills directory path */
   global: string;
-  /** Project-specific skill paths from all sessions */
-  projects: ProjectSkillPath[];
+  /** Agent-specific skill paths */
+  agents: AgentSkillPath[];
 }
 
 /**

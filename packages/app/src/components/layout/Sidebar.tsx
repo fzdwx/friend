@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useSessions } from "@/hooks/useSessions";
 import { useConfigStore } from "@/stores/configStore";
-import { Plus, MessageSquare, Trash2, Settings, Folder } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Settings, Folder, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { selectDirectory, isTauri } from "@/lib/tauri";
+import { AgentSelector } from "@/components/agents/AgentSelector";
 
 export function Sidebar() {
   const {
@@ -19,13 +20,17 @@ export function Sidebar() {
   const [showPathInput, setShowPathInput] = useState(false);
   const [pathValue, setPathValue] = useState("");
   const [pathError, setPathError] = useState("");
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
 
   const handleNewSession = async () => {
     if (isTauri()) {
       const workingPath = await selectDirectory();
-      const result = await createSession({ workingPath: workingPath || undefined });
+      const result = await createSession({ 
+        workingPath: workingPath || undefined,
+        agentId: selectedAgentId || undefined,
+      });
       if (result.error) setPathError(result.error);
     } else {
       setPathValue("");
@@ -37,12 +42,16 @@ export function Sidebar() {
   const handlePathSubmit = async () => {
     const trimmed = pathValue.trim();
     setPathError("");
-    const result = await createSession({ workingPath: trimmed || undefined });
+    const result = await createSession({ 
+      workingPath: trimmed || undefined,
+      agentId: selectedAgentId || undefined,
+    });
     if (result.error) {
       setPathError(result.error);
     } else {
       setShowPathInput(false);
       setPathValue("");
+      setSelectedAgentId(null);
     }
   };
 
@@ -110,6 +119,12 @@ export function Sidebar() {
               pathError ? "border-destructive" : "border-border",
             )}
           />
+          
+          <AgentSelector 
+            value={selectedAgentId}
+            onChange={setSelectedAgentId}
+          />
+          
           {pathError && <p className="text-xs text-destructive">{pathError}</p>}
           <div className="flex gap-1.5">
             <button
@@ -119,7 +134,10 @@ export function Sidebar() {
               Create
             </button>
             <button
-              onClick={() => setShowPathInput(false)}
+              onClick={() => {
+                setShowPathInput(false);
+                setSelectedAgentId(null);
+              }}
               className="px-2 py-1 rounded-md text-xs text-muted-foreground hover:bg-accent/50 transition-colors"
             >
               Cancel
@@ -166,12 +184,20 @@ export function Sidebar() {
                   {session.name}
                 </span>
               )}
-              {session.workingPath && editingSessionId !== session.id && (
-                <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground/70">
-                  <Folder className="w-3 h-3 flex-shrink-0" />
-                  <span className="truncate">{session.workingPath}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-1.5 mt-0.5">
+                {session.agentId && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground/70">
+                    <Bot className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate max-w-[80px]">{session.agentId}</span>
+                  </div>
+                )}
+                {session.workingPath && editingSessionId !== session.id && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground/70 flex-1 min-w-0">
+                    <Folder className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{session.workingPath}</span>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
               {editingSessionId === session.id ? (
