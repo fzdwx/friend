@@ -2,14 +2,14 @@
  * PlanEditor Component
  *
  * Displays and manages plan mode todos:
- * - Shows numbered steps
+ * - Shows numbered steps with optional subtasks
  * - Allows editing step text
- * - Supports drag-and-drop reordering
+ * - Supports drag-and-drop reordering (main tasks only)
  * - Execute/Cancel buttons
  */
 
 import { useState, useCallback } from "react";
-import { GripVertical, Play, X, Check, Clock } from "lucide-react";
+import { GripVertical, Play, X, Check, Clock, ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TodoItem } from "@friend/shared";
 
@@ -24,15 +24,44 @@ export function PlanEditor({ todos: initialTodos, onExecute, onCancel, disabled 
   const [todos, setTodos] = useState<TodoItem[]>(initialTodos);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
+  const [expandedTasks, setExpandedTasks] = useState<Set<number>>(new Set());
 
-  // Edit step text
+  // Toggle subtask expansion
+  const toggleExpanded = useCallback((step: number) => {
+    setExpandedTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(step)) {
+        next.delete(step);
+      } else {
+        next.add(step);
+      }
+      return next;
+    });
+  }, []);
+
+  // Edit main task text
   const handleEditStep = useCallback((index: number, newText: string) => {
     setTodos((prev) =>
       prev.map((todo, i) => (i === index ? { ...todo, text: newText } : todo)),
     );
   }, []);
 
-  // Drag and drop handlers
+  // Edit subtask text
+  const handleEditSubtask = useCallback((mainIndex: number, subIndex: number, newText: string) => {
+    setTodos((prev) =>
+      prev.map((todo, i) => {
+        if (i === mainIndex && todo.subtasks) {
+          const newSubtasks = todo.subtasks.map((sub, j) =>
+            j === subIndex ? { ...sub, text: newText } : sub
+          );
+          return { ...todo, subtasks: newSubtasks };
+        }
+        return todo;
+      }),
+    );
+  }, []);
+
+  // Drag and drop handlers (main tasks only)
   const handleDragStart = useCallback((index: number) => {
     setDraggedIndex(index);
   }, []);
@@ -46,12 +75,10 @@ export function PlanEditor({ todos: initialTodos, onExecute, onCancel, disabled 
 
   const handleDragEnd = useCallback(() => {
     if (draggedIndex !== null && dropTargetIndex !== null && draggedIndex !== dropTargetIndex) {
-      // Reorder todos
       setTodos((prev) => {
         const newTodos = [...prev];
         const [removed] = newTodos.splice(draggedIndex, 1);
         newTodos.splice(dropTargetIndex, 0, removed);
-        // Update step numbers
         return newTodos.map((todo, i) => ({ ...todo, step: i + 1 }));
       });
     }
@@ -61,9 +88,12 @@ export function PlanEditor({ todos: initialTodos, onExecute, onCancel, disabled 
 
   const handleExecute = useCallback(() => {
     // Check if todos were modified
-    const hasChanges = todos.some((todo, i) => todo.text !== initialTodos[i]?.text);
+    const hasChanges = JSON.stringify(todos) !== JSON.stringify(initialTodos);
     onExecute(hasChanges ? todos : undefined);
   }, [todos, initialTodos, onExecute]);
+
+  // Count total steps including subtasks
+  const totalSteps = todos.reduce((acc, todo) => acc + 1 + (todo.subtasks?.length || 0), 0);
 
   return (
     <div className="plan-editor bg-secondary/30 border border-border rounded-lg p-4 my-3 max-h-[60vh] flex flex-col">
@@ -72,7 +102,7 @@ export function PlanEditor({ todos: initialTodos, onExecute, onCancel, disabled 
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-yellow-500" />
           <span className="font-medium text-sm">Plan Mode</span>
-          <span className="text-xs text-muted-foreground">({todos.length} steps)</span>
+          <span className="text-xs text-muted-foreground">({totalSteps} steps)</span>
         </div>
         <div className="text-xs text-muted-foreground">
           Drag to reorder • Click to edit
@@ -80,46 +110,107 @@ export function PlanEditor({ todos: initialTodos, onExecute, onCancel, disabled 
       </div>
 
       {/* Todo List - scrollable */}
-      <div className="space-y-2 overflow-y-auto flex-1 min-h-0">
-        {todos.map((todo, index) => (
-          <div
-            key={todo.step}
-            draggable
-            onDragStart={() => handleDragStart(index)}
-            onDragOver={(e) => handleDragOver(e, index)}
-            onDragEnd={handleDragEnd}
-            onDrop={handleDragEnd}
-            className={cn(
-              "flex items-center gap-2 p-2 rounded-md bg-background/50 border border-border/50",
-              "transition-all duration-150",
-              draggedIndex === index && "opacity-50 scale-95",
-              dropTargetIndex === index && "border-primary border-dashed",
-              "cursor-grab active:cursor-grabbing",
-            )}
-          >
-            {/* Drag Handle */}
-            <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+      <div className="space-y-1 overflow-y-auto flex-1 min-h-0">
+        {todos.map((todo, index) => {
+          const hasSubtasks = todo.subtasks && todo.subtasks.length > 0;
+          const isExpanded = expandedTasks.has(todo.step);
 
-            {/* Step Number */}
-            <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium">
-              {todo.step}
-            </span>
+          return (
+            <div key={todo.step}>
+              {/* Main Task */}
+              <div
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragEnd={handleDragEnd}
+                onDrop={handleDragEnd}
+                className={cn(
+                  "flex items-center gap-2 p-2 rounded-md bg-background/50 border border-border/50",
+                  "transition-all duration-150",
+                  draggedIndex === index && "opacity-50 scale-95",
+                  dropTargetIndex === index && "border-primary border-dashed",
+                  "cursor-grab active:cursor-grabbing",
+                )}
+              >
+                {/* Drag Handle */}
+                <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
 
-            {/* Step Text */}
-            <input
-              type="text"
-              value={todo.text}
-              onChange={(e) => handleEditStep(index, e.target.value)}
-              disabled={disabled}
-              className="flex-1 bg-transparent text-sm outline-none border-b border-transparent focus:border-primary/50 px-1 py-0.5"
-            />
+                {/* Expand/Collapse button */}
+                {hasSubtasks ? (
+                  <button
+                    onClick={() => toggleExpanded(todo.step)}
+                    className="p-0.5 hover:bg-secondary rounded"
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                    )}
+                  </button>
+                ) : (
+                  <div className="w-4" />
+                )}
 
-            {/* Completed indicator (for execution phase) */}
-            {todo.completed && (
-              <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-            )}
-          </div>
-        ))}
+                {/* Step Number */}
+                <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium">
+                  {todo.step}
+                </span>
+
+                {/* Step Text */}
+                <input
+                  type="text"
+                  value={todo.text}
+                  onChange={(e) => handleEditStep(index, e.target.value)}
+                  disabled={disabled}
+                  className="flex-1 bg-transparent text-sm outline-none border-b border-transparent focus:border-primary/50 px-1 py-0.5"
+                />
+
+                {/* Completed indicator */}
+                {todo.completed && (
+                  <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                )}
+
+                {/* Subtask count badge */}
+                {hasSubtasks && (
+                  <span className="text-xs text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
+                    {todo.subtasks!.length}
+                  </span>
+                )}
+              </div>
+
+              {/* Subtasks */}
+              {hasSubtasks && isExpanded && (
+                <div className="ml-8 mt-1 space-y-1">
+                  {todo.subtasks!.map((subtask, subIndex) => (
+                    <div
+                      key={`${todo.step}.${subtask.step}`}
+                      className="flex items-center gap-2 p-2 rounded-md bg-background/30 border border-border/30"
+                    >
+                      {/* Step Number */}
+                      <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded bg-muted text-muted-foreground text-xs">
+                        {todo.step}.{subtask.step}
+                      </span>
+
+                      {/* Step Text */}
+                      <input
+                        type="text"
+                        value={subtask.text}
+                        onChange={(e) => handleEditSubtask(index, subIndex, e.target.value)}
+                        disabled={disabled}
+                        className="flex-1 bg-transparent text-sm outline-none border-b border-transparent focus:border-primary/50 px-1 py-0.5"
+                      />
+
+                      {/* Completed indicator */}
+                      {subtask.completed && (
+                        <Check className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Actions */}
@@ -186,21 +277,42 @@ export function PlanProgress({ completed, total, todos }: PlanProgressProps) {
       </div>
 
       {/* Current Steps - scrollable */}
-      <div className="mt-2 space-y-1 overflow-y-auto flex-1 min-h-0">
+      <div className="mt-2 space-y-0.5 overflow-y-auto flex-1 min-h-0">
         {todos.map((todo) => (
-          <div
-            key={todo.step}
-            className={cn(
-              "flex items-center gap-2 text-xs",
-              todo.completed ? "text-muted-foreground line-through" : "text-foreground",
-            )}
-          >
-            {todo.completed ? (
-              <Check className="w-3 h-3 text-green-500" />
-            ) : (
-              <div className="w-3 h-3 rounded-full border border-muted-foreground/50" />
-            )}
-            <span className="truncate">{todo.text}</span>
+          <div key={todo.step}>
+            {/* Main task */}
+            <div
+              className={cn(
+                "flex items-center gap-2 text-xs py-0.5",
+                todo.completed ? "text-muted-foreground line-through" : "text-foreground",
+              )}
+            >
+              {todo.completed ? (
+                <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
+              ) : (
+                <div className="w-3 h-3 rounded-full border border-muted-foreground/50 flex-shrink-0" />
+              )}
+              <span className="truncate">{todo.step}. {todo.text}</span>
+            </div>
+            {/* Subtasks */}
+            {todo.subtasks?.map((subtask) => (
+              <div
+                key={`${todo.step}.${subtask.step}`}
+                className={cn(
+                  "flex items-center gap-2 text-xs py-0.5 ml-4",
+                  subtask.completed ? "text-muted-foreground line-through" : "text-foreground",
+                )}
+              >
+                {subtask.completed ? (
+                  <Check className="w-2.5 h-2.5 text-green-500 flex-shrink-0" />
+                ) : (
+                  <div className="w-2.5 h-2.5 rounded-full border border-muted-foreground/50 flex-shrink-0" />
+                )}
+                <span className="truncate text-[11px]">
+                  {todo.step}.{subtask.step}. {subtask.text}
+                </span>
+              </div>
+            ))}
           </div>
         ))}
       </div>

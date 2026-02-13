@@ -49,6 +49,7 @@ export interface TodoItem {
   step: number;
   text: string;
   completed: boolean;
+  subtasks?: TodoItem[];  // Optional nested subtasks
 }
 
 /** Plan mode state changed */

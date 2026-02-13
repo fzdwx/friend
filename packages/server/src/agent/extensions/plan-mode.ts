@@ -24,6 +24,7 @@ export interface TodoItem {
   step: number;
   text: string;
   completed: boolean;
+  subtasks?: TodoItem[];  // Optional nested subtasks
 }
 
 export interface PlanModeState {
@@ -166,20 +167,75 @@ export function extractTodoItems(message: string): TodoItem[] {
   if (!headerMatch) return items;
 
   const planSection = message.slice(message.indexOf(headerMatch[0]) + headerMatch[0].length);
-  const numberedPattern = /^\s*(\d+)[.)]\s+\*{0,2}([^*\n]+)/gm;
-
-  for (const match of planSection.matchAll(numberedPattern)) {
-    const text = match[2]
-      .trim()
-      .replace(/\*{1,2}$/, "")
-      .trim();
-    if (text.length > 5 && !text.startsWith("`") && !text.startsWith("/") && !text.startsWith("-")) {
-      const cleaned = cleanStepText(text);
-      if (cleaned.length > 3) {
-        items.push({ step: items.length + 1, text: cleaned, completed: false });
+  
+  // Match main tasks: "1. Task text" (not "1.1" or "1.2")
+  const mainTaskPattern = /^\s*(\d+)[.)]\s+\*{0,2}([^*\n]+)/gm;
+  
+  let currentMainTask: TodoItem | null = null;
+  let mainTaskIndex = 0;
+  
+  // Get all lines to find subtasks
+  const lines = planSection.split('\n');
+  
+  for (const line of lines) {
+    // Check for main task: "1. Task" (single digit, not "1.1")
+    const mainMatch = line.match(/^\s*(\d+)[.)]\s+\*{0,2}([^*\n]+)/);
+    if (mainMatch && !line.match(/^\s*\d+\.\d+/)) {
+      const text = mainMatch[2].trim().replace(/\*{1,2}$/, "").trim();
+      if (text.length > 3 && !text.startsWith("`") && !text.startsWith("/") && !text.startsWith("-")) {
+        const cleaned = cleanStepText(text);
+        if (cleaned.length > 3) {
+          mainTaskIndex++;
+          currentMainTask = { 
+            step: mainTaskIndex, 
+            text: cleaned, 
+            completed: false,
+            subtasks: []
+          };
+          items.push(currentMainTask);
+        }
+      }
+    }
+    // Check for subtask: "1.1. Subtask" or "  - Subtask" (indented)
+    else if (currentMainTask) {
+      const subMatch = line.match(/^\s*(\d+)\.(\d+)[.)]\s+\*{0,2}([^*\n]+)/);
+      if (subMatch) {
+        const text = subMatch[3].trim().replace(/\*{1,2}$/, "").trim();
+        if (text.length > 3) {
+          const cleaned = cleanStepText(text);
+          if (cleaned.length > 3 && currentMainTask.subtasks) {
+            currentMainTask.subtasks.push({
+              step: currentMainTask.subtasks.length + 1,
+              text: cleaned,
+              completed: false
+            });
+          }
+        }
+      }
+      // Also support bullet point subtasks under a main task
+      else if (line.match(/^\s*[-•]\s+/)) {
+        const bulletMatch = line.match(/^\s*[-•]\s+(.+)/);
+        if (bulletMatch && currentMainTask.subtasks) {
+          const text = bulletMatch[1].trim();
+          if (text.length > 3) {
+            currentMainTask.subtasks.push({
+              step: currentMainTask.subtasks.length + 1,
+              text,
+              completed: false
+            });
+          }
+        }
       }
     }
   }
+  
+  // Remove empty subtasks arrays
+  for (const item of items) {
+    if (item.subtasks && item.subtasks.length === 0) {
+      delete item.subtasks;
+    }
+  }
+  
   return items;
 }
 
@@ -231,36 +287,36 @@ Analyze the code and create an execution plan.
 Output ONLY a plan with numbered steps. No other content.
 
 Plan:
-1. First executable step (e.g., "Create file X with content Y")
-2. Second executable step
-3. Third executable step
+1. Main task description
+   1.1. Subtask one (optional)
+   1.2. Subtask two (optional)
+2. Next main task
+3. Another task
 ...
 
 ## Plan Rules
 
-- Each step must be a specific, actionable task
-- Use sequential numbers: 1, 2, 3... (no sub-sections or nested numbers)
+- Each main step must be a specific, actionable task
+- Use sequential numbers: 1, 2, 3...
+- Subtasks use format: 1.1, 1.2, 2.1, 2.2... (indented, under main task)
 - Do NOT include: analysis, evaluation, comparison, or decision-making
 - Only include tasks that will be executed
-- Each step should be completable in one action
-- Keep each step concise (one line, no code blocks)
+- Keep each step concise (one line)
 
 ## Examples
 
-Good:
 Plan:
-1. Install playwright dependency to packages/server/package.json
-2. Create packages/server/src/agent/tools/browser.ts
-3. Implement screenshot function
-4. Register tool in manager.ts
-
-Bad (don't do this):
-Plan:
-### 1. Analysis
-1. Analyze requirements...
-2. Compare options...
-### 2. Implementation
-1. Create file...`;
+1. Install playwright dependency
+   1.1. Add to packages/server/package.json
+   1.2. Run bun install
+2. Create browser tool file
+   2.1. Create packages/server/src/agent/tools/browser.ts
+   2.2. Define parameter schema with TypeBox
+3. Implement core functions
+   3.1. Implement screenshot function
+   3.2. Implement navigate function
+   3.3. Implement click function
+4. Register tool in manager.ts`;
 
 export function getExecutionContextPrompt(todos: TodoItem[]): string {
   const remaining = todos.filter((t) => !t.completed);
