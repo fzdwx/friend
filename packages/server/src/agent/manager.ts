@@ -164,12 +164,13 @@ export class AgentManager implements IAgentManager {
       noExtensions: true,
       noPromptTemplates: true,
       noThemes: true,
-      systemPromptOverride: (base) => {
-        const workspacePrompt = buildWorkspacePrompt(cwd, workspaceFiles, resolvedConfig.identity, agentWorkspace);
-        const result = [base, workspacePrompt].filter(Boolean).join("\n\n");
-        // Log the full system prompt for verification
-        console.log(`\n${"=".repeat(60)}\n[SYSTEM PROMPT for agent: ${agentId}]\n${"=".repeat(60)}\n${result}\n${"=".repeat(60)}\n`);
-        return result;
+      // Short identity in system prompt (for models that respect it)
+      systemPromptOverride: () => {
+        return `[IDENTITY] You are "${resolvedConfig.identity?.name || "Friend"}", a personal assistant running inside Friend.\nYou are NOT Claude, NOT ChatGPT, NOT any other AI product.\nWhen asked who you are, say you are ${resolvedConfig.identity?.name || "Friend"}.\nNever claim to be made by Anthropic, OpenAI, or any other company.`;
+      },
+      agentsFilesOverride: () => {
+        // Return empty - context injected via before_agent_start instead
+        return { agentsFiles: [] };
       },
       skillsOverride: () => {
         // Load global skills
@@ -188,6 +189,21 @@ export class AgentManager implements IAgentManager {
           diagnostics: [...globalResult.diagnostics, ...agentResult.diagnostics],
         };
       },
+      // Inject full context via before_agent_start (works even if provider overrides system prompt)
+      extensionFactories: [
+        (pi) => {
+          pi.on("before_agent_start", async () => {
+            const workspacePrompt = buildWorkspacePrompt(cwd, workspaceFiles, resolvedConfig.identity, agentWorkspace);
+            return {
+              message: {
+                customType: "identity_context",
+                content: workspacePrompt,
+                display: false,
+              },
+            };
+          });
+        },
+      ],
     });
     await resourceLoader.reload();
 
