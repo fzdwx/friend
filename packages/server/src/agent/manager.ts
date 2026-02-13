@@ -1036,7 +1036,11 @@ Your output must be:
 
     // Run prompt (non-blocking - returns after agent finishes)
     // SDK session automatically tracks user + assistant messages
-    managed.session.prompt(message).catch((err) => {
+    console.log(`[PlanMode] Calling session.prompt()...`);
+    managed.session.prompt(message).then(() => {
+      console.log(`[PlanMode] session.prompt() completed`);
+    }).catch((err) => {
+      console.error(`[PlanMode] session.prompt() error:`, err);
       this.broadcast(managed, { type: "error", message: String(err) });
     });
   }
