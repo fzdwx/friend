@@ -3,6 +3,7 @@ import { api } from "@/lib/api";
 import { useConfigStore } from "@/stores/configStore";
 import type { CustomProviderConfig, CustomModelConfig } from "@friend/shared";
 import { Plus, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const DEFAULT_MODEL: CustomModelConfig = {
   id: "",
@@ -14,6 +15,7 @@ const DEFAULT_MODEL: CustomModelConfig = {
 };
 
 export function ProvidersContent() {
+  const { t } = useTranslation();
   const customProviders = useConfigStore((s) => s.customProviders);
   const { addCustomProvider, removeCustomProvider } = useConfigStore();
 
@@ -35,7 +37,7 @@ export function ProvidersContent() {
       <div className="max-w-[560px] mx-auto space-y-4">
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold">Custom Providers</h2>
+            <h2 className="text-sm font-semibold">{t("providers.title")}</h2>
             <button
               onClick={() =>
                 setEditing({
@@ -49,7 +51,7 @@ export function ProvidersContent() {
               className="flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs hover:bg-primary/90"
             >
               <Plus className="w-3 h-3" />
-              Add Provider
+              {t("providers.addProvider")}
             </button>
           </div>
 
@@ -72,7 +74,7 @@ export function ProvidersContent() {
                       onClick={() => setEditing({ ...p, models: p.models.map((m) => ({ ...m })) })}
                       className="px-2 py-1 text-xs hover:bg-accent rounded"
                     >
-                      Edit
+                      {t("common.edit")}
                     </button>
                     <button
                       onClick={() => handleDelete(p.name)}
@@ -87,9 +89,9 @@ export function ProvidersContent() {
 
             {customProviders.length === 0 && !editing && (
               <div className="text-center py-8 text-xs text-muted-foreground border border-dashed border-border rounded-md">
-                No custom providers configured.
+                {t("providers.noProviders")}
                 <br />
-                Add one to use custom OpenAI-compatible endpoints.
+                {t("providers.addOne")}
               </div>
             )}
 
@@ -98,6 +100,7 @@ export function ProvidersContent() {
                 provider={editing}
                 onSave={handleSave}
                 onCancel={() => setEditing(null)}
+                t={t}
               />
             )}
           </div>
@@ -111,10 +114,12 @@ function ProviderForm({
   provider,
   onSave,
   onCancel,
+  t,
 }: {
   provider: CustomProviderConfig;
   onSave: (p: CustomProviderConfig) => void;
   onCancel: () => void;
+  t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   const [form, setForm] = useState<CustomProviderConfig>(provider);
 
@@ -154,12 +159,12 @@ function ProviderForm({
   return (
     <div className="border border-primary/30 rounded-md p-3 space-y-3 bg-primary/5">
       <div className="text-xs font-medium text-primary">
-        {provider.name ? "Edit Provider" : "New Provider"}
+        {provider.name ? t("providers.editProvider") : t("providers.newProvider")}
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-[11px] text-muted-foreground block mb-0.5">Provider Name</label>
+          <label className="text-[11px] text-muted-foreground block mb-0.5">{t("providers.providerName")}</label>
           <input
             value={form.name}
             onChange={(e) => updateField("name", e.target.value)}
@@ -168,7 +173,7 @@ function ProviderForm({
           />
         </div>
         <div>
-          <label className="text-[11px] text-muted-foreground block mb-0.5">Base URL</label>
+          <label className="text-[11px] text-muted-foreground block mb-0.5">{t("providers.baseUrl")}</label>
           <input
             value={form.baseUrl}
             onChange={(e) => updateField("baseUrl", e.target.value)}
@@ -179,7 +184,7 @@ function ProviderForm({
       </div>
 
       <div>
-        <label className="text-[11px] text-muted-foreground block mb-0.5">API Key (optional)</label>
+        <label className="text-[11px] text-muted-foreground block mb-0.5">{t("providers.apiKey")}</label>
         <input
           type="password"
           value={form.apiKey || ""}
@@ -190,26 +195,26 @@ function ProviderForm({
       </div>
 
       <div>
-        <label className="text-[11px] text-muted-foreground block mb-0.5">API Protocol</label>
+        <label className="text-[11px] text-muted-foreground block mb-0.5">{t("providers.apiProtocol")}</label>
         <select
           value={form.api || "openai-completions"}
           onChange={(e) => updateField("api", e.target.value)}
           className="w-full bg-secondary border border-border rounded px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-ring"
         >
-          <option value="openai-completions">OpenAI Completions</option>
-          <option value="anthropic-messages">Anthropic Messages</option>
+          <option value="openai-completions">{t("providers.openaiCompletions")}</option>
+          <option value="anthropic-messages">{t("providers.anthropicMessages")}</option>
         </select>
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-1">
-          <label className="text-[11px] text-muted-foreground font-medium">Models</label>
+          <label className="text-[11px] text-muted-foreground font-medium">{t("providers.models")}</label>
           <button
             onClick={addModel}
             className="text-[11px] text-primary hover:underline flex items-center gap-0.5"
           >
             <Plus className="w-3 h-3" />
-            Add Model
+            {t("providers.addModel")}
           </button>
         </div>
 
@@ -221,13 +226,13 @@ function ProviderForm({
                   <input
                     value={model.id}
                     onChange={(e) => updateModel(i, { id: e.target.value })}
-                    placeholder="Model ID (e.g. gpt-4o)"
+                    placeholder={t("providers.modelId")}
                     className="bg-secondary border border-border rounded px-2 py-1 text-[11px] outline-none focus:ring-1 focus:ring-ring"
                   />
                   <input
                     value={model.name}
                     onChange={(e) => updateModel(i, { name: e.target.value })}
-                    placeholder="Display name"
+                    placeholder={t("providers.modelName")}
                     className="bg-secondary border border-border rounded px-2 py-1 text-[11px] outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>
@@ -243,7 +248,7 @@ function ProviderForm({
 
               <div className="grid grid-cols-3 gap-1.5">
                 <div>
-                  <label className="text-[10px] text-muted-foreground">Context Window</label>
+                  <label className="text-[10px] text-muted-foreground">{t("providers.contextWindow")}</label>
                   <input
                     type="number"
                     value={model.contextWindow}
@@ -252,7 +257,7 @@ function ProviderForm({
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-muted-foreground">Max Tokens</label>
+                  <label className="text-[10px] text-muted-foreground">{t("providers.maxTokens")}</label>
                   <input
                     type="number"
                     value={model.maxTokens}
@@ -268,7 +273,7 @@ function ProviderForm({
                       onChange={(e) => updateModel(i, { reasoning: e.target.checked })}
                       className="rounded"
                     />
-                    Reasoning
+                    {t("providers.reasoning")}
                   </label>
                 </div>
               </div>
@@ -279,14 +284,14 @@ function ProviderForm({
 
       <div className="flex justify-end gap-2 pt-1">
         <button onClick={onCancel} className="px-3 py-1.5 text-xs hover:bg-accent rounded-md">
-          Cancel
+          {t("common.cancel")}
         </button>
         <button
           onClick={handleSubmit}
           disabled={!form.name || !form.baseUrl || form.models.some((m) => !m.id)}
           className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-xs hover:bg-primary/90 disabled:opacity-50"
         >
-          Save Provider
+          {t("providers.saveProvider")}
         </button>
       </div>
     </div>

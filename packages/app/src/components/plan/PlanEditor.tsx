@@ -12,6 +12,7 @@ import { useState, useCallback } from "react";
 import { GripVertical, Play, X, Check, Clock, ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TodoItem } from "@friend/shared";
+import { useTranslation } from "react-i18next";
 
 interface PlanEditorProps {
   todos: TodoItem[];
@@ -21,6 +22,7 @@ interface PlanEditorProps {
 }
 
 export function PlanEditor({ todos: initialTodos, onExecute, onCancel, disabled }: PlanEditorProps) {
+  const { t } = useTranslation();
   const [todos, setTodos] = useState<TodoItem[]>(initialTodos);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
@@ -101,11 +103,11 @@ export function PlanEditor({ todos: initialTodos, onExecute, onCancel, disabled 
       <div className="flex items-center justify-between mb-3 pb-2 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-yellow-500" />
-          <span className="font-medium text-sm">Plan Mode</span>
-          <span className="text-xs text-muted-foreground">({totalSteps} steps)</span>
+          <span className="font-medium text-sm">{t("plan.title")}</span>
+          <span className="text-xs text-muted-foreground">({t("plan.steps", { count: totalSteps })})</span>
         </div>
         <div className="text-xs text-muted-foreground">
-          Drag to reorder • Click to edit
+          {t("plan.dragToReorder")} • {t("plan.clickToEdit")}
         </div>
       </div>
 
@@ -226,7 +228,7 @@ export function PlanEditor({ todos: initialTodos, onExecute, onCancel, disabled 
           )}
         >
           <Play className="w-3.5 h-3.5" />
-          Execute Plan
+          {t("plan.executePlan")}
         </button>
         <button
           onClick={onCancel}
@@ -238,7 +240,7 @@ export function PlanEditor({ todos: initialTodos, onExecute, onCancel, disabled 
           )}
         >
           <X className="w-3.5 h-3.5" />
-          Cancel
+          {t("plan.cancel")}
         </button>
       </div>
     </div>
@@ -259,59 +261,78 @@ interface PlanProgressProps {
 export function PlanProgress({ completed, total, todos }: PlanProgressProps) {
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
   
-  // Filter to show only incomplete tasks (collapse completed)
-  const incompleteTodos = todos.filter(t => !t.completed).map(t => ({
-    ...t,
-    subtasks: t.subtasks?.filter(s => !s.completed)
-  }));
+  // Find first incomplete task (the one being executed)
+  const currentTaskIndex = todos.findIndex(t => !t.completed);
 
   return (
-    <div className="plan-progress bg-secondary/30 border border-border rounded-lg p-3 my-2 max-h-[40vh] flex flex-col">
+    <div className="plan-progress bg-secondary/30 border border-border rounded-lg p-3 my-2 flex flex-col">
       <div className="flex items-center justify-between mb-2 flex-shrink-0">
         <span className="text-sm font-medium">Executing Plan</span>
         <span className="text-xs text-muted-foreground">
           {completed}/{total} steps
-          {completed > 0 && <span className="text-green-500 ml-1">({completed} done)</span>}
         </span>
       </div>
 
       {/* Progress Bar */}
-      <div className="h-2 bg-secondary rounded-full overflow-hidden flex-shrink-0">
+      <div className="h-2 bg-secondary rounded-full overflow-hidden flex-shrink-0 mb-2">
         <div
           className="h-full bg-primary transition-all duration-300"
           style={{ width: `${percent}%` }}
         />
       </div>
 
-      {/* Current Steps - scrollable, only show incomplete */}
-      <div className="mt-2 space-y-0.5 overflow-y-auto flex-1 min-h-0">
-        {incompleteTodos.length === 0 ? (
-          <div className="text-xs text-muted-foreground text-center py-2">
-            ✓ All steps completed!
-          </div>
-        ) : (
-          incompleteTodos.map((todo) => (
-            <div key={todo.step}>
-              {/* Main task */}
-              <div className="flex items-center gap-2 text-xs py-0.5 text-foreground">
-                <div className="w-3 h-3 rounded-full border border-muted-foreground/50 flex-shrink-0" />
-                <span className="truncate">{todo.step}. {todo.text}</span>
-              </div>
-              {/* Subtasks */}
-              {todo.subtasks?.map((subtask) => (
-                <div
-                  key={`${todo.step}.${subtask.step}`}
-                  className="flex items-center gap-2 text-xs py-0.5 ml-4 text-foreground"
+      {/* Current Steps - only show main tasks, collapse subtasks */}
+      <div className="space-y-1">
+        {todos.map((todo, index) => {
+          const isCurrent = index === currentTaskIndex;
+          const subtaskProgress = todo.subtasks 
+            ? `${todo.subtasks.filter(s => s.completed).length}/${todo.subtasks.length}`
+            : null;
+          
+          return (
+            <div
+              key={todo.step}
+              className={cn(
+                "flex items-center gap-2 text-xs py-1 px-2 rounded",
+                todo.completed ? "text-muted-foreground" : "text-foreground",
+              )}
+            >
+              {todo.completed ? (
+                <Check className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+              ) : isCurrent ? (
+                <svg 
+                  className="w-3.5 h-3.5 animate-spin text-primary flex-shrink-0" 
+                  viewBox="0 0 24 24" 
+                  fill="none"
                 >
-                  <div className="w-2.5 h-2.5 rounded-full border border-muted-foreground/50 flex-shrink-0" />
-                  <span className="truncate text-[11px]">
-                    {todo.step}.{subtask.step}. {subtask.text}
-                  </span>
-                </div>
-              ))}
+                  <circle 
+                    className="opacity-25" 
+                    cx="12" 
+                    cy="12" 
+                    r="10" 
+                    stroke="currentColor" 
+                    strokeWidth="4"
+                  />
+                  <path 
+                    className="opacity-75" 
+                    fill="currentColor" 
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+              ) : (
+                <div className="w-3.5 h-3.5 rounded-full border border-muted-foreground/50 flex-shrink-0" />
+              )}
+              <span className={cn("truncate flex-1", todo.completed && "line-through")}>
+                {todo.step}. {todo.text}
+              </span>
+              {subtaskProgress && !todo.completed && (
+                <span className="text-[10px] text-muted-foreground">
+                  ({subtaskProgress})
+                </span>
+              )}
             </div>
-          ))
-        )}
+          );
+        })}
       </div>
     </div>
   );
