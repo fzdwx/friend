@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useSessions } from "@/hooks/useSessions";
 import { useConfigStore } from "@/stores/configStore";
 import { useSessionStore } from "@/stores/sessionStore";
-import { Plus, MessageSquare, Trash2, Settings, Folder, Bot, Hash, Coins } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Settings, Folder, Bot, Hash, Coins, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { selectDirectory, isTauri } from "@/lib/tauri";
 import { AgentSelector } from "@/components/agents/AgentSelector";
@@ -12,6 +12,7 @@ function SessionStatsBar() {
   const sessionStats = useSessionStore((s) => s.sessionStats);
   const contextUsage = useSessionStore((s) => s.contextUsage);
   const isStreaming = useSessionStore((s) => s.isStreaming);
+  const isCompacting = useSessionStore((s) => s.isCompacting);
   const refreshSessionStats = useSessionStore((s) => s.refreshSessionStats);
 
   // Refresh stats periodically when streaming
@@ -31,6 +32,12 @@ function SessionStatsBar() {
 
   return (
     <div className="px-2 py-1.5 border-t border-sidebar-border text-xs text-muted-foreground space-y-1">
+      {isCompacting && (
+        <div className="flex items-center gap-1.5 text-yellow-500 animate-pulse">
+          <Loader2 className="w-3 h-3 animate-spin" />
+          <span>Compacting context...</span>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1">
           <Hash className="w-3 h-3" />

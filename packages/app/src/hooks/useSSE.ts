@@ -17,6 +17,7 @@ export function useGlobalSSE() {
   const setSseConnected = useSessionStore((s) => s.setSseConnected);
   const setSteeringMessages = useSessionStore((s) => s.setSteeringMessages);
   const setFollowUpMessages = useSessionStore((s) => s.setFollowUpMessages);
+  const setCompacting = useSessionStore((s) => s.setCompacting);
 
   const { addExecution, updateExecution, completeExecution, clearExecutions } = useToolStore();
 
@@ -51,7 +52,32 @@ export function useGlobalSSE() {
       return delay + Math.random() * 1000;
     };
 
+    const stopHeartbeatCheck = () => {
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
+    };
+
+    const startHeartbeatCheck = () => {
+      stopHeartbeatCheck();
+      lastEventTime = Date.now();
+      heartbeatInterval = setInterval(() => {
+        if (Date.now() - lastEventTime > HEARTBEAT_TIMEOUT) {
+          console.warn("[SSE] No heartbeat received, connection appears dead");
+          stopHeartbeatCheck();
+          setSseConnected(false);
+          if (es) {
+            es.close();
+            es = null;
+          }
+          scheduleReconnect();
+        }
+      }, 5000);
+    };
+
     const connect = () => {
+      stopHeartbeatCheck();
       if (es) {
         es.close();
       }
@@ -63,6 +89,7 @@ export function useGlobalSSE() {
       // Handle connection errors - any error means disconnected
       es.addEventListener("error", () => {
         console.error("[SSE] Connection error, readyState:", es?.readyState);
+        stopHeartbeatCheck();
         setSseConnected(false);
         // Close and reconnect
         if (es && es.readyState !== EventSource.CLOSED) {
@@ -79,6 +106,8 @@ export function useGlobalSSE() {
           console.log("[SSE] Connection opened");
           retryCount = 0;
           setSseConnected(true);
+          // Start heartbeat monitoring once connected
+          startHeartbeatCheck();
         } else if (es.readyState === EventSource.CLOSED) {
           console.error("[SSE] Connection closed");
           setSseConnected(false);
@@ -90,6 +119,11 @@ export function useGlobalSSE() {
       // Check state immediately and on change
       checkState();
       es.addEventListener("open", checkState);
+
+      // Listen for server ping events to track heartbeat
+      es.addEventListener("ping", () => {
+        lastEventTime = Date.now();
+      });
 
       // Register data event listeners on this new connection
       for (const t of eventTypes) {
@@ -118,6 +152,8 @@ export function useGlobalSSE() {
     };
 
     const handleEvent = (e: MessageEvent) => {
+      // Any event from server proves connection is alive
+      lastEventTime = Date.now();
       try {
         const event: GlobalSSEEvent = JSON.parse(e.data);
 
@@ -253,6 +289,16 @@ export function useGlobalSSE() {
             break;
           }
 
+          case "auto_compaction_start":
+            console.log("[SSE] Auto compaction started:", event.reason);
+            setCompacting(true);
+            break;
+
+          case "auto_compaction_end":
+            console.log("[SSE] Auto compaction ended");
+            setCompacting(false);
+            break;
+
           case "error":
             console.error("SSE error:", event.message);
             setStreaming(false);
@@ -292,6 +338,7 @@ export function useGlobalSSE() {
 
     // Cleanup
     return () => {
+      stopHeartbeatCheck();
       if (retryTimeout) {
         clearTimeout(retryTimeout);
       }

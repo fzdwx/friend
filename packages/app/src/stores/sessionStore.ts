@@ -44,6 +44,9 @@ interface SessionState {
   sessionStats: SessionStats | null;
   contextUsage: ContextUsage | null;
 
+  // Compaction state
+  isCompacting: boolean;
+
   // Actions
   setActiveTurnIndex: (index: number | null) => void;
   setSessions: (sessions: SessionInfo[]) => void;
@@ -75,6 +78,7 @@ interface SessionState {
   setSessionStats: (stats: SessionStats | null) => void;
   setContextUsage: (usage: ContextUsage | null) => void;
   refreshSessionStats: (sessionId: string) => Promise<void>;
+  setCompacting: (compacting: boolean) => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -94,6 +98,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   followUpMessages: [],
   sessionStats: null,
   contextUsage: null,
+  isCompacting: false,
 
   setActiveTurnIndex: (index) => set({ activeTurnIndex: index }),
   setSessions: (sessions) => set({ sessions }),
@@ -218,4 +223,5 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       contextUsage: contextRes.ok && contextRes.data ? contextRes.data : null,
     });
   },
+  setCompacting: (compacting) => set({ isCompacting: compacting }),
 }));
