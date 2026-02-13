@@ -101,6 +101,20 @@ export const sessionRoutes = new Elysia({ prefix: "/api/sessions" })
   )
 
   .post(
+    "/:id/model",
+    async ({ params: { id }, body }) => {
+      try {
+        const ok = await getAgentManager().setModel(id, body.provider, body.modelId);
+        if (!ok) return { ok: false, error: "Session or model not found" };
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: String(e) };
+      }
+    },
+    { body: t.Object({ provider: t.String(), modelId: t.String() }) },
+  )
+
+  .post(
     "/:id/prompt",
     async ({ params: { id }, body }) => {
       try {

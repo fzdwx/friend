@@ -38,6 +38,8 @@ import {
 import type { IAgentManager } from "./tools";
 import { GLOBAL_SKILLS_DIR, getProjectSkillsDir, SkillWatcher, ensureSkillsDir } from "./skills.js";
 import { SESSIONS_DIR } from "./paths.js";
+import { ensureDefaults, ensureProjectDefaults } from "./bootstrap.js";
+import { loadWorkspaceFiles, buildWorkspacePrompt } from "./context.js";
 
 // ─── DB mapping types ──────────────────────────────────────
 
@@ -131,12 +133,20 @@ export class AgentManager implements IAgentManager {
     cwd: string,
     sessionManager: SessionManager,
   ): Promise<{ session: AgentSession; resourceLoader: DefaultResourceLoader }> {
+    const workspaceFiles = await loadWorkspaceFiles(cwd);
+
     const resourceLoader = new DefaultResourceLoader({
       cwd,
       noSkills: true,
       noExtensions: true,
       noPromptTemplates: true,
       noThemes: true,
+      systemPromptOverride: (base) => {
+        const workspacePrompt = buildWorkspacePrompt(cwd,workspaceFiles);
+        // let strings = workspacePrompt ? [...base, workspacePrompt] : base;
+        // return strings;
+        return workspacePrompt
+      },
       skillsOverride: () => {
         const globalResult = loadSkillsFromDir({ dir: GLOBAL_SKILLS_DIR, source: "user" });
         const projectResult = loadSkillsFromDir({ dir: getProjectSkillsDir(cwd), source: "project" });
@@ -176,6 +186,9 @@ export class AgentManager implements IAgentManager {
   }
 
   async init(): Promise<void> {
+    // 0. Ensure first-run default files exist
+    await ensureDefaults();
+
     // 1. Load AppConfig
     const config = await prisma.appConfig.findFirst({ where: { id: "singleton" } });
     if (config) {
@@ -195,6 +208,9 @@ export class AgentManager implements IAgentManager {
     for (const s of sessions) {
       let sessionManager: SessionManager;
       const cwd = s.workingPath ?? process.cwd();
+
+      await ensureProjectDefaults(cwd);
+
       if (s.sessionFile) {
         try {
           sessionManager = SessionManager.open(s.sessionFile, SESSIONS_DIR);
@@ -477,6 +493,9 @@ export class AgentManager implements IAgentManager {
     const id = crypto.randomUUID();
     const name = opts?.name ?? `Session ${this.managedSessions.size + 1}`;
     const cwd = opts?.workingPath ?? process.cwd();
+
+    await ensureProjectDefaults(cwd);
+
     const sessionManager = SessionManager.create(cwd, SESSIONS_DIR);
 
     const { session, resourceLoader } = await this.createAgentSessionWithSkills(cwd, sessionManager);
