@@ -333,7 +333,7 @@ export class AgentManager implements IAgentManager {
     });
     await resourceLoader.reload();
 
-    const { session } = await createAgentSession({
+    const result = await createAgentSession({
       cwd,
       sessionManager,
       resourceLoader,
@@ -363,6 +363,14 @@ export class AgentManager implements IAgentManager {
         createMemoryGetTool(agentWorkspace, { agentId }),
       ],
     });
+
+    const { session, extensionsResult } = result;
+    
+    // Debug: log extension loading
+    console.log(`[PlanMode] Extensions loaded: ${extensionsResult.extensions.length}`);
+    if (extensionsResult.errors.length > 0) {
+      console.error('[PlanMode] Extension errors:', extensionsResult.errors);
+    }
 
     return { session, resourceLoader };
   }
@@ -1010,10 +1018,16 @@ Your output must be:
     managed.updatedAt = new Date().toISOString();
     prisma.session.update({ where: { id }, data: { updatedAt: new Date() } }).catch(() => {});
 
+    // Debug: log incoming message
+    console.log(`[PlanMode] prompt() called with: "${message.substring(0, 50)}..."`);
+    console.log(`[PlanMode] Current state:`, this.getPlanModeState(id));
+
     // Check if this should trigger plan mode
     const currentState = this.getPlanModeState(id);
     if (!currentState.enabled && !currentState.executing) {
-      if (shouldTriggerPlanMode(message)) {
+      const complexity = shouldTriggerPlanMode(message);
+      console.log(`[PlanMode] shouldTriggerPlanMode: ${complexity}`);
+      if (complexity) {
         // Enable plan mode
         this.setPlanModeState(id, { enabled: true, executing: false, todos: [] });
         managed.session.setActiveToolsByName(PLAN_MODE_TOOLS);

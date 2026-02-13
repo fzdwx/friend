@@ -459,6 +459,7 @@ const SIMPLE_COMMANDS = [
   /^(修复|fix|更新|update|删除|delete|添加|add)\s*(一个|单个)?/i,
   /^(先|然后|接下来)/i,
   /^\/\w+/,  // Slash commands like /plan
+  /^(ok|好|好了|发送|发送了|执行|取消|退出)/i,  // Short confirmations
 ];
 
 /**
@@ -467,10 +468,16 @@ const SIMPLE_COMMANDS = [
  */
 export function checkComplexity(message: string): number {
   // Skip simple commands
+  const trimmed = message.trim();
   for (const pattern of SIMPLE_COMMANDS) {
-    if (pattern.test(message.trim())) {
+    if (pattern.test(trimmed)) {
       return 0;
     }
+  }
+
+  // Short messages are unlikely to be complex
+  if (trimmed.length < 10) {
+    return 0;
   }
 
   let score = 0;
