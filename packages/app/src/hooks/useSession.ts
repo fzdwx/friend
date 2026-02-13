@@ -4,7 +4,11 @@ import { useSessionStore } from "@/stores/sessionStore";
 import type { UserMessage } from "@friend/shared";
 
 export function useSession() {
-  const { activeSessionId, messages, isStreaming, addMessage } = useSessionStore();
+  // Use selectors for proper subscription
+  const activeSessionId = useSessionStore((s) => s.activeSessionId);
+  const messages = useSessionStore((s) => s.messages);
+  const isStreaming = useSessionStore((s) => s.isStreaming);
+  const addMessage = useSessionStore((s) => s.addMessage);
 
   const sendMessage = useCallback(
     async (message: string) => {

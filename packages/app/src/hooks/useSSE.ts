@@ -5,19 +5,14 @@ import { useConfigStore } from "@/stores/configStore";
 import type { GlobalSSEEvent, ToolCall } from "@friend/shared";
 
 export function useGlobalSSE() {
-  const activeSessionId = useSessionStore((s) => s.activeSessionId);
-  const activeSessionRef = useRef(activeSessionId);
-  activeSessionRef.current = activeSessionId;
-
-  const {
-    setStreaming,
-    setStreamingPhase,
-    appendStreamingText,
-    appendStreamingThinking,
-    addStreamingBlock,
-    resetStreaming,
-    addMessage,
-  } = useSessionStore();
+  // Use selectors for proper subscription
+  const setStreaming = useSessionStore((s) => s.setStreaming);
+  const setStreamingPhase = useSessionStore((s) => s.setStreamingPhase);
+  const appendStreamingText = useSessionStore((s) => s.appendStreamingText);
+  const appendStreamingThinking = useSessionStore((s) => s.appendStreamingThinking);
+  const addStreamingBlock = useSessionStore((s) => s.addStreamingBlock);
+  const resetStreaming = useSessionStore((s) => s.resetStreaming);
+  const addMessage = useSessionStore((s) => s.addMessage);
 
   const { addExecution, updateExecution, completeExecution, clearExecutions } = useToolStore();
 
@@ -117,7 +112,9 @@ export function useGlobalSSE() {
           return;
         }
 
-        if (event.sessionId !== activeSessionRef.current) return;
+        // Get current activeSessionId directly from store (not from stale ref)
+        const currentActiveSessionId = useSessionStore.getState().activeSessionId;
+        if (event.sessionId !== currentActiveSessionId) return;
 
         // Ensure streaming mode is on for events that imply active streaming
         // (handles page refresh where agent_start was missed)
