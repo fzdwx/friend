@@ -3,7 +3,7 @@ import { useSessionStore } from "@/stores/sessionStore";
 import { useToolStore } from "@/stores/toolStore";
 import { useConfigStore } from "@/stores/configStore";
 import { api } from "@/lib/api";
-import type { GlobalSSEEvent, ToolCall } from "@friend/shared";
+import type { GlobalSSEEvent, ToolCall, Message } from "@friend/shared";
 
 /**
  * Parse SSE text stream into {event, data} pairs.
@@ -65,6 +65,7 @@ export function useGlobalSSE() {
     const MAX_RETRIES = 10;
     const INITIAL_RETRY_DELAY = 1000;
     const MAX_RETRY_DELAY = 30000;
+    const READ_TIMEOUT = 8_000; // Must exceed server ping interval (3s)
 
     const getRetryDelay = (): number => {
       const delay = Math.min(INITIAL_RETRY_DELAY * Math.pow(2, retryCount), MAX_RETRY_DELAY);
@@ -170,9 +171,8 @@ export function useGlobalSSE() {
           }
 
           case "message_end":
-            if (event.message.role === "assistant") {
-              addMessage(event.message);
-            }
+            // Add both user and assistant messages (steer messages are user messages)
+            addMessage(event.message as Message);
             resetStreaming();
             break;
 
@@ -252,7 +252,12 @@ export function useGlobalSSE() {
         const buffer = { value: "" };
 
         while (true) {
-          const { done, value } = await reader.read();
+          const { done, value } = await Promise.race([
+            reader.read(),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("read timeout")), READ_TIMEOUT),
+            ),
+          ]);
           if (done) break;
 
           const text = decoder.decode(value, { stream: true });
