@@ -1,5 +1,5 @@
 import { useMemo, useRef, useEffect } from "react";
-import { Activity, Circle } from "lucide-react";
+import { Activity, Circle, Radio } from "lucide-react";
 import { useSessionStore } from "@/stores/sessionStore";
 import type { Message, UserMessage, AssistantMessage, ToolResultMessage } from "@friend/shared";
 import { TurnGroup, type Turn } from "@/components/activity/TurnGroup";
@@ -50,20 +50,31 @@ export function ActivityPanel() {
 
   return (
     <div className="flex flex-col h-full bg-card">
-      <div className="p-3 border-b border-border">
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-border/50">
         <div className="flex items-center gap-2 text-sm font-medium">
-          <Activity className="w-4 h-4" />
-          Activity
+          <div className="flex items-center justify-center w-6 h-6 rounded-md bg-primary/10 text-primary">
+            <Activity className="w-3.5 h-3.5" />
+          </div>
+          <span>Activity</span>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2 space-y-2">
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
         {!hasTurns ? (
-          <div className="flex items-center justify-center h-32 text-xs text-muted-foreground">
-            Thinking and tool activity will appear here
+          <div className="flex flex-col items-center justify-center h-full text-xs text-muted-foreground/60 p-6">
+            <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center mb-3">
+              <Radio className="w-5 h-5 text-muted-foreground/40" />
+            </div>
+            <p className="text-center">
+              Thinking and tool activity
+              <br />
+              will appear here
+            </p>
           </div>
         ) : (
-          <>
+          <div className="p-3 space-y-3">
             <div ref={topRef} />
             {reversedTurns.map((turn) => (
               <TurnGroup
@@ -72,24 +83,33 @@ export function ActivityPanel() {
                 defaultExpanded={turn.index === turns.length - 1}
               />
             ))}
-          </>
+          </div>
         )}
       </div>
 
       {/* SSE Connection Status Footer */}
-      <div className="px-3 py-2 border-t border-border">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="px-4 py-2.5 border-t border-border/50 bg-muted/20">
+        <div className="flex items-center gap-2 text-xs">
           <Circle
             className={cn(
-              "w-2 h-2 fill-current",
+              "w-2 h-2",
               isStreaming
-                ? "text-yellow-500 animate-pulse"
+                ? "fill-yellow-500 text-yellow-500 animate-pulse"
+                : sseConnected
+                  ? "fill-emerald-500 text-emerald-500"
+                  : "fill-red-500 text-red-500",
+            )}
+          />
+          <span
+            className={cn(
+              "font-medium",
+              isStreaming
+                ? "text-yellow-500"
                 : sseConnected
                   ? "text-emerald-500"
                   : "text-red-500",
             )}
-          />
-          <span className="font-medium">
+          >
             {isStreaming ? "Streaming" : sseConnected ? "Connected" : "Disconnected"}
           </span>
         </div>

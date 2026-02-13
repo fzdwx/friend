@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronRight, Brain } from "lucide-react";
+import { ChevronRight, Brain, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ThinkingBlockProps {
@@ -22,25 +22,61 @@ export function ThinkingBlock({ content, isStreaming, defaultExpanded }: Thinkin
   if (!content) return null;
 
   return (
-    <div className="border border-border rounded-md overflow-hidden">
+    <div
+      className={cn(
+        "rounded-lg overflow-hidden transition-all duration-200",
+        "bg-gradient-to-r from-violet-500/5 via-purple-500/5 to-fuchsia-500/5",
+        "border border-violet-500/20",
+        isStreaming && "ring-1 ring-violet-500/30",
+      )}
+    >
+      {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent/30 transition-colors"
+        className={cn(
+          "w-full flex items-center gap-2.5 px-3 py-2 text-xs transition-colors",
+          "hover:bg-violet-500/5",
+        )}
       >
-        <ChevronRight className={cn("w-3 h-3 transition-transform", expanded && "rotate-90")} />
-        <Brain className="w-3 h-3" />
-        <span>
-          Thinking
-          {isStreaming && <span className="ml-1 animate-pulse">...</span>}
-        </span>
-        <span className="ml-auto text-[10px]">{content.length} chars</span>
-      </button>
-      {expanded && (
         <div
-          ref={contentRef}
-          className="px-3 py-2 text-xs text-muted-foreground border-t border-border whitespace-pre-wrap break-words font-mono leading-relaxed max-h-64 overflow-y-auto"
+          className={cn(
+            "flex items-center justify-center w-5 h-5 rounded-md",
+            "bg-violet-500/10 text-violet-500",
+            isStreaming && "animate-pulse",
+          )}
         >
-          {content}
+          {isStreaming ? (
+            <Sparkles className="w-3 h-3" />
+          ) : (
+            <Brain className="w-3 h-3" />
+          )}
+        </div>
+
+        <ChevronRight
+          className={cn(
+            "w-3 h-3 text-muted-foreground transition-transform",
+            expanded && "rotate-90",
+          )}
+        />
+
+        <span className="font-medium text-violet-500/80">
+          {isStreaming ? "Thinking..." : "Thought"}
+        </span>
+
+        <span className="ml-auto text-[10px] text-muted-foreground/50 tabular-nums">
+          {content.length} chars
+        </span>
+      </button>
+
+      {/* Content */}
+      {expanded && (
+        <div className="border-t border-violet-500/10">
+          <div
+            ref={contentRef}
+            className="px-3 py-2.5 text-xs text-muted-foreground whitespace-pre-wrap break-words font-mono leading-relaxed max-h-48 overflow-y-auto scrollbar-thin"
+          >
+            {content}
+          </div>
         </div>
       )}
     </div>

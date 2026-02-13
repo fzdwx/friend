@@ -1,6 +1,8 @@
 import { useSessionStore } from "@/stores/sessionStore";
 import { ThinkingBlock } from "@/components/chat/ThinkingBlock";
 import { ToolBlock } from "@/components/tools/ToolBlock";
+import { Radio } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function StreamingTurn() {
   const streamingThinking = useSessionStore((s) => s.streamingThinking);
@@ -13,15 +15,37 @@ export function StreamingTurn() {
   if (!isActive && !hasContent) return null;
 
   return (
-    <div className="border border-yellow-500/30 rounded-md overflow-hidden bg-yellow-500/5">
+    <div
+      className={cn(
+        "relative rounded-lg overflow-hidden transition-all duration-200",
+        "bg-gradient-to-r from-background to-muted/20",
+        "ring-1 ring-amber-500/30 shadow-sm shadow-amber-500/5",
+      )}
+    >
+      {/* Animated left accent bar */}
+      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-amber-500 animate-pulse" />
+
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 text-xs">
-        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />
-        <span className="font-medium text-yellow-500/80">Current</span>
+      <div className="flex items-center gap-2.5 px-3 py-2.5 text-xs">
+        <Radio className="w-3 h-3 text-amber-500 animate-pulse" />
+        <span className="font-medium text-amber-500">Active</span>
+
+        <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
+          {streamingThinking && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-violet-500/10 text-violet-500 text-[10px] font-medium">
+              thinking
+            </span>
+          )}
+          {streamingBlocks.length > 0 && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-500 text-[10px] font-medium">
+              {streamingBlocks.length} tools
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Content */}
-      <div className="px-3 pb-2 space-y-2">
+      <div className="border-t border-amber-500/20 px-3 py-2.5 space-y-2 bg-muted/10">
         {streamingThinking && <ThinkingBlock content={streamingThinking} isStreaming />}
         {streamingBlocks.map((tc) => (
           <ToolBlock

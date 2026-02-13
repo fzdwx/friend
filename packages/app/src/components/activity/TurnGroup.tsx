@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Brain, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserMessage, AssistantMessage, ToolResultMessage } from "@friend/shared";
 import { ThinkingBlock } from "@/components/chat/ThinkingBlock";
@@ -26,7 +26,7 @@ function getUserPreview(msg: UserMessage): string {
           .filter((b) => b.type === "text")
           .map((b) => b.text)
           .join("");
-  return text.length > 60 ? text.slice(0, 60) + "..." : text;
+  return text.length > 80 ? text.slice(0, 80) + "..." : text;
 }
 
 type ActivityBlock =
@@ -68,43 +68,63 @@ export function TurnGroup({ turn, defaultExpanded = false }: TurnGroupProps) {
 
   if (blocks.length === 0) return null;
 
+  const isActive = activeTurnIndex === turn.index;
+
   return (
     <div
       className={cn(
-        "border rounded-md overflow-hidden transition-colors",
-        activeTurnIndex === turn.index ? "border-primary/50" : "border-border/50",
+        "relative group rounded-lg overflow-hidden transition-all duration-200",
+        "bg-gradient-to-r from-background to-muted/20",
+        isActive
+          ? "ring-1 ring-primary/30 shadow-sm shadow-primary/5"
+          : "border border-border/40 hover:border-border/60",
       )}
     >
+      {/* Left accent bar */}
+      <div
+        className={cn(
+          "absolute left-0 top-0 bottom-0 w-0.5 transition-colors",
+          isActive ? "bg-primary" : "bg-transparent group-hover:bg-muted-foreground/20",
+        )}
+      />
+
       {/* Header - clickable to toggle */}
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-secondary/40 transition-colors"
+        className="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs hover:bg-muted/30 transition-colors"
       >
         <ChevronRight
           className={cn(
-            "w-3 h-3 text-muted-foreground transition-transform flex-shrink-0",
+            "w-3.5 h-3.5 text-muted-foreground transition-transform flex-shrink-0",
             expanded && "rotate-90",
           )}
         />
-        <span className="font-medium text-muted-foreground">Turn {turn.index + 1}</span>
-        <span className="truncate text-muted-foreground/70 flex-1 text-left">
+
+        <span className="flex-1 truncate text-muted-foreground text-left">
           {getUserPreview(turn.userMessage)}
         </span>
-        <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50 flex-shrink-0">
-          {thinkingCount > 0 && <span>{thinkingCount} thinking</span>}
-          {thinkingCount > 0 && toolCount > 0 && <span>·</span>}
-          {toolCount > 0 && (
-            <span>
-              {toolCount} tool{toolCount > 1 ? "s" : ""}
+
+        {/* Stats badges */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {thinkingCount > 0 && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-violet-500/10 text-violet-500 text-[10px] font-medium">
+              <Brain className="w-2.5 h-2.5" />
+              {thinkingCount}
             </span>
           )}
-        </span>
+          {toolCount > 0 && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-500 text-[10px] font-medium">
+              <Wrench className="w-2.5 h-2.5" />
+              {toolCount}
+            </span>
+          )}
+        </div>
       </button>
 
-      {/* Expanded content - renders in original message order */}
+      {/* Expanded content */}
       {expanded && (
-        <div className="border-t border-border/50 px-3 py-2 space-y-2">
+        <div className="border-t border-border/30 px-3 py-2.5 space-y-2 bg-muted/10">
           {[...blocks]
             .reverse()
             .map((block, i) =>
