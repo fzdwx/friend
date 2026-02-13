@@ -5,11 +5,15 @@ import { AgentsContent } from "@/components/config/AgentsContent";
 import { ProvidersContent } from "@/components/config/ProvidersContent";
 import { AppearanceContent } from "@/components/config/AppearanceContent";
 import { SkillsContent } from "@/components/config/SkillsContent";
+import { MemoryContent } from "@/components/config/MemoryContent";
 import { useConfigStore } from "@/stores/configStore";
 
-const SECTION_TITLES: Record<"agents" | "providers" | "appearance" | "skills", string> = {
+type SettingsSection = "agents" | "providers" | "memory" | "appearance" | "skills";
+
+const SECTION_TITLES: Record<SettingsSection, string> = {
   agents: "Agents",
   providers: "Providers",
+  memory: "Memory",
   appearance: "Appearance",
   skills: "Skills",
 };
@@ -17,9 +21,7 @@ const SECTION_TITLES: Record<"agents" | "providers" | "appearance" | "skills", s
 export function SettingsModal() {
   const isSettingsOpen = useConfigStore((s) => s.isSettingsOpen);
   const setIsSettingsOpen = useConfigStore((s) => s.setIsSettingsOpen);
-  const [activeSection, setActiveSection] = useState<"agents" | "providers" | "appearance" | "skills">(
-    "agents",
-  );
+  const [activeSection, setActiveSection] = useState<SettingsSection>("agents");
 
   return (
     <Modal
@@ -33,6 +35,7 @@ export function SettingsModal() {
         <div className="flex-1 overflow-y-auto">
           {activeSection === "agents" && <AgentsContent />}
           {activeSection === "providers" && <ProvidersContent />}
+          {activeSection === "memory" && <MemoryContent />}
           {activeSection === "appearance" && <AppearanceContent />}
           {activeSection === "skills" && <SkillsContent />}
         </div>

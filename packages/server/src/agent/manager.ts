@@ -147,6 +147,7 @@ export class AgentManager implements IAgentManager {
     thinkingLevel: "medium",
     customProviders: [],
     activeThemeId: "default-dark",
+    embedding: undefined,
   };
 
   constructor() {
@@ -938,6 +939,7 @@ Your output must be:
       thinkingLevel: this.config.thinkingLevel,
       customProviders: [...this.config.customProviders],
       activeThemeId: this.config.activeThemeId,
+      embedding: this.config.embedding,
     };
   }
 
@@ -953,6 +955,25 @@ Your output must be:
       });
     }
     return this.getConfig();
+  }
+
+  // ─── Embedding configuration ────────────────────────────────
+
+  getEmbeddingConfig(): { provider: string; model?: string } | null {
+    return this.config.embedding ?? null;
+  }
+
+  setEmbeddingConfig(provider: string, model?: string): void {
+    this.config.embedding = { provider: provider as any, model };
+    // Persist to DB (store as JSON in a separate table or appConfig)
+    prisma.appConfig.upsert({
+      where: { id: "singleton" },
+      create: { id: "singleton", thinkingLevel: this.config.thinkingLevel },
+      update: { 
+        // Note: We need to add embedding column to DB schema
+        // For now, store in memory only
+      },
+    }).catch((err) => console.error("Failed to persist embedding config:", err));
   }
 
   // ─── Theme management ──────────────────────────────────────

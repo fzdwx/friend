@@ -146,6 +146,15 @@ export const api = {
       body: JSON.stringify({ sessionId }),
     }),
 
+  // ─── Embedding (Memory Search) ────────────────────────────
+  getEmbeddingConfig: () =>
+    request<{ provider: string; model?: string } | null>("/config/embedding"),
+  setEmbeddingConfig: (config: { provider: string; model?: string }) =>
+    request<void>("/config/embedding", {
+      method: "PUT",
+      body: JSON.stringify(config),
+    }),
+
   // ─── Agents ────────────────────────────────────────────────
   listAgents: () => request<AgentInfo[]>("/agents"),
   getAgent: (id: string) => request<AgentDetail>(`/agents/${id}`),

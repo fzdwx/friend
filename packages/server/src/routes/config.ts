@@ -132,4 +132,23 @@ export const configRoutes = new Elysia({ prefix: "/api/config" })
       return { ok: true };
     },
     { body: t.Object({ themeId: t.String() }) },
+  )
+
+  // Embedding configuration for memory search
+  .get("/embedding", () => {
+    return { ok: true, data: getAgentManager().getEmbeddingConfig() };
+  })
+
+  .put(
+    "/embedding",
+    ({ body }) => {
+      getAgentManager().setEmbeddingConfig(body.provider, body.model);
+      return { ok: true };
+    },
+    {
+      body: t.Object({
+        provider: t.String(),
+        model: t.Optional(t.String()),
+      }),
+    },
   );

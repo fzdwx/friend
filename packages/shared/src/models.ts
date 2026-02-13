@@ -113,4 +113,12 @@ export interface AppConfig {
   thinkingLevel: ThinkingLevel;
   customProviders: CustomProviderConfig[];
   activeThemeId: string;
+  // Embedding provider for memory search
+  embedding?: EmbeddingConfig;
+}
+
+// Embedding configuration
+export interface EmbeddingConfig {
+  provider: "openai" | "gemini" | "voyage" | "auto";
+  model?: string;  // Optional model override
 }

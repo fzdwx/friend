@@ -1,7 +1,7 @@
-import { Server, Palette, Sparkles, Bot } from "lucide-react";
+import { Server, Palette, Sparkles, Bot, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type SettingsSection = "agents" | "appearance" | "providers" | "skills";
+type SettingsSection = "agents" | "appearance" | "providers" | "memory" | "skills";
 
 interface SettingsSidebarProps {
   activeSection: SettingsSection;
@@ -12,6 +12,7 @@ const SECTIONS: { id: SettingsSection; label: string; icon: React.ElementType }[
   { id: "agents", label: "Agents", icon: Bot },
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "providers", label: "Provider", icon: Server },
+  { id: "memory", label: "Memory", icon: Brain },
   { id: "skills", label: "Skills", icon: Sparkles },
 ];
 
