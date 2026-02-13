@@ -81,7 +81,7 @@ export function InputArea({ onSend, onSteer, onFollowUp, onAbort, isStreaming, d
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isStreaming ? 'Type to steer (Enter) or follow-up (Shift+Enter)...' : 'Ask anything... "Add input validation"'}
+            placeholder={isStreaming ? t("input.placeholderStreaming") : t("input.placeholder")}
             disabled={disabled}
             rows={1}
             className={cn(
@@ -107,10 +107,10 @@ export function InputArea({ onSend, onSteer, onFollowUp, onAbort, isStreaming, d
                       ? "bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-600 dark:text-yellow-400"
                       : "text-muted-foreground/30",
                   )}
-                  title="Steer: interrupt and send now"
+                  title={t("input.steerHint")}
                 >
                   <Zap className="w-3.5 h-3.5" />
-                  Steer
+                  {t("input.steer")}
                 </button>
                 <button
                   onClick={handleFollowUp}
@@ -121,15 +121,15 @@ export function InputArea({ onSend, onSteer, onFollowUp, onAbort, isStreaming, d
                       ? "bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 dark:text-blue-400"
                       : "text-muted-foreground/30",
                   )}
-                  title="Follow-up: queue for after completion"
+                  title={t("input.followUpHint")}
                 >
                   <MessageSquarePlus className="w-3.5 h-3.5" />
-                  FollowUp
+                  {t("input.followUp")}
                 </button>
                 <button
                   onClick={onAbort}
                   className="flex-shrink-0 p-1.5 rounded-md bg-destructive/20 hover:bg-destructive/30 text-destructive transition-colors"
-                  title="Stop"
+                  title={t("input.stop")}
                 >
                   <Square className="w-4 h-4" />
                 </button>
@@ -144,7 +144,7 @@ export function InputArea({ onSend, onSteer, onFollowUp, onAbort, isStreaming, d
                     ? "bg-primary text-primary-foreground hover:bg-primary/90"
                     : "text-muted-foreground/30",
                 )}
-                title="Send"
+                title={t("input.send")}
               >
                 <Send className="w-4 h-4" />
               </button>
