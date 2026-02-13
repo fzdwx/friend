@@ -34,6 +34,7 @@ export function ToolBlock({ toolCallId, toolName, args, isStreaming, toolResult 
   }
 
   const renderer = getToolRenderer(toolName);
+  const fullSummary = renderer.getFullSummary?.(parsedArgs) || renderer.getSummary(parsedArgs);
   const summary = renderer.getSummary(parsedArgs);
 
   // Derive result: prefer toolResult prop (stable for historical), fallback to toolStore (live for streaming)
@@ -148,7 +149,12 @@ export function ToolBlock({ toolCallId, toolName, args, isStreaming, toolResult 
 
           <span className="font-medium text-foreground">{toolName}</span>
 
-          <span className="truncate text-muted-foreground flex-1 text-left">{summary}</span>
+          <span 
+            className="truncate text-muted-foreground flex-1 text-left" 
+            title={fullSummary}
+          >
+            {summary}
+          </span>
 
           <div className="flex-shrink-0">{status.icon}</div>
         </button>

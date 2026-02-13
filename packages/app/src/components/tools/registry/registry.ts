@@ -7,6 +7,7 @@ const rendererMap = new Map<string, ToolRendererEntry>();
 const defaultEntry: ToolRendererEntry = {
   icon: createElement(Terminal, { className: "w-3.5 h-3.5" }),
   getSummary: (args) => JSON.stringify(args).slice(0, 100),
+  // No getFullSummary for default - uses getSummary result
 };
 
 export function registerToolRenderer(name: string, entry: ToolRendererEntry) {

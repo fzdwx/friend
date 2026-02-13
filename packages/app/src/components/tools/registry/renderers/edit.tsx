@@ -1,6 +1,7 @@
 import { FileEdit } from "lucide-react";
 import { createElement } from "react";
 import { registerToolRenderer } from "../registry.js";
+import {shortenPath} from "@/components/tools/utils";
 
 function FileChange({ filePath, result }: { filePath: string; result: string }) {
   const lines = result.split("\n");
@@ -8,7 +9,7 @@ function FileChange({ filePath, result }: { filePath: string; result: string }) 
   return (
     <div className="text-[11px] font-mono">
       <div className="px-3 py-1 bg-secondary/50 text-muted-foreground border-b border-border/50">
-        {filePath}
+        <span className="truncate" title={filePath}>{shortenPath(filePath, 4)}</span>
       </div>
       <pre className="p-3 whitespace-pre-wrap break-all leading-relaxed">
         {lines.map((line, i) => {
@@ -33,7 +34,8 @@ function FileChange({ filePath, result }: { filePath: string; result: string }) 
 
 registerToolRenderer("edit", {
   icon: createElement(FileEdit, { className: "w-3.5 h-3.5" }),
-  getSummary: (args) => String(args.path || args.file_path || ""),
+  getSummary: (args) => shortenPath(String(args.path || args.file_path || ""), 3),
+  getFullSummary: (args) => String(args.path || args.file_path || ""),
   ResultComponent: ({ args, result }) =>
     createElement(FileChange, {
       filePath: String(args.path || args.file_path || ""),
