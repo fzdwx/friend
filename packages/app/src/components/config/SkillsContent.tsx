@@ -71,7 +71,7 @@ export function SkillsContent() {
       groups.push({
         title: "Global Skills",
         type: "global",
-        path: paths?.global || "",
+        path: paths?.global || globalSkills[0]?.baseDir || "",
         skills: globalSkills,
       });
     }
@@ -91,9 +91,10 @@ export function SkillsContent() {
       agentGroups.get(agentId)!.push(skill);
     }
 
-    // Convert to groups, using paths.agents for metadata
+    // Convert to groups, using baseDir from skills
     for (const [agentId, agentSkillList] of agentGroups) {
-      const agentPath = paths?.agents.find((a) => a.agentId === agentId)?.path || "";
+      // Use baseDir from first skill, or fallback to paths.agents
+      const agentPath = agentSkillList[0]?.baseDir || paths?.agents.find((a) => a.agentId === agentId)?.path || "";
       groups.push({
         title: `${agentId} Skills`,
         type: "agent",
