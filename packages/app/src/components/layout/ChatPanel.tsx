@@ -3,7 +3,9 @@ import { useSessionStore } from "@/stores/sessionStore";
 import { MessageList } from "@/components/chat/MessageList";
 import { InputArea } from "@/components/chat/InputArea";
 import { StreamingTurn } from "@/components/activity/StreamingTurn";
+import { PlanEditor, PlanProgress } from "@/components/plan/PlanEditor";
 import { MessageSquarePlus, Zap } from "lucide-react";
+import { api } from "@/lib/api";
 
 function PendingMessages() {
   const steeringMessages = useSessionStore((s) => s.steeringMessages);
@@ -33,6 +35,58 @@ function PendingMessages() {
   );
 }
 
+/**
+ * Plan mode panel - shows PlanEditor when plan is ready,
+ * PlanProgress during execution.
+ */
+function PlanModePanel() {
+  const sessionId = useSessionStore((s) => s.activeSessionId);
+  const planModeEnabled = useSessionStore((s) => s.planModeEnabled);
+  const planModeExecuting = useSessionStore((s) => s.planModeExecuting);
+  const planModeTodos = useSessionStore((s) => s.planModeTodos);
+  const planModeProgress = useSessionStore((s) => s.planModeProgress);
+  const isStreaming = useSessionStore((s) => s.isStreaming);
+
+  const handleExecute = async (todos?: any[]) => {
+    if (!sessionId) return;
+    await api.planAction(sessionId, "execute", { todos });
+  };
+
+  const handleCancel = async () => {
+    if (!sessionId) return;
+    await api.planAction(sessionId, "cancel");
+  };
+
+  // Show progress during execution
+  if (planModeExecuting && planModeTodos.length > 0) {
+    return (
+      <div className="px-4 py-2">
+        <PlanProgress
+          completed={planModeProgress?.completed ?? planModeTodos.filter(t => t.completed).length}
+          total={planModeProgress?.total ?? planModeTodos.length}
+          todos={planModeTodos}
+        />
+      </div>
+    );
+  }
+
+  // Show editor when plan is ready
+  if (planModeEnabled && planModeTodos.length > 0 && !planModeExecuting) {
+    return (
+      <div className="px-4 py-2">
+        <PlanEditor
+          todos={planModeTodos}
+          onExecute={handleExecute}
+          onCancel={handleCancel}
+          disabled={isStreaming}
+        />
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export function ChatPanel() {
   const { sessionId, messages, isStreaming, sendMessage, steer, followUp, abort } = useSession();
 
@@ -53,6 +107,7 @@ export function ChatPanel() {
           <StreamingTurn />
         </div>
       )}
+      <PlanModePanel />
       <PendingMessages />
       <InputArea
         onSend={sendMessage}

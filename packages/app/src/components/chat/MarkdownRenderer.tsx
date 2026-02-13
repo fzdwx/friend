@@ -117,15 +117,6 @@ function CodeBlock({ className, children, node }: CodeBlockProps) {
     }
   }, [code]);
 
-  // Inline code (no language specified and short)
-  if (!language && code.length < 100 && !code.includes("\n")) {
-    return (
-      <code className="px-1.5 py-0.5 rounded bg-muted/50 text-primary font-mono text-xs">
-        {children}
-      </code>
-    );
-  }
-
   // Use @pierre/diffs File component for syntax highlighting
   const ext = langToExt[language] || language || "txt";
   // Use provided filename or generate from language
@@ -138,6 +129,15 @@ function CodeBlock({ className, children, node }: CodeBlockProps) {
     }),
     [displayFilename, code],
   );
+
+  // Inline code (no language specified and short)
+  if (!language && code.length < 100 && !code.includes("\n")) {
+    return (
+      <code className="px-1.5 py-0.5 rounded bg-muted/50 text-primary font-mono text-xs">
+        {children}
+      </code>
+    );
+  }
 
   return (
     <div className="relative group my-3 rounded-lg overflow-hidden border border-border">

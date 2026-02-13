@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { useConfigStore } from "@/stores/configStore";
 import type { CustomProviderConfig, CustomModelConfig } from "@friend/shared";
@@ -135,6 +135,11 @@ function ProviderForm({
   onCancel: () => void;
 }) {
   const [form, setForm] = useState<CustomProviderConfig>(provider);
+
+  // Sync form state when provider prop changes (e.g., switching between providers to edit)
+  useEffect(() => {
+    setForm(provider);
+  }, [provider]);
 
   const updateField = <K extends keyof CustomProviderConfig>(
     key: K,

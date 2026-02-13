@@ -43,13 +43,52 @@ export interface ConfigUpdatedEvent {
   deletedThemeId?: string;
 }
 
+// ─── Plan Mode Events ─────────────────────────────────────────────────────
+
+export interface TodoItem {
+  step: number;
+  text: string;
+  completed: boolean;
+}
+
+/** Plan mode state changed */
+export interface PlanModeStateChangedEvent {
+  type: "plan_mode_state_changed";
+  enabled: boolean;
+  executing: boolean;
+  todos: TodoItem[];
+}
+
+/** Agent finished planning, requesting user action */
+export interface PlanModeRequestChoiceEvent {
+  type: "plan_mode_request_choice";
+  todos: TodoItem[];
+}
+
+/** Progress update during plan execution */
+export interface PlanModeProgressEvent {
+  type: "plan_mode_progress";
+  completed: number;
+  total: number;
+}
+
+/** Plan execution completed */
+export interface PlanModeCompleteEvent {
+  type: "plan_mode_complete";
+  todos: TodoItem[];
+}
+
 export type SSEEvent =
   | AgentSessionEvent
   | ErrorEvent
   | SessionUpdatedEvent
   | SessionRenamedEvent
   | SessionCreatedEvent
-  | ConfigUpdatedEvent;
+  | ConfigUpdatedEvent
+  | PlanModeStateChangedEvent
+  | PlanModeRequestChoiceEvent
+  | PlanModeProgressEvent
+  | PlanModeCompleteEvent;
 
 /** Wire format: every event carries a sessionId for multiplexing */
 export type GlobalSSEEvent = SSEEvent & { sessionId: string };

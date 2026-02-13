@@ -99,6 +99,19 @@ export const api = {
   getPendingMessages: (id: string) =>
     request<{ steering: string[]; followUp: string[] }>(`/sessions/${id}/pending`),
 
+  // Plan mode
+  planAction: (
+    id: string,
+    action: "execute" | "cancel" | "modify",
+    options?: { todos?: any[]; message?: string },
+  ) =>
+    request<void>(`/sessions/${id}/plan-action`, {
+      method: "POST",
+      body: JSON.stringify({ action, ...options }),
+    }),
+  getPlanModeInfo: (id: string) =>
+    request<{ enabled: boolean; executing: boolean; todos: any[] }>(`/sessions/${id}/plan`),
+
   // Models
   getModels: () => request<ModelInfo[]>("/models"),
   setModel: (sessionId: string, provider: string, modelId: string) =>

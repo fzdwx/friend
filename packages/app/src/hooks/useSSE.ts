@@ -214,6 +214,34 @@ export function useGlobalSSE() {
             setCompacting(false);
             break;
 
+          // Plan mode events
+          case "plan_mode_state_changed":
+            useSessionStore.getState().setPlanModeState(
+              event.enabled,
+              event.executing,
+              event.todos,
+            );
+            break;
+
+          case "plan_mode_request_choice":
+            useSessionStore.getState().setPlanModeState(
+              true,  // enabled
+              false, // not executing yet
+              event.todos,
+            );
+            break;
+
+          case "plan_mode_progress":
+            useSessionStore.getState().setPlanModeProgress(
+              event.completed,
+              event.total,
+            );
+            break;
+
+          case "plan_mode_complete":
+            useSessionStore.getState().clearPlanMode();
+            break;
+
           case "error":
             console.error("SSE error:", event.message);
             setStreaming(false);

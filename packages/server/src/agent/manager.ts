@@ -22,7 +22,7 @@ import type {
   ThemeConfig,
 } from "@friend/shared";
 import { BUILT_IN_THEMES, DEFAULT_AGENT_ID } from "@friend/shared";
-import type { SSEEvent, GlobalSSEEvent, ConfigUpdatedEvent, SessionCreatedEvent } from "@friend/shared";
+import type { SSEEvent, GlobalSSEEvent, ConfigUpdatedEvent, SessionCreatedEvent, PlanModeStateChangedEvent, PlanModeRequestChoiceEvent, TodoItem as SharedTodoItem } from "@friend/shared";
 import { prisma } from "@friend/db";
 import { stat, unlink } from "node:fs/promises";
 import {
@@ -65,6 +65,18 @@ import {
   DEFAULT_MEMORY_FLUSH_PROMPT,
   SILENT_REPLY_TOKEN,
 } from "./memory-flush.js";
+import {
+  createPlanModeExtension,
+  type PlanModeState,
+  type TodoItem,
+  shouldTriggerPlanMode,
+  extractTodoItems,
+  markCompletedSteps,
+  isAssistantMessage,
+  getTextContent,
+  PLAN_MODE_TOOLS,
+  NORMAL_MODE_TOOLS,
+} from "./extensions/plan-mode.js";
 
 // ─── DB mapping types ──────────────────────────────────────
 
@@ -130,6 +142,7 @@ interface ManagedSession {
   userMessageCount: number;
   autoRenamed?: boolean;
   memoryFlushPending?: boolean;  // Track if memory flush is queued
+  planModeState?: PlanModeState;  // Track plan mode state
 }
 
 interface EventSubscriber {
@@ -156,6 +169,60 @@ export class AgentManager implements IAgentManager {
   constructor() {
     this.authStorage = new AuthStorage();
     this.modelRegistry = new ModelRegistry(this.authStorage);
+  }
+
+  // ─── Plan Mode State Management ────────────────────────────────────────
+
+  private planModeStates = new Map<string, PlanModeState>();
+
+  private getPlanModeState(sessionId: string): PlanModeState {
+    return this.planModeStates.get(sessionId) ?? { enabled: false, executing: false, todos: [] };
+  }
+
+  private setPlanModeState(sessionId: string, state: PlanModeState): void {
+    this.planModeStates.set(sessionId, state);
+    // Update ManagedSession if it exists
+    const managed = this.managedSessions.get(sessionId);
+    if (managed) {
+      managed.planModeState = state;
+    }
+    // Broadcast state change
+    this.broadcastPlanModeState(sessionId, state);
+  }
+
+  private broadcastPlanModeState(sessionId: string, state: PlanModeState): void {
+    const managed = this.managedSessions.get(sessionId);
+    if (!managed) return;
+    
+    this.broadcast(managed, {
+      type: "plan_mode_state_changed",
+      enabled: state.enabled,
+      executing: state.executing,
+      todos: state.todos,
+    });
+  }
+
+  private handlePlanReady(sessionId: string, todos: TodoItem[]): void {
+    const managed = this.managedSessions.get(sessionId);
+    if (!managed) return;
+
+    // Broadcast plan ready event to frontend
+    this.broadcast(managed, {
+      type: "plan_mode_request_choice",
+      todos,
+    });
+  }
+
+  private handlePlanProgress(sessionId: string, todos: TodoItem[]): void {
+    const managed = this.managedSessions.get(sessionId);
+    if (!managed) return;
+
+    const completed = todos.filter(t => t.completed).length;
+    this.broadcast(managed, {
+      type: "plan_mode_progress",
+      completed,
+      total: todos.length,
+    });
   }
 
   private async createAgentSessionWithSkills(
@@ -251,6 +318,17 @@ export class AgentManager implements IAgentManager {
             };
           });
         },
+        // Plan mode extension - handles /plan command and plan execution tracking
+        createPlanModeExtension({
+          // Get current plan mode state
+          getState: (sessionId: string) => this.getPlanModeState(sessionId),
+          // Set plan mode state
+          setState: (sessionId: string, state: PlanModeState) => this.setPlanModeState(sessionId, state),
+          // Plan ready - notify frontend
+          onPlanReady: (sessionId: string, todos: TodoItem[]) => this.handlePlanReady(sessionId, todos),
+          // Progress update
+          onProgress: (sessionId: string, todos: TodoItem[]) => this.handlePlanProgress(sessionId, todos),
+        }),
       ],
     });
     await resourceLoader.reload();
@@ -932,11 +1010,76 @@ Your output must be:
     managed.updatedAt = new Date().toISOString();
     prisma.session.update({ where: { id }, data: { updatedAt: new Date() } }).catch(() => {});
 
+    // Check if this should trigger plan mode
+    const currentState = this.getPlanModeState(id);
+    if (!currentState.enabled && !currentState.executing) {
+      if (shouldTriggerPlanMode(message)) {
+        // Enable plan mode
+        this.setPlanModeState(id, { enabled: true, executing: false, todos: [] });
+        managed.session.setActiveToolsByName(PLAN_MODE_TOOLS);
+      }
+    }
+
     // Run prompt (non-blocking - returns after agent finishes)
     // SDK session automatically tracks user + assistant messages
     managed.session.prompt(message).catch((err) => {
       this.broadcast(managed, { type: "error", message: String(err) });
     });
+  }
+
+  /**
+   * Handle plan mode action from user.
+   * Called when user clicks execute/cancel or sends modification.
+   */
+  async planAction(
+    id: string,
+    action: "execute" | "cancel" | "modify",
+    options?: { todos?: TodoItem[]; message?: string },
+  ): Promise<void> {
+    const managed = this.managedSessions.get(id);
+    if (!managed) throw new Error(`Session ${id} not found`);
+
+    const currentState = this.getPlanModeState(id);
+
+    if (action === "execute") {
+      // Switch to execution mode
+      const todos = options?.todos ?? currentState.todos;
+      const newState: PlanModeState = {
+        enabled: false,
+        executing: true,
+        todos,
+      };
+      this.setPlanModeState(id, newState);
+      managed.session.setActiveToolsByName(NORMAL_MODE_TOOLS);
+
+      // Send followUp to trigger execution
+      const firstStep = todos.find(t => !t.completed);
+      const execMessage = firstStep
+        ? `Execute the plan. Start with: ${firstStep.text}`
+        : "Execute the plan.";
+      await managed.session.followUp(execMessage);
+
+    } else if (action === "cancel") {
+      // Exit plan mode
+      this.setPlanModeState(id, { enabled: false, executing: false, todos: [] });
+      managed.session.setActiveToolsByName(NORMAL_MODE_TOOLS);
+
+    } else if (action === "modify") {
+      // User wants to modify the plan
+      if (options?.message) {
+        // Send the modification as a followUp - agent will refine the plan
+        await managed.session.followUp(options.message);
+      }
+    }
+  }
+
+  /**
+   * Get current plan mode state for a session.
+   */
+  getPlanModeInfo(id: string): PlanModeState | null {
+    const managed = this.managedSessions.get(id);
+    if (!managed) return null;
+    return this.getPlanModeState(id);
   }
 
   async steer(id: string, message: string): Promise<void> {

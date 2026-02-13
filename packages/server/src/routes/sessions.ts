@@ -139,15 +139,35 @@ export const sessionRoutes = new Elysia({ prefix: "/api/sessions" })
     { body: t.Object({ provider: t.String(), modelId: t.String() }) },
   )
 
+  // Plan mode actions
   .post(
-    "/:id/prompt",
+    "/:id/plan-action",
     async ({ params: { id }, body }) => {
       try {
-        await getAgentManager().prompt(id, body.message);
+        await getAgentManager().planAction(id, body.action, {
+          todos: body.todos,
+          message: body.message,
+        });
         return { ok: true };
       } catch (e) {
         return { ok: false, error: String(e) };
       }
     },
-    { body: t.Object({ message: t.String() }) },
-  );
+    {
+      body: t.Object({
+        action: t.Union([t.Literal("execute"), t.Literal("cancel"), t.Literal("modify")]),
+        todos: t.Optional(t.Array(t.Object({
+          step: t.Number(),
+          text: t.String(),
+          completed: t.Boolean(),
+        }))),
+        message: t.Optional(t.String()),
+      }),
+    },
+  )
+
+  .get("/:id/plan", ({ params: { id } }) => {
+    const plan = getAgentManager().getPlanModeInfo(id);
+    if (!plan) return { ok: false, error: "Session not found" };
+    return { ok: true, data: plan };
+  });

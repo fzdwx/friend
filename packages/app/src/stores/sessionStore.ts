@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { SessionInfo, Message, AssistantMessage, ToolCall, ModelInfo } from "@friend/shared";
+import type { SessionInfo, Message, AssistantMessage, ToolCall, ModelInfo, TodoItem } from "@friend/shared";
 import { api } from "@/lib/api.js";
 
 export type StreamingPhase =
@@ -47,6 +47,12 @@ interface SessionState {
   // Compaction state
   isCompacting: boolean;
 
+  // Plan mode state
+  planModeEnabled: boolean;
+  planModeExecuting: boolean;
+  planModeTodos: TodoItem[];
+  planModeProgress: { completed: number; total: number } | null;
+
   // Actions
   setActiveTurnIndex: (index: number | null) => void;
   setSessions: (sessions: SessionInfo[]) => void;
@@ -79,6 +85,11 @@ interface SessionState {
   setContextUsage: (usage: ContextUsage | null) => void;
   refreshSessionStats: (sessionId: string) => Promise<void>;
   setCompacting: (compacting: boolean) => void;
+
+  // Plan mode actions
+  setPlanModeState: (enabled: boolean, executing: boolean, todos: TodoItem[]) => void;
+  setPlanModeProgress: (completed: number, total: number) => void;
+  clearPlanMode: () => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -99,6 +110,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   sessionStats: null,
   contextUsage: null,
   isCompacting: false,
+  planModeEnabled: false,
+  planModeExecuting: false,
+  planModeTodos: [],
+  planModeProgress: null,
 
   setActiveTurnIndex: (index) => set({ activeTurnIndex: index }),
   setSessions: (sessions) => set({ sessions }),
@@ -224,4 +239,22 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     });
   },
   setCompacting: (compacting) => set({ isCompacting: compacting }),
+
+  // Plan mode actions
+  setPlanModeState: (enabled, executing, todos) =>
+    set({
+      planModeEnabled: enabled,
+      planModeExecuting: executing,
+      planModeTodos: todos,
+      planModeProgress: null,
+    }),
+  setPlanModeProgress: (completed, total) =>
+    set({ planModeProgress: { completed, total } }),
+  clearPlanMode: () =>
+    set({
+      planModeEnabled: false,
+      planModeExecuting: false,
+      planModeTodos: [],
+      planModeProgress: null,
+    }),
 }));
