@@ -151,6 +151,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       activeTurnIndex: null,
       steeringMessages: [],
       followUpMessages: [],
+      // Reset plan mode state when switching sessions
+      planModeEnabled: false,
+      planModeExecuting: false,
+      planModeTodos: [],
+      planModeProgress: null,
     });
     if (id) {
       const session = get().sessions.find((s) => s.id === id);
