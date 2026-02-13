@@ -1,7 +1,8 @@
 # AGENT TOOLS MODULE
 
 **Location:** `packages/server/src/agent/tools/`
-**Purpose:** Custom AI Agent tools for theme management and provider configuration
+**Purpose:** Custom AI Agent tools (14 tools: theme/provider/session/memory/search)
+**Files:** 14 TypeScript files
 
 ---
 
@@ -9,14 +10,20 @@
 
 ```
 tools/
-├── index.ts                    # Tool factory registry
-├── custom-provider-add.ts        # Add OpenAI-compatible AI provider
-├── theme-get.ts                # List available themes
-├── theme-generate.ts            # AI-generate custom theme
-├── theme-set.ts                 # Switch active theme
-├── theme-utils.ts               # Theme utility functions
-├── README.md                   # Tool implementation guide
-└── THEME_TOOLS.md              # Theme tools documentation
+├── index.ts                      # Tool factory registry
+├── custom-provider-add.ts        # Add OpenAI-compatible provider
+├── custom-provider-list.ts       # List all providers
+├── custom-provider-update.ts     # Update provider config
+├── theme-get.ts                  # List available themes
+├── theme-generate.ts             # AI-generate custom theme
+├── theme-set.ts                  # Switch active theme
+├── theme-utils.ts                # Theme utility functions
+├── session-create.ts             # Create new session
+├── session-get.ts                # Get session details
+├── session-rename.ts             # Rename session
+├── memory.ts                     # memory_search, memory_get
+├── grep.ts                       # Search file contents (ripgrep)
+└── glob.ts                       # Find files by pattern
 ```
 
 ---
@@ -93,14 +100,23 @@ export function createTools(manager: IAgentManager): ToolDefinition[] {
 
 ---
 
-## TOOL RESPONSIBILITIES
+## TOOL RESPONSIBILITIES (14 Tools)
 
-| Tool                  | Purpose                        | Key Files                |
-| --------------------- | ------------------------------ | ------------------------ |
-| `get_themes`          | Query available themes         | `theme-get.ts`           |
-| `generate_theme`      | AI-generate custom theme       | `theme-generate.ts`      |
-| `set_theme`           | Switch active theme            | `theme-set.ts`           |
-| `add_custom_provider` | Add OpenAI-compatible provider | `custom-provider-add.ts` |
+| Tool                   | Purpose                        | File                      |
+| ---------------------- | ------------------------------ | ------------------------- |
+| `add_custom_provider`  | Add OpenAI-compatible provider | `custom-provider-add.ts`  |
+| `list_custom_providers`| List registered providers      | `custom-provider-list.ts` |
+| `update_custom_provider`| Update provider config        | `custom-provider-update.ts`|
+| `get_themes`           | Query available themes         | `theme-get.ts`            |
+| `generate_theme`       | AI-generate custom theme       | `theme-generate.ts`       |
+| `set_theme`            | Switch active theme            | `theme-set.ts`            |
+| `create_session`       | Create new session             | `session-create.ts`       |
+| `get_session`          | Get session details            | `session-get.ts`          |
+| `rename_session`       | Rename session                 | `session-rename.ts`       |
+| `memory_search`        | Semantic search memories       | `memory.ts`               |
+| `memory_get`           | Read memory file               | `memory.ts`               |
+| `grep`                 | Search file contents           | `grep.ts`                 |
+| `glob`                 | Find files by pattern          | `glob.ts`                 |
 
 ---
 
