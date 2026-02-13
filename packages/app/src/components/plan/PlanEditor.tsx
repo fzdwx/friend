@@ -259,17 +259,18 @@ interface PlanProgressProps {
 }
 
 export function PlanProgress({ completed, total, todos }: PlanProgressProps) {
+  const { t } = useTranslation();
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
   
   // Find first incomplete task (the one being executed)
   const currentTaskIndex = todos.findIndex(t => !t.completed);
 
   return (
-    <div className="plan-progress bg-secondary/30 border border-border rounded-lg p-3 my-2 flex flex-col">
+    <div className="plan-progress bg-secondary/30 border border-border rounded-lg p-3 my-2 max-h-[200px] flex flex-col overflow-hidden">
       <div className="flex items-center justify-between mb-2 flex-shrink-0">
-        <span className="text-sm font-medium">Executing Plan</span>
+        <span className="text-sm font-medium">{t("plan.executing")}</span>
         <span className="text-xs text-muted-foreground">
-          {completed}/{total} steps
+          {t("plan.stepProgress", { completed, total })}
         </span>
       </div>
 
@@ -282,7 +283,7 @@ export function PlanProgress({ completed, total, todos }: PlanProgressProps) {
       </div>
 
       {/* Current Steps - only show main tasks, collapse subtasks */}
-      <div className="space-y-1">
+      <div className="space-y-1 overflow-y-auto flex-1 min-h-0">
         {todos.map((todo, index) => {
           const isCurrent = index === currentTaskIndex;
           const subtaskProgress = todo.subtasks 

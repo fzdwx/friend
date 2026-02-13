@@ -12,10 +12,12 @@ import {
   ChevronRight,
   ChevronDown,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 type EditMode = "none" | "create" | "edit";
 
 export function AgentsContent() {
+  const { t } = useTranslation();
   const {
     agents,
     loading,
