@@ -5,6 +5,11 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { useConfigStore } from "./stores/configStore";
 import { applyThemeToDOM } from "./lib/theme";
+import {
+  WorkerPoolContextProvider,
+  poolOptions,
+  highlighterOptions,
+} from "./lib/diffsWorker";
 
 function applyThemeBeforeRender() {
   const store = useConfigStore.getState();
@@ -19,6 +24,11 @@ applyThemeBeforeRender();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <WorkerPoolContextProvider
+      poolOptions={poolOptions}
+      highlighterOptions={highlighterOptions}
+    >
+      <App />
+    </WorkerPoolContextProvider>
   </StrictMode>,
 );
