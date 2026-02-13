@@ -21,7 +21,7 @@ export const AssistantMessage = memo(function AssistantMessage({
         {isStreaming && (
           <div className="text-[10px] text-yellow-500 animate-pulse mb-1">streaming...</div>
         )}
-        <div className="prose prose-invert prose-sm max-w-none [&_pre]:bg-background/50 [&_pre]:p-3 [&_pre]:rounded-md [&_code]:text-xs [&_p]:leading-relaxed [&_p:last-child]:mb-0">
+        <div className="prose prose-invert prose-sm max-w-none break-words [&_pre]:bg-background/50 [&_pre]:p-3 [&_pre]:rounded-md [&_code]:text-xs [&_p]:leading-relaxed [&_p:last-child]:mb-0 [&_pre]:overflow-x-auto">
           {textBlocks.map((block, i) => (
             <Markdown key={i} remarkPlugins={[remarkGfm]}>
               {block.type === "text" ? block.text : ""}

@@ -38,7 +38,7 @@ export function ThinkingBlock({ content, isStreaming, defaultExpanded }: Thinkin
       {expanded && (
         <div
           ref={contentRef}
-          className="px-3 py-2 text-xs text-muted-foreground border-t border-border whitespace-pre-wrap font-mono leading-relaxed max-h-64 overflow-y-auto"
+          className="px-3 py-2 text-xs text-muted-foreground border-t border-border whitespace-pre-wrap break-words font-mono leading-relaxed max-h-64 overflow-y-auto"
         >
           {content}
         </div>
