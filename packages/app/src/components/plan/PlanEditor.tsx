@@ -8,7 +8,7 @@
  * - Execute/Cancel buttons
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { GripVertical, Play, X, Check, Clock, ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TodoItem } from "@friend/shared";
@@ -264,6 +264,25 @@ export function PlanProgress({ completed, total, todos }: PlanProgressProps) {
   
   // Find first incomplete task (the one being executed)
   const currentTaskIndex = todos.findIndex(t => !t.completed);
+  
+  // Ref for auto-scrolling to current task
+  const currentTaskRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Auto-scroll to current task when it changes
+  useEffect(() => {
+    if (currentTaskRef.current && containerRef.current) {
+      const container = containerRef.current;
+      const task = currentTaskRef.current;
+      const containerRect = container.getBoundingClientRect();
+      const taskRect = task.getBoundingClientRect();
+      
+      // Check if task is outside visible area
+      if (taskRect.top < containerRect.top || taskRect.bottom > containerRect.bottom) {
+        task.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  }, [currentTaskIndex]);
 
   return (
     <div className="plan-progress bg-secondary/30 border border-border rounded-lg p-3 my-2 max-h-[200px] flex flex-col overflow-hidden">
@@ -283,7 +302,7 @@ export function PlanProgress({ completed, total, todos }: PlanProgressProps) {
       </div>
 
       {/* Current Steps - only show main tasks, collapse subtasks */}
-      <div className="space-y-1 overflow-y-auto flex-1 min-h-0">
+      <div ref={containerRef} className="space-y-1 overflow-y-auto flex-1 min-h-0">
         {todos.map((todo, index) => {
           const isCurrent = index === currentTaskIndex;
           const subtaskProgress = todo.subtasks 
@@ -293,6 +312,7 @@ export function PlanProgress({ completed, total, todos }: PlanProgressProps) {
           return (
             <div
               key={todo.step}
+              ref={isCurrent ? currentTaskRef : null}
               className={cn(
                 "flex items-center gap-2 text-xs py-1 px-2 rounded",
                 todo.completed ? "text-muted-foreground" : "text-foreground",
