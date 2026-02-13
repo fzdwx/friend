@@ -12,6 +12,7 @@ export function useSessions() {
     removeSession,
     setActiveSession,
     setMessages,
+    setPlanModeState,
   } = useSessionStore();
   const { clearExecutions } = useToolStore();
 
@@ -44,9 +45,19 @@ export function useSessions() {
       const res = await api.getSession(id);
       if (res.ok && res.data) {
         setMessages(res.data.messages || []);
+        // Restore plan mode state if exists
+        if (res.data.planModeState) {
+          setPlanModeState(
+            res.data.planModeState.enabled,
+            res.data.planModeState.executing,
+            res.data.planModeState.todos,
+          );
+        } else {
+          setPlanModeState(false, false, []);
+        }
       }
     },
-    [setActiveSession, setMessages, clearExecutions],
+    [setActiveSession, setMessages, clearExecutions, setPlanModeState],
   );
 
   const deleteSession = useCallback(

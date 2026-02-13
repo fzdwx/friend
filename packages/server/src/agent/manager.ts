@@ -863,6 +863,9 @@ export class AgentManager implements IAgentManager {
       (m): m is Message => m.role === "user" || m.role === "assistant" || m.role === "toolResult",
     );
 
+    // Get plan mode state for this session
+    const planModeState = this.getPlanModeState(id);
+
     return {
       id: managed.id,
       name: managed.name,
@@ -875,6 +878,7 @@ export class AgentManager implements IAgentManager {
       messageCount: messages.length,
       messages,
       workingPath: managed.workingPath,
+      planModeState: planModeState.enabled || planModeState.executing ? planModeState : undefined,
     };
   }
 

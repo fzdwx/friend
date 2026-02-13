@@ -28,6 +28,11 @@ export interface SessionInfo {
 
 export interface SessionDetail extends SessionInfo {
   messages: Message[];
+  planModeState?: {
+    enabled: boolean;
+    executing: boolean;
+    todos: Array<{ step: number; text: string; completed: boolean }>;
+  };
 }
 
 // Model types
