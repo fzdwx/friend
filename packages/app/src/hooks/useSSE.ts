@@ -1,12 +1,36 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useSessionStore } from "@/stores/sessionStore";
 import { useToolStore } from "@/stores/toolStore";
 import { useConfigStore } from "@/stores/configStore";
 import { api } from "@/lib/api";
 import type { GlobalSSEEvent, ToolCall } from "@friend/shared";
 
+/**
+ * Parse SSE text stream into {event, data} pairs.
+ * SSE format: "event: <name>\ndata: <json>\n\n"
+ */
+function* parseSSE(chunk: string, buffer: { value: string }) {
+  buffer.value += chunk;
+  const parts = buffer.value.split("\n\n");
+  // Last element is incomplete — keep it in buffer
+  buffer.value = parts.pop()!;
+
+  for (const part of parts) {
+    if (!part.trim()) continue;
+    let event = "message";
+    let data = "";
+    for (const line of part.split("\n")) {
+      if (line.startsWith("event:")) {
+        event = line.slice(6).trim();
+      } else if (line.startsWith("data:")) {
+        data = line.slice(5).trim();
+      }
+    }
+    if (data) yield { event, data };
+  }
+}
+
 export function useGlobalSSE() {
-  // Use selectors for proper subscription
   const setStreaming = useSessionStore((s) => s.setStreaming);
   const setStreamingPhase = useSessionStore((s) => s.setStreamingPhase);
   const appendStreamingText = useSessionStore((s) => s.appendStreamingText);
@@ -21,7 +45,6 @@ export function useGlobalSSE() {
 
   const { addExecution, updateExecution, completeExecution, clearExecutions } = useToolStore();
 
-  // Helper to refresh pending messages from backend
   const refreshPendingMessages = async (sessionId: string) => {
     try {
       const res = await api.getPendingMessages(sessionId);
@@ -35,135 +58,31 @@ export function useGlobalSSE() {
   };
 
   useEffect(() => {
-    let es: EventSource | null = null;
-    let retryTimeout: NodeJS.Timeout | null = null;
-    let heartbeatInterval: NodeJS.Timeout | null = null;
-    let lastEventTime = 0;
+    let abortController: AbortController | null = null;
+    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
     let retryCount = 0;
+    let disposed = false;
     const MAX_RETRIES = 10;
-    const INITIAL_RETRY_DELAY = 1000; // 1 second
-    const MAX_RETRY_DELAY = 30000; // 30 seconds
-    const HEARTBEAT_TIMEOUT = 25000; // 25 seconds (server pings every 15s)
+    const INITIAL_RETRY_DELAY = 1000;
+    const MAX_RETRY_DELAY = 30000;
 
-    // Calculate retry delay with exponential backoff
     const getRetryDelay = (): number => {
       const delay = Math.min(INITIAL_RETRY_DELAY * Math.pow(2, retryCount), MAX_RETRY_DELAY);
-      // Add some jitter to avoid thundering herd
       return delay + Math.random() * 1000;
     };
 
-    const stopHeartbeatCheck = () => {
-      if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-        heartbeatInterval = null;
-      }
-    };
-
-    const startHeartbeatCheck = () => {
-      stopHeartbeatCheck();
-      lastEventTime = Date.now();
-      heartbeatInterval = setInterval(() => {
-        if (Date.now() - lastEventTime > HEARTBEAT_TIMEOUT) {
-          console.warn("[SSE] No heartbeat received, connection appears dead");
-          stopHeartbeatCheck();
-          setSseConnected(false);
-          if (es) {
-            es.close();
-            es = null;
-          }
-          scheduleReconnect();
-        }
-      }, 5000);
-    };
-
-    const connect = () => {
-      stopHeartbeatCheck();
-      if (es) {
-        es.close();
-      }
-
-      console.log(`[SSE] Connecting (attempt ${retryCount + 1})...`);
-      setSseConnected(false);
-      es = new EventSource("/api/events");
-
-      // Handle connection errors - any error means disconnected
-      es.addEventListener("error", () => {
-        console.error("[SSE] Connection error, readyState:", es?.readyState);
-        stopHeartbeatCheck();
-        setSseConnected(false);
-        // Close and reconnect
-        if (es && es.readyState !== EventSource.CLOSED) {
-          es.close();
-        }
-        scheduleReconnect();
-      });
-
-      // Monitor ready state changes
-      const checkState = () => {
-        if (!es) return;
-
-        if (es.readyState === EventSource.OPEN) {
-          console.log("[SSE] Connection opened");
-          retryCount = 0;
-          setSseConnected(true);
-          // Start heartbeat monitoring once connected
-          startHeartbeatCheck();
-        } else if (es.readyState === EventSource.CLOSED) {
-          console.error("[SSE] Connection closed");
-          setSseConnected(false);
-        } else if (es.readyState === EventSource.CONNECTING) {
-          console.log("[SSE] Connecting...");
-        }
-      };
-
-      // Check state immediately and on change
-      checkState();
-      es.addEventListener("open", checkState);
-
-      // Listen for server ping events to track heartbeat
-      es.addEventListener("ping", () => {
-        lastEventTime = Date.now();
-      });
-
-      // Register data event listeners on this new connection
-      for (const t of eventTypes) {
-        es.addEventListener(t, handleEvent);
-      }
-    };
-
-    const scheduleReconnect = () => {
-      if (retryCount >= MAX_RETRIES) {
-        console.error("[SSE] Max retry attempts reached, giving up");
-        setSseConnected(false);
-        return;
-      }
-
-      if (retryTimeout) {
-        clearTimeout(retryTimeout);
-      }
-
-      const delay = getRetryDelay();
-      console.log(`[SSE] Will reconnect in ${Math.round(delay)}ms...`);
-
-      retryTimeout = setTimeout(() => {
-        retryCount++;
-        connect();
-      }, delay);
-    };
-
-    const handleEvent = (e: MessageEvent) => {
-      // Any event from server proves connection is alive
-      lastEventTime = Date.now();
+    const handleEvent = (eventType: string, data: string) => {
       try {
-        const event: GlobalSSEEvent = JSON.parse(e.data);
+        // Ping is just a heartbeat, no data to process
+        if (eventType === "ping" || eventType === "connected") return;
 
-        // Handle global config events (sessionId: "__system__") before session filter
+        const event: GlobalSSEEvent = JSON.parse(data);
+
         if (event.type === "config_updated") {
           useConfigStore.getState()._applyConfigEvent(event);
           return;
         }
 
-        // Handle session created event - add to session list and navigate
         if (event.type === "session_created") {
           const newSession = {
             id: event.newSessionId,
@@ -179,7 +98,6 @@ export function useGlobalSSE() {
           return;
         }
 
-        // Handle session rename before session filter (updates sidebar for any session)
         if (event.type === "session_renamed") {
           const sessions = useSessionStore.getState().sessions;
           useSessionStore
@@ -190,12 +108,9 @@ export function useGlobalSSE() {
           return;
         }
 
-        // Get current activeSessionId directly from store (not from stale ref)
         const currentActiveSessionId = useSessionStore.getState().activeSessionId;
         if (event.sessionId !== currentActiveSessionId) return;
 
-        // Ensure streaming mode is on for events that imply active streaming
-        // (handles page refresh where agent_start was missed)
         const impliesStreaming =
           event.type === "message_start" ||
           event.type === "message_update" ||
@@ -220,7 +135,6 @@ export function useGlobalSSE() {
           case "message_start":
             resetStreaming();
             setStreamingPhase("started");
-            // Refresh pending messages when a user message is delivered
             if (event.message.role === "user") {
               refreshPendingMessages(event.sessionId);
             }
@@ -310,41 +224,82 @@ export function useGlobalSSE() {
       }
     };
 
-    // SDK events use top-level type names
-    const eventTypes = [
-      "agent_start",
-      "agent_end",
-      "turn_start",
-      "turn_end",
-      "message_start",
-      "message_update",
-      "message_end",
-      "tool_execution_start",
-      "tool_execution_update",
-      "tool_execution_end",
-      "auto_compaction_start",
-      "auto_compaction_end",
-      "auto_retry_start",
-      "auto_retry_end",
-      "error",
-      "session_updated",
-      "session_renamed",
-      "session_created",
-      "config_updated",
-    ];
+    const connect = async () => {
+      if (disposed) return;
 
-    // Initial connection
+      abortController?.abort();
+      abortController = new AbortController();
+
+      console.log(`[SSE] Connecting (attempt ${retryCount + 1})...`);
+      setSseConnected(false);
+
+      try {
+        const res = await fetch("/api/events", {
+          signal: abortController.signal,
+          headers: { Accept: "text/event-stream" },
+        });
+
+        if (!res.ok || !res.body) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        console.log("[SSE] Connection opened");
+        retryCount = 0;
+        setSseConnected(true);
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        const buffer = { value: "" };
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const text = decoder.decode(value, { stream: true });
+          for (const { event, data } of parseSSE(text, buffer)) {
+            handleEvent(event, data);
+          }
+        }
+
+        // Stream ended normally (server closed)
+        console.log("[SSE] Stream ended");
+      } catch (err) {
+        if (abortController.signal.aborted) return;
+        console.error("[SSE] Connection error:", err);
+      }
+
+      // Disconnected — schedule reconnect
+      if (!disposed) {
+        setSseConnected(false);
+        scheduleReconnect();
+      }
+    };
+
+    const scheduleReconnect = () => {
+      if (disposed) return;
+      if (retryCount >= MAX_RETRIES) {
+        console.error("[SSE] Max retry attempts reached, giving up");
+        setSseConnected(false);
+        return;
+      }
+
+      if (retryTimeout) clearTimeout(retryTimeout);
+
+      const delay = getRetryDelay();
+      console.log(`[SSE] Will reconnect in ${Math.round(delay)}ms...`);
+
+      retryTimeout = setTimeout(() => {
+        retryCount++;
+        connect();
+      }, delay);
+    };
+
     connect();
 
-    // Cleanup
     return () => {
-      stopHeartbeatCheck();
-      if (retryTimeout) {
-        clearTimeout(retryTimeout);
-      }
-      if (es) {
-        es.close();
-      }
+      disposed = true;
+      abortController?.abort();
+      if (retryTimeout) clearTimeout(retryTimeout);
     };
   }, []);
 }
