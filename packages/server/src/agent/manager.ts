@@ -1086,6 +1086,7 @@ Your output must be:
     if (!managed) throw new Error(`Session ${id} not found`);
 
     const currentState = this.getPlanModeState(id);
+    console.log(`[PlanMode] planAction called: action=${action}, currentState=`, currentState);
 
     if (action === "execute") {
       // Switch to execution mode
@@ -1095,6 +1096,7 @@ Your output must be:
         executing: true,
         todos,
       };
+      console.log(`[PlanMode] Setting executing state with ${todos.length} todos`);
       this.setPlanModeState(id, newState);
       managed.session.setActiveToolsByName(NORMAL_MODE_TOOLS);
 
@@ -1103,7 +1105,9 @@ Your output must be:
       const execMessage = firstStep
         ? `Execute the plan. Start with: ${firstStep.text}`
         : "Execute the plan.";
+      console.log(`[PlanMode] Sending followUp: ${execMessage}`);
       await managed.session.followUp(execMessage);
+      console.log(`[PlanMode] followUp sent successfully`);
 
     } else if (action === "cancel") {
       // Exit plan mode
