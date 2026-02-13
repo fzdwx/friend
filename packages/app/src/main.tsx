@@ -8,7 +8,7 @@ import { applyThemeToDOM } from "./lib/theme";
 import {
   WorkerPoolContextProvider,
   poolOptions,
-  highlighterOptions,
+  DiffThemeSync,
 } from "./lib/diffsWorker";
 
 function applyThemeBeforeRender() {
@@ -26,8 +26,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <WorkerPoolContextProvider
       poolOptions={poolOptions}
-      highlighterOptions={highlighterOptions}
+      highlighterOptions={{ theme: "pierre-dark" }}
     >
+      <DiffThemeSync />
       <App />
     </WorkerPoolContextProvider>
   </StrictMode>,

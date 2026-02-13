@@ -4,6 +4,7 @@ import remarkGfm from "remark-gfm";
 import { File, type FileContents } from "@pierre/diffs/react";
 import { Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useConfigStore } from "@/stores/configStore";
 
 interface MarkdownRendererProps {
   children: string;
@@ -78,9 +79,14 @@ const langToExt: Record<string, string> = {
 
 function CodeBlock({ className, children }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
+  const activeThemeId = useConfigStore((s) => s.activeThemeId);
   const match = /language-(\w+)/.exec(className || "");
   const language = match ? match[1].toLowerCase() : "";
   const code = String(children).replace(/\n$/, "");
+
+  // Determine theme for code highlighting
+  const isDark = activeThemeId.includes("dark");
+  const diffsTheme = isDark ? "pierre-dark" : "pierre-light";
 
   const handleCopy = useCallback(async () => {
     try {
@@ -151,6 +157,7 @@ function CodeBlock({ className, children }: CodeBlockProps) {
           file={file}
           options={{
             theme: { dark: "pierre-dark", light: "pierre-light" },
+            themeType: isDark ? "dark" : "light",
           }}
         />
       </div>
