@@ -193,8 +193,13 @@ export class AgentManager implements IAgentManager {
 
   private broadcastPlanModeState(sessionId: string, state: PlanModeState): void {
     const managed = this.managedSessions.get(sessionId);
-    console.log(`[PlanMode] broadcastPlanModeState: managed=${!!managed}`);
-    if (!managed) return;
+    console.log(`[PlanMode] broadcastPlanModeState: sessionId=${sessionId}`);
+    console.log(`[PlanMode] managedSessions keys:`, Array.from(this.managedSessions.keys()));
+    console.log(`[PlanMode] managed=${!!managed}`);
+    if (!managed) {
+      console.warn(`[PlanMode] WARNING: sessionId ${sessionId} not found in managedSessions!`);
+      return;
+    }
     
     const event = {
       type: "plan_mode_state_changed" as const,
