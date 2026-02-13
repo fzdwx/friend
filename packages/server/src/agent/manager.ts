@@ -174,6 +174,8 @@ export class AgentManager implements IAgentManager {
   // ─── Plan Mode State Management ────────────────────────────────────────
 
   private planModeStates = new Map<string, PlanModeState>();
+  // Map SDK sessionId (from SessionManager) to DB sessionId
+  private sdkToDbSessionId = new Map<string, string>();
 
   private getPlanModeState(sessionId: string): PlanModeState {
     return this.planModeStates.get(sessionId) ?? { enabled: false, executing: false, todos: [] };
@@ -191,10 +193,22 @@ export class AgentManager implements IAgentManager {
     this.broadcastPlanModeState(sessionId, state);
   }
 
+  // Register SDK sessionId to DB sessionId mapping
+  registerSdkSessionId(sdkSessionId: string, dbSessionId: string): void {
+    console.log(`[PlanMode] Registering mapping: SDK=${sdkSessionId} -> DB=${dbSessionId}`);
+    this.sdkToDbSessionId.set(sdkSessionId, dbSessionId);
+  }
+
+  // Resolve DB sessionId from SDK sessionId
+  resolveDbSessionId(sdkSessionId: string): string | undefined {
+    const dbId = this.sdkToDbSessionId.get(sdkSessionId);
+    console.log(`[PlanMode] Resolving SDK=${sdkSessionId} -> DB=${dbId}`);
+    return dbId;
+  }
+
   private broadcastPlanModeState(sessionId: string, state: PlanModeState): void {
-    const managed = this.managedSessions.get(sessionId);
     console.log(`[PlanMode] broadcastPlanModeState: sessionId=${sessionId}`);
-    console.log(`[PlanMode] managedSessions keys:`, Array.from(this.managedSessions.keys()));
+    const managed = this.managedSessions.get(sessionId);
     console.log(`[PlanMode] managed=${!!managed}`);
     if (!managed) {
       console.warn(`[PlanMode] WARNING: sessionId ${sessionId} not found in managedSessions!`);
@@ -238,6 +252,7 @@ export class AgentManager implements IAgentManager {
     cwd: string,
     sessionManager: SessionManager,
     agentId: string = DEFAULT_AGENT_ID,
+    dbSessionId?: string,  // Optional DB session ID for SDK->DB mapping
   ): Promise<{ session: AgentSession; resourceLoader: DefaultResourceLoader }> {
     // Resolve agent configuration from database
     const resolvedConfig = await resolveAgentConfig(agentId);
@@ -329,14 +344,30 @@ export class AgentManager implements IAgentManager {
         },
         // Plan mode extension - handles /plan command and plan execution tracking
         createPlanModeExtension({
-          // Get current plan mode state
-          getState: (sessionId: string) => this.getPlanModeState(sessionId),
-          // Set plan mode state
-          setState: (sessionId: string, state: PlanModeState) => this.setPlanModeState(sessionId, state),
+          // Get current plan mode state (using SDK sessionId, internally maps to DB sessionId)
+          getState: (sdkSessionId: string) => {
+            const dbSessionId = this.resolveDbSessionId(sdkSessionId);
+            return dbSessionId ? this.getPlanModeState(dbSessionId) : { enabled: false, executing: false, todos: [] };
+          },
+          // Set plan mode state (using SDK sessionId, internally maps to DB sessionId)
+          setState: (sdkSessionId: string, state: PlanModeState) => {
+            const dbSessionId = this.resolveDbSessionId(sdkSessionId);
+            if (dbSessionId) {
+              this.setPlanModeState(dbSessionId, state);
+            } else {
+              console.warn(`[PlanMode] Cannot set state: no mapping for SDK sessionId ${sdkSessionId}`);
+            }
+          },
           // Plan ready - notify frontend
-          onPlanReady: (sessionId: string, todos: TodoItem[]) => this.handlePlanReady(sessionId, todos),
+          onPlanReady: (sdkSessionId: string, todos: TodoItem[]) => {
+            const dbSessionId = this.resolveDbSessionId(sdkSessionId);
+            if (dbSessionId) this.handlePlanReady(dbSessionId, todos);
+          },
           // Progress update
-          onProgress: (sessionId: string, todos: TodoItem[]) => this.handlePlanProgress(sessionId, todos),
+          onProgress: (sdkSessionId: string, todos: TodoItem[]) => {
+            const dbSessionId = this.resolveDbSessionId(sdkSessionId);
+            if (dbSessionId) this.handlePlanProgress(dbSessionId, todos);
+          },
         }),
       ],
     });
@@ -374,6 +405,12 @@ export class AgentManager implements IAgentManager {
     });
 
     const { session, extensionsResult } = result;
+    
+    // Register SDK sessionId -> DB sessionId mapping (if DB sessionId provided)
+    if (dbSessionId) {
+      const sdkSessionId = session.sessionManager.getSessionId();
+      this.registerSdkSessionId(sdkSessionId, dbSessionId);
+    }
     
     // Debug: log extension loading
     console.log(`[PlanMode] Extensions loaded: ${extensionsResult.extensions.length}`);
@@ -434,6 +471,7 @@ export class AgentManager implements IAgentManager {
         cwd,
         sessionManager,
         agentId,
+        s.id,  // Pass DB session ID for SDK->DB mapping
       );
 
       const managed: ManagedSession = {
@@ -729,6 +767,7 @@ export class AgentManager implements IAgentManager {
       cwd,
       sessionManager,
       agentId,
+      id,  // Pass DB session ID for SDK->DB mapping
     );
 
     // Set default model from agent config if none selected
