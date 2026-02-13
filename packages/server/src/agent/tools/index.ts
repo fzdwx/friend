@@ -3,6 +3,8 @@
 
 // Custom Provider
 export { createAddProviderTool, AddCustomProviderParams } from "./custom-provider-add";
+export { createListProvidersTool } from "./custom-provider-list";
+export { createUpdateProviderTool, UpdateCustomProviderParams } from "./custom-provider-update";
 export type { IAgentManager } from "./custom-provider-add";
 
 // Theme Tools

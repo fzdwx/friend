@@ -27,6 +27,8 @@ import { prisma } from "@friend/db";
 import { stat, unlink } from "node:fs/promises";
 import {
   createAddProviderTool,
+  createListProvidersTool,
+  createUpdateProviderTool,
   createGetThemesTool,
   createGenerateThemeTool,
   createSetThemeTool,
@@ -262,6 +264,8 @@ export class AgentManager implements IAgentManager {
       thinkingLevel: resolvedConfig.thinkingLevel,
       customTools: [
         createAddProviderTool(this),
+        createListProvidersTool(this),
+        createUpdateProviderTool(this),
         createGetThemesTool(this),
         createGenerateThemeTool(this),
         createSetThemeTool(this),
