@@ -241,13 +241,15 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   setCompacting: (compacting) => set({ isCompacting: compacting }),
 
   // Plan mode actions
-  setPlanModeState: (enabled, executing, todos) =>
+  setPlanModeState: (enabled, executing, todos) => {
+    console.log("[PlanMode] setPlanModeState called:", { enabled, executing, todos });
     set({
       planModeEnabled: enabled,
       planModeExecuting: executing,
       planModeTodos: todos,
       planModeProgress: null,
-    }),
+    });
+  },
   setPlanModeProgress: (completed, total) =>
     set({ planModeProgress: { completed, total } }),
   clearPlanMode: () =>

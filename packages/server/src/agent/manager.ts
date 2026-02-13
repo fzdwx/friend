@@ -180,6 +180,7 @@ export class AgentManager implements IAgentManager {
   }
 
   private setPlanModeState(sessionId: string, state: PlanModeState): void {
+    console.log(`[PlanMode] setPlanModeState called: sessionId=${sessionId}, state=`, state);
     this.planModeStates.set(sessionId, state);
     // Update ManagedSession if it exists
     const managed = this.managedSessions.get(sessionId);
@@ -192,14 +193,17 @@ export class AgentManager implements IAgentManager {
 
   private broadcastPlanModeState(sessionId: string, state: PlanModeState): void {
     const managed = this.managedSessions.get(sessionId);
+    console.log(`[PlanMode] broadcastPlanModeState: managed=${!!managed}`);
     if (!managed) return;
     
-    this.broadcast(managed, {
-      type: "plan_mode_state_changed",
+    const event = {
+      type: "plan_mode_state_changed" as const,
       enabled: state.enabled,
       executing: state.executing,
       todos: state.todos,
-    });
+    };
+    console.log(`[PlanMode] Broadcasting event:`, event);
+    this.broadcast(managed, event);
   }
 
   private handlePlanReady(sessionId: string, todos: TodoItem[]): void {
