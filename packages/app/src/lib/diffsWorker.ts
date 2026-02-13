@@ -6,11 +6,13 @@ import { useEffect } from "react";
 import { WorkerPoolContextProvider, useWorkerPool } from "@pierre/diffs/react";
 import { useConfigStore } from "@/stores/configStore";
 
-// Vite requires this specific pattern for web workers
-const workerUrl = new URL("@pierre/diffs/worker", import.meta.url);
+// Vite requires ?url suffix to get the URL to the worker module
+// Use the portable worker which is self-contained
+// @ts-expect-error Vite url import
+import WorkerUrl from "@pierre/diffs/worker/worker-portable.js?url";
 
 export function workerFactory(): Worker {
-  return new Worker(workerUrl, { type: "module" });
+  return new Worker(WorkerUrl, { type: "module" });
 }
 
 // Pool configuration
