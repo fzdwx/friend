@@ -48,11 +48,39 @@ export async function loadAgentBootstrapFiles(
 }
 
 /**
+ * Build the Memory Recall section for system prompt
+ *
+ * This section instructs the agent to use memory_search before answering
+ * questions about prior work, decisions, dates, people, preferences, or todos.
+ */
+export function buildMemoryRecallPrompt(): string {
+  return `## Memory Recall
+
+Before answering anything about prior work, decisions, dates, people, preferences, or todos:
+1. Run \`memory_search\` on MEMORY.md + memory/*.md to find relevant snippets
+2. Use \`memory_get\` to pull only the needed lines (keeps context small)
+3. If low confidence after search, mention that you checked but found nothing relevant
+
+Memory files:
+- \`MEMORY.md\` - Long-term, curated memories (preferences, lessons learned, important context)
+- \`memory/YYYY-MM-DD.md\` - Daily logs (what happened today, running context)
+
+When to write memories:
+- When someone says "remember this" → write to memory/YYYY-MM-DD.md
+- When you learn something important → consider updating MEMORY.md
+- "Mental notes" don't survive session restarts. Files do.
+
+Citations: Include "Source: <path#Lline>" when it helps verify memory snippets.
+`;
+}
+
+/**
  * Build context message for injection
  *
  * We inject:
  * - Workspace paths (working directory + personal workspace)
  * - AGENTS.md (if exists) - defines how the agent works
+ * - Memory Recall instructions (if memory tools are available)
  *
  * The LLM will read other files (SOUL.md, IDENTITY.md, USER.md, etc.) itself
  * as directed by AGENTS.md instructions. This ensures:
@@ -64,12 +92,14 @@ export async function loadAgentBootstrapFiles(
  * @param files - Workspace files (AGENTS.md)
  * @param identity - Agent identity for name
  * @param workspaceDir - Workspace directory path
+ * @param includeMemoryRecall - Whether to include memory recall instructions
  */
 export function buildWorkspacePrompt(
   cwd: string,
   files: WorkspaceFile[],
   identity?: AgentIdentity,
-  workspaceDir?: string
+  workspaceDir?: string,
+  includeMemoryRecall: boolean = true
 ): string {
   const displayName = identity?.name || "Friend";
 
@@ -82,6 +112,11 @@ export function buildWorkspacePrompt(
     "The **personal workspace** is where you store memories, notes, and agent-specific files.",
     "",
   ];
+
+  // Include Memory Recall section
+  if (includeMemoryRecall) {
+    lines.push(buildMemoryRecallPrompt());
+  }
 
   // Include AGENTS.md if present
   const agentsFile = files.find((f) => f.path.endsWith("AGENTS.md"));

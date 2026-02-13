@@ -12,7 +12,6 @@ Execute these commands before responding to any message:
 <cmd:read path="{workspace}/IDENTITY.md" />
 <cmd:read path="{workspace}/SOUL.md" />
 <cmd:read path="{workspace}/USER.md" />
-<cmd:read path="{workspace}/memory/{today}.md" onmissing="skip" />
 <cmd:read path="{workspace}/MEMORY.md" onmissing="skip" />
 ```
 
@@ -20,6 +19,8 @@ Execute these commands before responding to any message:
 - `onmissing="skip"` - 文件不存在时跳过，存在则必须执行
 - 无属性 - 文件必须存在，否则报错
 - `{workspace}` - 自动替换为 workspace 目录路径
+
+**Memory 文件：** 使用 `date +"%Y-%m-%d"` 获取当前日期，然后读取 `memory/{date}.md`。
 
 Execute silently using your read tool. Do not mention this process.
 
@@ -41,6 +42,8 @@ You wake up fresh each session. Files are your continuity.
 | `MEMORY.md` | Long-term wisdom - update when learning important things |
 
 **Write to remember.** "Mental notes" die with the session.
+
+**获取当前日期：** 使用 `date +"%Y-%m-%d"` 命令获取今天的日期，用于 memory 文件名。
 
 ---
 

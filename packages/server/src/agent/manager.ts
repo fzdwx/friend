@@ -34,6 +34,8 @@ import {
   createGlobTool,
   createRenameSessionTool,
   createGetSessionTool,
+  createMemorySearchTool,
+  createMemoryGetTool,
 } from "./tools";
 import type { IAgentManager } from "./tools";
 import { GLOBAL_SKILLS_DIR, SkillWatcher, ensureSkillsDir } from "./skills.js";
@@ -55,6 +57,11 @@ import {
   type AgentConfig,
   type ResolvedAgentConfig,
 } from "./agent-manager.js";
+import {
+  shouldRunMemoryFlush,
+  DEFAULT_MEMORY_FLUSH_PROMPT,
+  SILENT_REPLY_TOKEN,
+} from "./memory-flush.js";
 
 // ─── DB mapping types ──────────────────────────────────────
 
@@ -119,6 +126,7 @@ interface ManagedSession {
   workingPath?: string;
   userMessageCount: number;
   autoRenamed?: boolean;
+  memoryFlushPending?: boolean;  // Track if memory flush is queued
 }
 
 interface EventSubscriber {
@@ -167,24 +175,27 @@ export class AgentManager implements IAgentManager {
       // Short identity in system prompt (for models that respect it)
       systemPromptOverride: () => {
         const name = resolvedConfig.identity?.name || "Friend";
-        return `[IDENTITY] You are "${name}", a personal assistant running inside Friend.
-You are NOT Claude, NOT ChatGPT, NOT any other AI product.
-When asked who you are, say you are ${name}.
-Never claim to be made by Anthropic, OpenAI, or any other company.
-
-<startup_commands>
-When AGENTS.md contains a STARTUP section with <cmd:...> tags, you MUST execute them BEFORE responding:
-
-- <cmd:read path="X" /> → use read tool on file X (required)
-- <cmd:read path="X" onmissing="skip" /> → read if exists, skip if not
-- <cmd:delete path="X" onmissing="skip" /> → delete file X if exists
-
-**Variables are pre-replaced by server:**
-- `{workspace}` → your personal workspace directory path
-- `{today}` → current date (YYYY-MM-DD format)
-
-Execute silently - do not mention this process to the user.
-</startup_commands>`;
+        return [
+          `[IDENTITY] You are "${name}", a personal assistant running inside Friend.`,
+          "You are NOT Claude, NOT ChatGPT, NOT any other AI product.",
+          `When asked who you are, say you are ${name}.`,
+          "Never claim to be made by Anthropic, OpenAI, or any other company.",
+          "",
+          "<startup_commands>",
+          "When AGENTS.md contains a STARTUP section with <cmd:...> tags, you MUST execute them BEFORE responding:",
+          "",
+          "- <cmd:read path=\"X\" /> → use read tool on file X (required)",
+          "- <cmd:read path=\"X\" onmissing=\"skip\" /> → read if exists, skip if not",
+          "- <cmd:delete path=\"X\" onmissing=\"skip\" /> → delete file X if exists",
+          "",
+          "**Variables:**",
+          "- \`{workspace}\` → pre-replaced with your personal workspace directory path",
+          "",
+          "**For dates:** Use \`date +\"%Y-%m-%d\"\` to get current date dynamically.",
+          "",
+          "Execute silently - do not mention this process to the user.",
+          "</startup_commands>",
+        ].join("\n");
       },
       skillsOverride: () => {
         // Load global skills
@@ -253,6 +264,15 @@ Execute silently - do not mention this process to the user.
         createGlobTool(),
         createRenameSessionTool(this),
         createGetSessionTool(this),
+        // Memory tools for semantic search and recall
+        // Note: API keys are fetched lazily when the tool is first used
+        createMemorySearchTool(agentWorkspace, {
+          agentId,
+          getOpenaiApiKey: () => this.authStorage.getApiKey("openai"),
+          getGeminiApiKey: () => this.authStorage.getApiKey("google"),
+          getVoyageApiKey: () => this.authStorage.getApiKey("voyage"),
+        }),
+        createMemoryGetTool(agentWorkspace, { agentId }),
       ],
     });
 
@@ -1132,10 +1152,71 @@ Your output must be:
           this.autoRenameSession(managed);
         }
       }
+
+      // Check for memory flush trigger
+      this.checkMemoryFlush(managed);
+    }
+
+    // Reset memory flush pending state when compaction completes
+    if (event.type === "auto_compaction_end") {
+      managed.memoryFlushPending = false;
     }
 
     // Forward SDK events directly to SSE subscribers
     this.broadcast(managed, event);
+  }
+
+  /**
+   * Check if memory flush should be triggered before compaction
+   */
+  private checkMemoryFlush(managed: ManagedSession): void {
+    // Skip if already pending or session is streaming
+    if (managed.memoryFlushPending || managed.session.isStreaming) {
+      return;
+    }
+
+    const stats = managed.session.getSessionStats();
+    const model = managed.session.model;
+
+    // Need model to get context window
+    if (!model) {
+      return;
+    }
+
+    const contextWindow = model.contextWindow;
+    const totalTokens = stats.tokens.total;
+
+    // Check if we should trigger memory flush
+    const shouldFlush = shouldRunMemoryFlush({
+      totalTokens,
+      contextWindow,
+      reserveTokensFloor: 20000,  // Default reserve
+      softThreshold: 4000,        // Trigger 4k tokens before compaction
+    });
+
+    if (shouldFlush) {
+      this.triggerMemoryFlush(managed);
+    }
+  }
+
+  /**
+   * Trigger memory flush - inject a message to save memories
+   */
+  private async triggerMemoryFlush(managed: ManagedSession): Promise<void> {
+    managed.memoryFlushPending = true;
+
+    try {
+      // Inject the memory flush prompt as a follow-up message
+      // This will be processed after the current turn completes
+      await managed.session.sendUserMessage(DEFAULT_MEMORY_FLUSH_PROMPT, {
+        deliverAs: "followUp",
+      });
+
+      console.log(`[MemoryFlush] Triggered for session ${managed.id}`);
+    } catch (error) {
+      console.error(`[MemoryFlush] Failed to trigger:`, error);
+      managed.memoryFlushPending = false;
+    }
   }
 
   private async autoRenameSession(managed: ManagedSession): Promise<void> {
