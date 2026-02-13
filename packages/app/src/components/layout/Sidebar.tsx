@@ -280,7 +280,7 @@ export function Sidebar() {
                       handleRenameSubmit();
                     }}
                     className="p-0.5 rounded hover:bg-green-500/20 transition-all flex-shrink-0"
-                    title="Save"
+                    title={t("common.save")}
                   >
                     ✓
                   </button>
@@ -290,7 +290,7 @@ export function Sidebar() {
                       handleRenameCancel();
                     }}
                     className="p-0.5 rounded hover:bg-destructive/20 transition-all flex-shrink-0"
-                    title="Cancel"
+                    title={t("common.cancel")}
                   >
                     ✕
                   </button>

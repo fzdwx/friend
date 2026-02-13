@@ -13,7 +13,10 @@
     "close": "Close",
     "new": "New",
     "export": "Export",
-    "import": "Import"
+    "import": "Import",
+    "copied": "Copied!",
+    "copyCode": "Copy code",
+    "back": "Back"
   },
   "sidebar": {
     "title": "Friend",
@@ -59,9 +62,15 @@
     "vibe": "Vibe",
     "noVibe": "No vibe set",
     "thinkingLevel": "Thinking Level",
+    "thinkingLevelOff": "Off",
+    "thinkingLevelMinimal": "Minimal",
+    "thinkingLevelLow": "Low",
+    "thinkingLevelMedium": "Medium",
+    "thinkingLevelHigh": "High",
     "defaultModel": "Default Model",
     "notSet": "Not set",
     "displayName": "Display Name",
+    "displayNamePlaceholder": "My Assistant",
     "emoji": "Emoji",
     "personality": "Vibe / Personality",
     "personalityPlaceholder": "Professional and efficient",
@@ -69,7 +78,8 @@
     "createNewAgent": "Create New Agent",
     "deleteConfirm": "Delete this agent? This cannot be undone.",
     "noAgents": "No agents yet.",
-    "createFirst": "Create your first agent"
+    "createFirst": "Create your first agent",
+    "agentLabel": "Agent"
   },
   "providers": {
     "title": "Custom Providers",
@@ -79,9 +89,12 @@
     "apiKey": "API Key (optional)",
     "apiProtocol": "API Protocol",
     "models": "Models",
+    "modelsLabel": "Models",
     "addModel": "Add Model",
     "modelId": "Model ID",
+    "modelIdPlaceholder": "Model ID (e.g. gpt-4o)",
     "modelName": "Display name",
+    "modelNamePlaceholder": "Display name",
     "contextWindow": "Context Window",
     "maxTokens": "Max Tokens",
     "reasoning": "Reasoning",
@@ -178,7 +191,20 @@
   },
   "chat": {
     "thinking": "Thinking...",
+    "thought": "Thought",
     "assistant": "Assistant",
     "user": "User"
+  },
+  "errors": {
+    "failedCreateSession": "Failed to create session",
+    "failedRenameSession": "Failed to rename session",
+    "failedLoadAgents": "Failed to load agents",
+    "failedCreateAgent": "Failed to create agent",
+    "failedUpdateAgent": "Failed to update agent",
+    "failedDeleteAgent": "Failed to delete agent"
+  },
+  "activity": {
+    "title": "Activity",
+    "active": "Active"
   }
 }

@@ -3,6 +3,7 @@ import { api } from "@/lib/api";
 import { useConfigStore } from "@/stores/configStore";
 import type { CustomProviderConfig, CustomModelConfig } from "@friend/shared";
 import { Plus, Trash2, ArrowLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const DEFAULT_MODEL: CustomModelConfig = {
   id: "",
@@ -14,6 +15,7 @@ const DEFAULT_MODEL: CustomModelConfig = {
 };
 
 export function SettingsPage() {
+  const { t } = useTranslation();
   const customProviders = useConfigStore((s) => s.customProviders);
   const { addCustomProvider, removeCustomProvider, setIsSettingsOpen } = useConfigStore();
 
@@ -36,11 +38,11 @@ export function SettingsPage() {
         <button
           onClick={() => setIsSettingsOpen(false)}
           className="p-1 rounded-md hover:bg-accent transition-colors"
-          title="Back"
+          title={t("common.back")}
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
-        <h1 className="text-sm font-semibold">Settings</h1>
+        <h1 className="text-sm font-semibold">{t("settings.title")}</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
@@ -134,6 +136,7 @@ function ProviderForm({
   onSave: (p: CustomProviderConfig) => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState<CustomProviderConfig>(provider);
 
   // Sync form state when provider prop changes (e.g., switching between providers to edit)
@@ -223,7 +226,7 @@ function ProviderForm({
       {/* Models */}
       <div>
         <div className="flex items-center justify-between mb-1">
-          <label className="text-[11px] text-muted-foreground font-medium">Models</label>
+          <label className="text-[11px] text-muted-foreground font-medium">{t("providers.modelsLabel")}</label>
           <button
             onClick={addModel}
             className="text-[11px] text-primary hover:underline flex items-center gap-0.5"
@@ -241,13 +244,13 @@ function ProviderForm({
                   <input
                     value={model.id}
                     onChange={(e) => updateModel(i, { id: e.target.value })}
-                    placeholder="Model ID (e.g. gpt-4o)"
+                    placeholder={t("providers.modelIdPlaceholder")}
                     className="bg-secondary border border-border rounded px-2 py-1 text-[11px] outline-none focus:ring-1 focus:ring-ring"
                   />
                   <input
                     value={model.name}
                     onChange={(e) => updateModel(i, { name: e.target.value })}
-                    placeholder="Display name"
+                    placeholder={t("providers.modelNamePlaceholder")}
                     className="bg-secondary border border-border rounded px-2 py-1 text-[11px] outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>

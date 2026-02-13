@@ -6,6 +6,7 @@ import { Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConfigStore } from "@/stores/configStore";
 import { FileIcon } from "@/components/ui/FileIcon";
+import { useTranslation } from "react-i18next";
 
 interface MarkdownRendererProps {
   children: string;
@@ -80,6 +81,7 @@ const langToExt: Record<string, string> = {
 };
 
 function CodeBlock({ className, children, node }: CodeBlockProps) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const activeThemeId = useConfigStore((s) => s.activeThemeId);
 
@@ -152,17 +154,17 @@ function CodeBlock({ className, children, node }: CodeBlockProps) {
         <button
           onClick={handleCopy}
           className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors rounded hover:bg-muted"
-          title={copied ? "Copied!" : "Copy code"}
+          title={copied ? t("common.copied") : t("common.copyCode")}
         >
           {copied ? (
             <>
               <Check className="w-3.5 h-3.5 text-green-500" />
-              <span className="text-green-500">Copied</span>
+              <span className="text-green-500">{t("common.copied")}</span>
             </>
           ) : (
             <>
               <Copy className="w-3.5 h-3.5" />
-              <span>Copy</span>
+              <span>{t("common.copyCode")}</span>
             </>
           )}
         </button>

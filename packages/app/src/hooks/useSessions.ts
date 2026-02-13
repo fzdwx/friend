@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { api } from "@/lib/api";
 import { useSessionStore } from "@/stores/sessionStore";
 import { useToolStore } from "@/stores/toolStore";
+import { getT } from "@/i18n/useTranslation";
 
 export function useSessions() {
   const {
@@ -33,7 +34,7 @@ export function useSessions() {
         clearExecutions();
         return { data: res.data };
       }
-      return { error: res.error || "Failed to create session" };
+      return { error: res.error || getT()("errors.failedCreateSession") };
     },
     [addSession, setActiveSession, setMessages, clearExecutions],
   );
@@ -83,7 +84,7 @@ export function useSessions() {
         setSessions(updatedSessions);
         return { data: { id, name } };
       }
-      return { error: res.error || "Failed to rename session" };
+      return { error: res.error || getT()("errors.failedRenameSession") };
     },
     [setSessions, sessions],
   );

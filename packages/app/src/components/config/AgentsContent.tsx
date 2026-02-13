@@ -322,7 +322,7 @@ function EditAgentForm({ agent, onChange, onSave, onCancel, isNew, modelsByProvi
                 identity: { ...agent.identity, name: e.target.value },
               })
             }
-            placeholder="My Assistant"
+            placeholder={t("agents.displayNamePlaceholder")}
             className="w-full mt-1 px-3 py-2 rounded-md bg-secondary border border-border text-sm focus:outline-none focus:ring-1 focus:ring-ring"
           />
         </div>
@@ -379,11 +379,11 @@ function EditAgentForm({ agent, onChange, onSave, onCancel, isNew, modelsByProvi
             onChange={(e) => onChange({ ...agent, thinkingLevel: e.target.value })}
             className="w-full mt-1 px-3 py-2 rounded-md bg-secondary border border-border text-sm focus:outline-none focus:ring-1 focus:ring-ring"
           >
-            <option value="off">Off</option>
-            <option value="minimal">Minimal</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
+            <option value="off">{t("agents.thinkingLevelOff")}</option>
+            <option value="minimal">{t("agents.thinkingLevelMinimal")}</option>
+            <option value="low">{t("agents.thinkingLevelLow")}</option>
+            <option value="medium">{t("agents.thinkingLevelMedium")}</option>
+            <option value="high">{t("agents.thinkingLevelHigh")}</option>
             <option value="xhigh">XHigh</option>
           </select>
         </div>

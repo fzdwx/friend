@@ -315,50 +315,69 @@ export function getTextContent(message: AssistantMessage): string {
 // ─── Plan Mode Prompts ────────────────────────────────────────────────────
 
 export const PLAN_MODE_CONTEXT_PROMPT = `[PLAN MODE ACTIVE]
-You are in plan mode - a read-only exploration mode for safe code analysis.
+You are in plan mode - a read-only exploration mode for detailed code analysis and planning.
 
 Restrictions:
 - You can only use: read, bash (read-only), grep, glob, ls
 - You CANNOT use: edit, write (file modifications are disabled)
 - Bash is restricted to an allowlist of read-only commands
 
-Analyze the code and create an execution plan.
+## Your Task
+
+1. First, THOROUGHLY analyze the codebase:
+   - Read relevant source files to understand existing patterns
+   - Check for related implementations that can be referenced
+   - Identify dependencies and imports needed
+   - Find the exact files that need to be modified or created
+
+2. Then, create a DETAILED execution plan with:
+   - Exact file paths for each file to create/modify
+   - Specific code changes or new code to write
+   - Dependencies to install
+   - Configuration changes needed
 
 ## Output Format
 
-Output ONLY a plan with numbered steps. No other content.
+Output ONLY the plan. Be specific and detailed.
 
 Plan:
-1. Main task description
-   1.1. Subtask one (optional)
-   1.2. Subtask two (optional)
-2. Next main task
-3. Another task
+1. [Specific action with file path]
+   1.1. [Detailed subtask with specific code/function names]
+   1.2. [Another detailed subtask]
+2. [Next specific action]
 ...
 
-## Plan Rules
+## Plan Quality Guidelines
 
-- Each main step must be a specific, actionable task
-- Use sequential numbers: 1, 2, 3...
-- Subtasks use format: 1.1, 1.2, 2.1, 2.2... (indented, under main task)
-- Do NOT include: analysis, evaluation, comparison, or decision-making
-- Only include tasks that will be executed
-- Keep each step concise (one line)
+GOOD Plan:
+- Specific file paths: "Create packages/server/src/agent/tools/browser.ts"
+- Specific function names: "Implement screenshot() function using playwright"
+- Specific changes: "Add 'playwright' to dependencies in package.json"
+- Includes context: "Follow the pattern from read.ts tool"
 
-## Examples
+BAD Plan (too vague):
+- "Create the tool file"
+- "Implement the function"
+- "Add dependencies"
+
+## Example Plan
 
 Plan:
 1. Install playwright dependency
-   1.1. Add to packages/server/package.json
-   1.2. Run bun install
-2. Create browser tool file
-   2.1. Create packages/server/src/agent/tools/browser.ts
-   2.2. Define parameter schema with TypeBox
-3. Implement core functions
-   3.1. Implement screenshot function
-   3.2. Implement navigate function
-   3.3. Implement click function
-4. Register tool in manager.ts`;
+   1.1. Add "playwright": "^1.42.0" to packages/server/package.json dependencies
+   1.2. Run bun install in packages/server directory
+2. Create browser tool file at packages/server/src/agent/tools/browser.ts
+   2.1. Import chromium from 'playwright' and Type from '@sinclair/typebox'
+   2.2. Define BrowserParams schema with action, url, selector, script fields
+   2.3. Create createBrowserTool() function following pattern from read.ts
+   2.4. Implement screenshot action that returns base64 encoded image
+   2.5. Implement navigate action that opens URL in browser
+3. Register browser tool in packages/server/src/agent/manager.ts
+   3.1. Import createBrowserTool from "./tools/browser.js"
+   3.2. Add createBrowserTool() to customTools array in createSession()
+4. Test the tool by sending a test message
+
+Now analyze the codebase thoroughly and create your detailed plan.`;
 
 export function getExecutionContextPrompt(todos: TodoItem[]): string {
   const remaining = todos.filter((t) => !t.completed);

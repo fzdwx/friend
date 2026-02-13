@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { api, type AgentInfo } from "@/lib/api";
+import { getT } from "@/i18n/useTranslation";
 
 // Re-export types for convenience
 export type { AgentInfo } from "@/lib/api";
@@ -30,7 +31,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     if (res.ok && res.data) {
       set({ agents: res.data, loading: false });
     } else {
-      set({ error: res.error || "Failed to load agents", loading: false });
+      set({ error: res.error || getT()("errors.failedLoadAgents"), loading: false });
     }
   },
 
@@ -41,7 +42,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       const newAgent = get().agents.find(a => a.id === res.data!.agentId);
       return { data: newAgent };
     }
-    return { error: res.error || "Failed to create agent" };
+    return { error: res.error || getT()("errors.failedCreateAgent") };
   },
 
   updateAgent: async (id, updates) => {
@@ -50,7 +51,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       await get().loadAgents();
       return {};
     }
-    return { error: res.error || "Failed to update agent" };
+    return { error: res.error || getT()("errors.failedUpdateAgent") };
   },
 
   deleteAgent: async (id) => {
@@ -59,7 +60,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       await get().loadAgents();
       return {};
     }
-    return { error: res.error || "Failed to delete agent" };
+    return { error: res.error || getT()("errors.failedDeleteAgent") };
   },
 
   setActiveAgent: (id) => set({ activeAgentId: id }),

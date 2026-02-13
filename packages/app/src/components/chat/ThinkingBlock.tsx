@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronRight, Brain, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface ThinkingBlockProps {
   content: string;
@@ -9,6 +10,7 @@ interface ThinkingBlockProps {
 }
 
 export function ThinkingBlock({ content, isStreaming, defaultExpanded }: ThinkingBlockProps) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(defaultExpanded ?? isStreaming);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -60,7 +62,7 @@ export function ThinkingBlock({ content, isStreaming, defaultExpanded }: Thinkin
         />
 
         <span className="font-medium text-violet-500/80">
-          {isStreaming ? "Thinking..." : "Thought"}
+          {isStreaming ? t("chat.thinking") : t("chat.thought")}
         </span>
 
         <span className="ml-auto text-[10px] text-muted-foreground/50 tabular-nums">

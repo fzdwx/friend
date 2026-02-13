@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useAgentStore } from "@/stores/agentStore";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface AgentSelectorProps {
   value: string | null;
@@ -10,6 +11,7 @@ interface AgentSelectorProps {
 }
 
 export function AgentSelector({ value, onChange, className }: AgentSelectorProps) {
+  const { t } = useTranslation();
   const { agents, loadAgents, loading } = useAgentStore();
 
   useEffect(() => {
@@ -23,7 +25,7 @@ export function AgentSelector({ value, onChange, className }: AgentSelectorProps
 
   return (
     <div className={cn("space-y-1.5", className)}>
-      <label className="text-xs text-muted-foreground">Agent</label>
+      <label className="text-xs text-muted-foreground">{t("agents.agentLabel")}</label>
       <div className="grid grid-cols-2 gap-1.5">
         {agents.map((agent) => {
           const isSelected = value === agent.id;

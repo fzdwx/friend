@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface ModalProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ const SIZES = {
 };
 
 export function Modal({ isOpen, onClose, children, title, size = "lg", className }: ModalProps) {
+  const { t } = useTranslation();
+  
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
@@ -59,7 +62,7 @@ export function Modal({ isOpen, onClose, children, title, size = "lg", className
             <button
               onClick={onClose}
               className="p-1 rounded-md hover:bg-accent transition-colors"
-              title="Close"
+              title={t("common.close")}
             >
               <X className="w-4 h-4" />
             </button>
