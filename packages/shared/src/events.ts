@@ -1,6 +1,9 @@
 // SSE Event types sent from server to frontend
 // Re-use SDK event types directly; only define app-specific extras.
 
+/** Server sends a ping every HEARTBEAT_INTERVAL ms to keep SSE alive */
+export const HEARTBEAT_INTERVAL = 1_000;
+
 import type { AgentSessionEvent } from "@mariozechner/pi-coding-agent";
 import type { ThemeConfig } from "./models.js";
 
