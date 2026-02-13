@@ -717,7 +717,7 @@ export class AgentManager implements IAgentManager {
     // Broadcast session_created event to update frontend
     this.broadcastGlobal({
       type: "session_created",
-      sessionId: sessionInfo.id,
+      newSessionId: sessionInfo.id,
       agentId: sessionInfo.agentId!,
       name: sessionInfo.name,
       workingPath: sessionInfo.workingPath,

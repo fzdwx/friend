@@ -104,7 +104,7 @@ export function useGlobalSSE() {
         // Handle session created event - add to session list and navigate
         if (event.type === "session_created") {
           const newSession = {
-            id: event.sessionId,
+            id: event.newSessionId,
             name: event.name,
             agentId: event.agentId,
             createdAt: new Date().toISOString(),
@@ -113,7 +113,7 @@ export function useGlobalSSE() {
             workingPath: event.workingPath,
           };
           useSessionStore.getState().addSession(newSession);
-          useSessionStore.getState().setActiveSession(event.sessionId);
+          useSessionStore.getState().setActiveSession(event.newSessionId);
           return;
         }
 

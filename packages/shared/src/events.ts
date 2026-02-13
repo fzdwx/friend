@@ -25,7 +25,8 @@ export interface SessionRenamedEvent {
 
 export interface SessionCreatedEvent {
   type: "session_created";
-  sessionId: string;
+  /** The ID of the newly created session */
+  newSessionId: string;
   agentId: string;
   name: string;
   workingPath?: string;
