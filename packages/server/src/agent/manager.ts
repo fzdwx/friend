@@ -183,7 +183,10 @@ export class AgentManager implements IAgentManager {
           "Never claim to be made by Anthropic, OpenAI, or any other company.",
           "",
           "<startup_commands>",
-          "When AGENTS.md contains a STARTUP section with <cmd:...> tags, you MUST execute them BEFORE responding:",
+          "IMPORTANT: Execute these commands at the start of EVERY turn, before responding to the user.",
+          "This ensures you always read the latest file content (IDENTITY.md, SOUL.md, MEMORY.md, etc.).",
+          "",
+          "When AGENTS.md contains a STARTUP section with <cmd:...> tags:",
           "",
           "- <cmd:read path=\"X\" /> → use read tool on file X (required)",
           "- <cmd:read path=\"X\" onmissing=\"skip\" /> → read if exists, skip if not",
@@ -367,12 +370,26 @@ export class AgentManager implements IAgentManager {
     // 5. Initialize SkillWatcher
     await ensureSkillsDir(GLOBAL_SKILLS_DIR);
 
-    this.skillWatcher = new SkillWatcher(() => {
-      for (const managed of this.managedSessions.values()) {
-        managed.resourceLoader.reload().catch(console.error);
+    // Get all agent IDs for skill watching
+    const allAgents = await listAgents();
+    const agentIds = allAgents.map((a) => a.id);
+
+    this.skillWatcher = new SkillWatcher((affectedAgentId) => {
+      if (affectedAgentId) {
+        // Only reload sessions using this agent
+        for (const managed of this.managedSessions.values()) {
+          if (managed.agentId === affectedAgentId) {
+            managed.resourceLoader.reload().catch(console.error);
+          }
+        }
+      } else {
+        // Global change - reload all sessions
+        for (const managed of this.managedSessions.values()) {
+          managed.resourceLoader.reload().catch(console.error);
+        }
       }
     });
-    this.skillWatcher.start();
+    this.skillWatcher.start(agentIds);
   }
 
   // Custom provider management
@@ -519,28 +536,35 @@ export class AgentManager implements IAgentManager {
 
   /**
    * Get skill directory paths.
+   * Returns global skills directory + all agent skills directories.
    */
   getSkillPaths(): {
     global: string;
     agents: Array<{ agentId: string; path: string }>;
   } {
+    // Get all agents from database (async, but we need sync)
+    // For now, return paths from loaded sessions + cache
     const agents: Array<{ agentId: string; path: string }> = [];
-    const seenAgents = new Set<string>();
 
-    for (const managed of this.managedSessions.values()) {
-      if (!seenAgents.has(managed.agentId)) {
-        seenAgents.add(managed.agentId);
-        agents.push({
-          agentId: managed.agentId,
-          path: resolveAgentSkillsDir(managed.agentId),
-        });
-      }
+    // Use cached agent list if available
+    for (const agentId of this.cachedAgentIds) {
+      agents.push({
+        agentId,
+        path: resolveAgentSkillsDir(agentId),
+      });
     }
 
     return {
       global: GLOBAL_SKILLS_DIR,
       agents,
     };
+  }
+
+  private cachedAgentIds: string[] = [];
+
+  private async refreshCachedAgents(): Promise<void> {
+    const allAgents = await listAgents();
+    this.cachedAgentIds = allAgents.map((a) => a.id);
   }
 
   /**

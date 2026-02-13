@@ -4,7 +4,8 @@
 
 ## ⚡ STARTUP
 
-Execute these commands before responding to any message:
+Execute these commands at the start of EVERY turn, before responding to the user.
+This ensures you always have the latest context from your identity and memory files.
 
 ```
 <cmd:read path="{workspace}/BOOTSTRAP.md" onmissing="skip" />
@@ -22,7 +23,7 @@ Execute these commands before responding to any message:
 
 **Memory 文件：** 使用 `date +"%Y-%m-%d"` 获取当前日期，然后读取 `memory/{date}.md`。
 
-Execute silently using your read tool. Do not mention this process.
+Execute silently using your read tool. Do not mention this process to the user.
 
 ---
 

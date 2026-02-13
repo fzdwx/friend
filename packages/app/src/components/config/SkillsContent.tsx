@@ -9,12 +9,14 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronRight,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SkillGroup {
   title: string;
-  type: "global" | "project";
+  type: "global" | "agent";
+  agentId?: string;
   path: string;
   skills: SkillInfo[];
 }
@@ -59,11 +61,11 @@ export function SkillsContent() {
     loadSkills();
   }, []);
 
-  // Group skills by source (global vs project) and path
+  // Group skills by source (global vs agent)
   const skillGroups = useMemo((): SkillGroup[] => {
     const groups: SkillGroup[] = [];
 
-    // Global skills
+    // Global skills (source === "user")
     const globalSkills = skills.filter((s) => s.source === "user");
     if (globalSkills.length > 0) {
       groups.push({
@@ -74,28 +76,30 @@ export function SkillsContent() {
       });
     }
 
-    // Project skills - group by their base directory's parent (the .friend/skills dir)
-    const projectSkills = skills.filter((s) => s.source === "project");
-    const projectGroups = new Map<string, SkillInfo[]>();
+    // Agent skills - group by agentId
+    const agentSkills = skills.filter((s) => s.source === "agent");
+    const agentGroups = new Map<string, SkillInfo[]>();
 
-    for (const skill of projectSkills) {
-      // Get the .friend/skills directory path
-      const skillsDir = skill.baseDir.replace(/\/[^/]+$/, "");
-      if (!projectGroups.has(skillsDir)) {
-        projectGroups.set(skillsDir, []);
+    for (const skill of agentSkills) {
+      // Extract agentId from path: ~/.config/friend/agents/{agentId}/skills/...
+      const match = skill.filePath.match(/\/agents\/([^/]+)\/skills\//);
+      const agentId = match ? match[1] : "unknown";
+
+      if (!agentGroups.has(agentId)) {
+        agentGroups.set(agentId, []);
       }
-      projectGroups.get(skillsDir)!.push(skill);
+      agentGroups.get(agentId)!.push(skill);
     }
 
-    // Convert to groups - use project path as title
-    for (const [skillsDir, dirSkills] of projectGroups) {
-      // Extract project root from skills dir (e.g., /home/like/projects/friend/.friend/skills -> /home/like/projects/friend)
-      const projectRoot = skillsDir.replace(/\/.friend\/skills$/, "");
+    // Convert to groups, using paths.agents for metadata
+    for (const [agentId, agentSkillList] of agentGroups) {
+      const agentPath = paths?.agents.find((a) => a.agentId === agentId)?.path || "";
       groups.push({
-        title: projectRoot,
-        type: "project",
-        path: skillsDir,
-        skills: dirSkills,
+        title: `${agentId} Skills`,
+        type: "agent",
+        agentId,
+        path: agentPath,
+        skills: agentSkillList,
       });
     }
 
@@ -165,10 +169,10 @@ export function SkillsContent() {
           </a>
         </div>
       ) : (
-        /* Skills List grouped by path */
+        /* Skills List grouped by source */
         <div className="space-y-4">
           {skillGroups.map((group) => (
-            <SkillSection key={group.path} group={group} />
+            <SkillSection key={group.type === "agent" ? group.agentId : "global"} group={group} />
           ))}
         </div>
       )}
@@ -210,13 +214,8 @@ function SkillSection({ group }: SkillSectionProps) {
         )}
         <div className="flex-1 text-left">
           <div className="flex items-center gap-2 flex-wrap">
-            {group.type === "global" ? (
-              <span className="font-medium text-sm">{group.title}</span>
-            ) : (
-              <code className="font-mono text-xs text-foreground bg-muted px-1.5 py-0.5 rounded">
-                {group.title}
-              </code>
-            )}
+            {group.type === "agent" && <Bot className="w-4 h-4 text-primary" />}
+            <span className="font-medium text-sm">{group.title}</span>
             <span
               className={cn(
                 "px-1.5 py-0.5 text-[10px] font-medium rounded",
@@ -225,20 +224,18 @@ function SkillSection({ group }: SkillSectionProps) {
                   : "bg-accent text-accent-foreground",
               )}
             >
-              {group.type === "global" ? "Global" : "Project"}
+              {group.type === "global" ? "Global" : "Agent"}
             </span>
             <span className="text-xs text-muted-foreground">
               ({group.skills.length} skill{group.skills.length !== 1 ? "s" : ""})
             </span>
           </div>
-          {group.type === "global" && (
-            <div className="flex items-center gap-1 mt-1">
-              <FolderOpen className="w-3 h-3 text-muted-foreground" />
-              <code className="font-mono text-[10px] text-muted-foreground truncate">
-                {group.path}
-              </code>
-            </div>
-          )}
+          <div className="flex items-center gap-1 mt-1">
+            <FolderOpen className="w-3 h-3 text-muted-foreground" />
+            <code className="font-mono text-[10px] text-muted-foreground truncate">
+              {group.path}
+            </code>
+          </div>
         </div>
       </button>
 
