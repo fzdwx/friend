@@ -37,7 +37,7 @@ function PendingMessages() {
 
 /**
  * Plan mode panel - shows PlanEditor when plan is ready,
- * PlanProgress during execution.
+ * PlanProgress during execution, or a status indicator when enabled but no todos yet.
  */
 function PlanModePanel() {
   const sessionId = useSessionStore((s) => s.activeSessionId);
@@ -80,6 +80,28 @@ function PlanModePanel() {
           onCancel={handleCancel}
           disabled={isStreaming}
         />
+      </div>
+    );
+  }
+
+  // Show status indicator when plan mode is enabled but no todos yet
+  if (planModeEnabled && planModeTodos.length === 0) {
+    return (
+      <div className="px-4 py-2">
+        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 flex items-center gap-2">
+          <span className="text-yellow-600 dark:text-yellow-400 text-sm font-medium">
+            📋 Plan Mode Active
+          </span>
+          <span className="text-muted-foreground text-xs">
+            — Describe what you want to plan
+          </span>
+          <button
+            onClick={handleCancel}
+            className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     );
   }
