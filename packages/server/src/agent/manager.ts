@@ -168,10 +168,6 @@ export class AgentManager implements IAgentManager {
       systemPromptOverride: () => {
         return `[IDENTITY] You are "${resolvedConfig.identity?.name || "Friend"}", a personal assistant running inside Friend.\nYou are NOT Claude, NOT ChatGPT, NOT any other AI product.\nWhen asked who you are, say you are ${resolvedConfig.identity?.name || "Friend"}.\nNever claim to be made by Anthropic, OpenAI, or any other company.`;
       },
-      agentsFilesOverride: () => {
-        // Return empty - context injected via before_agent_start instead
-        return { agentsFiles: [] };
-      },
       skillsOverride: () => {
         // Load global skills
         const globalResult = loadSkillsFromDir({ dir: GLOBAL_SKILLS_DIR, source: "user" });
@@ -189,11 +185,27 @@ export class AgentManager implements IAgentManager {
           diagnostics: [...globalResult.diagnostics, ...agentResult.diagnostics],
         };
       },
-      // Inject full context via before_agent_start (works even if provider overrides system prompt)
+      // Inject full context via before_agent_start on first message only
       extensionFactories: [
         (pi) => {
-          pi.on("before_agent_start", async () => {
-            const workspacePrompt = buildWorkspacePrompt(cwd, workspaceFiles, resolvedConfig.identity, agentWorkspace);
+          pi.on("before_agent_start", async (_event, ctx) => {
+            // Check if identity_context already injected
+            const entries = ctx.sessionManager.getEntries();
+            const hasIdentity = entries.some(
+              (e) =>
+                e.type === "message" &&
+                e.message.role === "user" &&
+                (e.message as any).customType === "identity_context"
+            );
+            if (hasIdentity) return; // Already injected, skip
+
+            // First message - inject workspace context
+            const workspacePrompt = buildWorkspacePrompt(
+              cwd,
+              workspaceFiles,
+              resolvedConfig.identity,
+              agentWorkspace
+            );
             return {
               message: {
                 customType: "identity_context",
