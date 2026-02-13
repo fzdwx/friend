@@ -1086,7 +1086,6 @@ Your output must be:
     if (!managed) throw new Error(`Session ${id} not found`);
 
     const currentState = this.getPlanModeState(id);
-    console.log(`[PlanMode] planAction called: action=${action}, currentState=`, currentState);
 
     if (action === "execute") {
       // Switch to execution mode
@@ -1096,7 +1095,6 @@ Your output must be:
         executing: true,
         todos,
       };
-      console.log(`[PlanMode] Setting executing state with ${todos.length} todos`);
       this.setPlanModeState(id, newState);
       managed.session.setActiveToolsByName(NORMAL_MODE_TOOLS);
 
@@ -1109,13 +1107,10 @@ Your output must be:
         : "Execute the plan.";
       
       if (managed.session.isStreaming) {
-        console.log(`[PlanMode] Agent is streaming, sending followUp: ${execMessage}`);
         await managed.session.followUp(execMessage);
       } else {
-        console.log(`[PlanMode] Agent is idle, sending prompt: ${execMessage}`);
         await managed.session.prompt(execMessage);
       }
-      console.log(`[PlanMode] Message sent successfully`);
 
     } else if (action === "cancel") {
       // Exit plan mode

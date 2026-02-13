@@ -334,10 +334,8 @@ export function createPlanModeExtension(callbacks: PlanModeExtensionCallbacks): 
       if (!sessionId) return;
 
       const state = getState(sessionId);
-      console.log(`[PlanMode] before_agent_start: enabled=${state.enabled}, executing=${state.executing}, todos=${state.todos.length}`);
 
       if (state.enabled && !state.executing) {
-        console.log(`[PlanMode] Injecting plan mode context`);
         return {
           message: {
             customType: "plan-mode-context",
@@ -349,7 +347,6 @@ export function createPlanModeExtension(callbacks: PlanModeExtensionCallbacks): 
 
       if (state.executing && state.todos.length > 0) {
         const context = getExecutionContextPrompt(state.todos);
-        console.log(`[PlanMode] Injecting execution context: ${context.substring(0, 100)}...`);
         if (context) {
           return {
             message: {
