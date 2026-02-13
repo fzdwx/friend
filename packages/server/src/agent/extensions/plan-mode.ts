@@ -283,7 +283,6 @@ export function createPlanModeExtension(callbacks: PlanModeExtensionCallbacks): 
     pi.registerCommand("plan", {
       description: "Toggle plan mode (read-only exploration)",
       handler: async (_args, ctx) => {
-        console.log("[PlanMode] /plan command handler called!");
         const sessionId = ctx.sessionManager.getSessionId();
         const current = getState(sessionId);
 
@@ -293,7 +292,6 @@ export function createPlanModeExtension(callbacks: PlanModeExtensionCallbacks): 
           todos: [],
         };
 
-        console.log(`[PlanMode] Toggling plan mode: ${current.enabled} -> ${newState.enabled}`);
         setState(sessionId, newState);
 
         if (newState.enabled) {
@@ -305,7 +303,6 @@ export function createPlanModeExtension(callbacks: PlanModeExtensionCallbacks): 
         }
       },
     });
-    console.log("[PlanMode] /plan command registered via pi.registerCommand");
 
     // Block destructive bash commands in plan mode
     pi.on("tool_call", async (event, ctx) => {

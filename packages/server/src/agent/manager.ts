@@ -182,7 +182,6 @@ export class AgentManager implements IAgentManager {
   }
 
   private setPlanModeState(sessionId: string, state: PlanModeState): void {
-    console.log(`[PlanMode] setPlanModeState called: sessionId=${sessionId}, state=`, state);
     this.planModeStates.set(sessionId, state);
     // Update ManagedSession if it exists
     const managed = this.managedSessions.get(sessionId);
@@ -195,34 +194,24 @@ export class AgentManager implements IAgentManager {
 
   // Register SDK sessionId to DB sessionId mapping
   registerSdkSessionId(sdkSessionId: string, dbSessionId: string): void {
-    console.log(`[PlanMode] Registering mapping: SDK=${sdkSessionId} -> DB=${dbSessionId}`);
     this.sdkToDbSessionId.set(sdkSessionId, dbSessionId);
   }
 
   // Resolve DB sessionId from SDK sessionId
   resolveDbSessionId(sdkSessionId: string): string | undefined {
-    const dbId = this.sdkToDbSessionId.get(sdkSessionId);
-    console.log(`[PlanMode] Resolving SDK=${sdkSessionId} -> DB=${dbId}`);
-    return dbId;
+    return this.sdkToDbSessionId.get(sdkSessionId);
   }
 
   private broadcastPlanModeState(sessionId: string, state: PlanModeState): void {
-    console.log(`[PlanMode] broadcastPlanModeState: sessionId=${sessionId}`);
     const managed = this.managedSessions.get(sessionId);
-    console.log(`[PlanMode] managed=${!!managed}`);
-    if (!managed) {
-      console.warn(`[PlanMode] WARNING: sessionId ${sessionId} not found in managedSessions!`);
-      return;
-    }
+    if (!managed) return;
     
-    const event = {
-      type: "plan_mode_state_changed" as const,
+    this.broadcast(managed, {
+      type: "plan_mode_state_changed",
       enabled: state.enabled,
       executing: state.executing,
       todos: state.todos,
-    };
-    console.log(`[PlanMode] Broadcasting event:`, event);
-    this.broadcast(managed, event);
+    });
   }
 
   private handlePlanReady(sessionId: string, todos: TodoItem[]): void {
@@ -354,8 +343,6 @@ export class AgentManager implements IAgentManager {
             const dbSessionId = this.resolveDbSessionId(sdkSessionId);
             if (dbSessionId) {
               this.setPlanModeState(dbSessionId, state);
-            } else {
-              console.warn(`[PlanMode] Cannot set state: no mapping for SDK sessionId ${sdkSessionId}`);
             }
           },
           // Plan ready - notify frontend
@@ -412,8 +399,7 @@ export class AgentManager implements IAgentManager {
       this.registerSdkSessionId(sdkSessionId, dbSessionId);
     }
     
-    // Debug: log extension loading
-    console.log(`[PlanMode] Extensions loaded: ${extensionsResult.extensions.length}`);
+    // Debug: log extension errors if any
     if (extensionsResult.errors.length > 0) {
       console.error('[PlanMode] Extension errors:', extensionsResult.errors);
     }
@@ -1066,16 +1052,10 @@ Your output must be:
     managed.updatedAt = new Date().toISOString();
     prisma.session.update({ where: { id }, data: { updatedAt: new Date() } }).catch(() => {});
 
-    // Debug: log incoming message
-    console.log(`[PlanMode] prompt() called with: "${message.substring(0, 50)}..."`);
-    console.log(`[PlanMode] Current state:`, this.getPlanModeState(id));
-
     // Check if this should trigger plan mode
     const currentState = this.getPlanModeState(id);
     if (!currentState.enabled && !currentState.executing) {
-      const complexity = shouldTriggerPlanMode(message);
-      console.log(`[PlanMode] shouldTriggerPlanMode: ${complexity}`);
-      if (complexity) {
+      if (shouldTriggerPlanMode(message)) {
         // Enable plan mode
         this.setPlanModeState(id, { enabled: true, executing: false, todos: [] });
         managed.session.setActiveToolsByName(PLAN_MODE_TOOLS);
@@ -1084,11 +1064,7 @@ Your output must be:
 
     // Run prompt (non-blocking - returns after agent finishes)
     // SDK session automatically tracks user + assistant messages
-    console.log(`[PlanMode] Calling session.prompt()...`);
-    managed.session.prompt(message).then(() => {
-      console.log(`[PlanMode] session.prompt() completed`);
-    }).catch((err) => {
-      console.error(`[PlanMode] session.prompt() error:`, err);
+    managed.session.prompt(message).catch((err) => {
       this.broadcast(managed, { type: "error", message: String(err) });
     });
   }

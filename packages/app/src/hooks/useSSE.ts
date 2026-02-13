@@ -216,7 +216,6 @@ export function useGlobalSSE() {
 
           // Plan mode events
           case "plan_mode_state_changed":
-            console.log("[PlanMode] SSE received plan_mode_state_changed:", event);
             useSessionStore.getState().setPlanModeState(
               event.enabled,
               event.executing,
@@ -225,7 +224,6 @@ export function useGlobalSSE() {
             break;
 
           case "plan_mode_request_choice":
-            console.log("[PlanMode] SSE received plan_mode_request_choice:", event);
             useSessionStore.getState().setPlanModeState(
               true,  // enabled
               false, // not executing yet
@@ -234,7 +232,6 @@ export function useGlobalSSE() {
             break;
 
           case "plan_mode_progress":
-            console.log("[PlanMode] SSE received plan_mode_progress:", event);
             useSessionStore.getState().setPlanModeProgress(
               event.completed,
               event.total,
@@ -242,7 +239,6 @@ export function useGlobalSSE() {
             break;
 
           case "plan_mode_complete":
-            console.log("[PlanMode] SSE received plan_mode_complete:", event);
             useSessionStore.getState().clearPlanMode();
             break;
 
