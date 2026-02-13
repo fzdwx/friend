@@ -21,6 +21,7 @@
 - **流式对话** - 基于 SSE 的实时流式传输，零延迟看到 AI 思考和回复
 - **思维链可视化** - 独立 Activity 面板展示 AI 思考过程和工具调用
 - **会话管理** - 创建、切换、删除会话，自动持久化聊天记录
+- **Memory 系统** - Agent 拥有长期记忆和每日日志，支持语义搜索
 - **自定义工具** - 扩展 AI 能力，当前提供 4 个主题管理工具
 
 ### 🎨 主题系统
@@ -107,9 +108,17 @@ just build-tauri
 │   ├── server/              # Elysia API 后端
 │   │   └── src/
 │   │       ├── agent/
-│   │       │   ├── manager.ts    # AgentManager 核心
+│   │       │   ├── manager.ts         # AgentManager 核心
+│   │       │   ├── memory-flush.ts    # 记忆自动保存 ⭐
+│   │       │   ├── memory/            # Memory 系统 ⭐
+│   │       │   │   ├── manager.ts     # MemoryIndexManager
+│   │       │   │   ├── embedding.ts   # OpenAI/Gemini/Voyage
+│   │       │   │   ├── storage.ts     # SQLite + sqlite-vec
+│   │       │   │   ├── chunking.ts    # Markdown 分块
+│   │       │   │   └── types.ts
 │   │       │   └── tools/        # 自定义工具 ⭐
 │   │       │       ├── index.ts
+│   │       │       ├── memory.ts      # memory_search, memory_get ⭐
 │   │       │       ├── custom-provider-add.ts
 │   │       │       ├── theme-get.ts
 │   │       │       ├── theme-generate.ts
@@ -128,7 +137,7 @@ just build-tauri
 │   │       │   ├── layout/       # Sidebar, ChatPanel, ActivityPanel
 │   │       │   ├── chat/         # MessageList, InputArea, ThinkingBlock
 │   │       │   ├── activity/     # TurnGroup, StreamingTurn ⭐
-│   │       │   ├── config/       # ProviderSettings, AppearanceSettings
+│   │       │   ├── config/       # ProviderSettings, MemorySettings, AppearanceSettings
 │   │       │   └── ModelSelector.tsx
 │   │       ├── stores/           # Zustand 状态管理
 │   │       ├── hooks/            # useSSE, useApi, useSession
@@ -146,6 +155,84 @@ just build-tauri
 ├── justfile                  # 任务命令定义
 └── package.json              # Bun workspaces 配置
 ```
+
+## 🧠 Memory 系统
+
+Friend 实现了完整的 Agent 记忆机制，让 Agent 拥有持久化的上下文和个性。
+
+### Agent Workspace 结构
+
+每个 Agent 拥有独立的工作空间：
+
+```
+~/.config/friend/agents/{agent-name}/
+├── AGENTS.md       # 行为指令
+├── SOUL.md         # 核心人格定义
+├── IDENTITY.md     # 身份信息
+├── USER.md         # 用户信息
+├── MEMORY.md       # 长期记忆（偏好、决策、教训）
+├── HEARTBEAT.md    # 心跳任务（可选）
+└── memory/         # 每日记忆日志
+    └── YYYY-MM-DD.md
+```
+
+### 记忆类型
+
+| 文件 | 用途 |
+|------|------|
+| `MEMORY.md` | 长期记忆 - 重要的偏好、决策、教训 |
+| `memory/YYYY-MM-DD.md` | 每日日志 - 当天的上下文和事件 |
+
+### 搜索能力
+
+Memory 系统支持两种搜索模式：
+
+| 模式 | 说明 | 配置要求 |
+|------|------|----------|
+| **BM25 关键词搜索** | 基于词频的全文搜索 | 无需配置，开箱即用 |
+| **向量语义搜索** | 基于嵌入向量的语义相似度 | 需配置 Embedding API |
+| **混合搜索** | 70% 向量 + 30% 关键词 | 需配置 Embedding API |
+
+### Embedding Providers
+
+支持多种 Embedding 服务：
+
+| Provider | 模型 | 维度 |
+|----------|------|------|
+| OpenAI | text-embedding-3-small | 1536 |
+| Gemini | gemini-embedding-001 | 768 |
+| Voyage | voyage-4-large | 1024 |
+
+### Memory 工具
+
+Agent 自动获得记忆工具：
+
+```
+# 语义搜索记忆
+memory_search(query="OpenClaw memory 设计", maxResults=10)
+
+# 读取特定记忆片段
+memory_get(path="memory/2026-02-13.md", from=50, lines=20)
+```
+
+### Memory Flush
+
+在对话 compaction 之前自动保存重要记忆，确保长期上下文不会丢失：
+
+- 触发时机：距离 compaction 阈值 4000 tokens
+- 自动提取重要信息写入每日日志
+- 定期同步到 SQLite 向量数据库
+
+### 配置 Memory
+
+在前端设置页面配置 Embedding Provider：
+
+1. 打开设置 → Memory
+2. 选择 Embedding Provider（OpenAI/Gemini/Voyage）
+3. 输入 API Key
+4. 保存配置
+
+配置后 Agent 将自动使用混合搜索获得更精准的记忆召回。
 
 ## 🛠️ 技术栈
 
