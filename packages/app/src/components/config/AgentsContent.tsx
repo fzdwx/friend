@@ -12,12 +12,10 @@ import {
   ChevronRight,
   ChevronDown,
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
 
 type EditMode = "none" | "create" | "edit";
 
 export function AgentsContent() {
-  const { t } = useTranslation();
   const {
     agents,
     loading,
@@ -85,7 +83,7 @@ export function AgentsContent() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm(t("agents.deleteConfirm"))) {
+    if (confirm("Delete this agent? This cannot be undone.")) {
       const result = await deleteAgent(id);
       if (result.error) {
         alert(result.error);
@@ -105,7 +103,7 @@ export function AgentsContent() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">{t("common.loading")}</div>
+        <div className="text-muted-foreground">Loading agents...</div>
       </div>
     );
   }

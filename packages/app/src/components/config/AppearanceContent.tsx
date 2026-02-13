@@ -6,7 +6,6 @@ import type { ThemeConfig, ColorSet, ColorDefinition } from "@friend/shared";
 import { PresetCard } from "./PresetCard";
 import { ColorPicker } from "./ColorPicker";
 import { cn } from "@/lib/utils";
-import { useTranslation } from "react-i18next";
 
 const COLOR_KEYS: Array<keyof ColorSet> = [
   "background",
@@ -33,10 +32,34 @@ const COLOR_KEYS: Array<keyof ColorSet> = [
   "sidebarBorder",
 ];
 
+const COLOR_LABELS: Record<keyof ColorSet, string> = {
+  background: "Background",
+  foreground: "Foreground",
+  card: "Card",
+  cardForeground: "Card Foreground",
+  popover: "Popover",
+  popoverForeground: "Popover Foreground",
+  primary: "Primary",
+  primaryForeground: "Primary Foreground",
+  secondary: "Secondary",
+  secondaryForeground: "Secondary Foreground",
+  muted: "Muted",
+  mutedForeground: "Muted Foreground",
+  accent: "Accent",
+  accentForeground: "Accent Foreground",
+  destructive: "Destructive",
+  destructiveForeground: "Destructive Foreground",
+  border: "Border",
+  input: "Input",
+  ring: "Ring",
+  sidebar: "Sidebar",
+  sidebarForeground: "Sidebar Foreground",
+  sidebarBorder: "Sidebar Border",
+};
+
 type Tab = "presets" | "custom";
 
 export function AppearanceContent() {
-  const { t } = useTranslation();
   const activeThemeId = useConfigStore((s) => s.activeThemeId);
   const getAllThemes = useConfigStore((s) => s.getAllThemes);
   const setActiveThemeId = useConfigStore((s) => s.setActiveThemeId);
@@ -51,11 +74,6 @@ export function AppearanceContent() {
   const themes = getAllThemes();
   const activeTheme = themes.find((t) => t.id === activeThemeId);
   const customThemes = themes.filter((t) => !t.isBuiltIn);
-
-  // Helper to get color label from translation
-  const getColorLabel = (key: keyof ColorSet): string => {
-    return t(`appearance.colors.${key}`);
-  };
 
   const handleSelectTheme = (themeId: string) => {
     setActiveThemeId(themeId);
@@ -156,7 +174,7 @@ export function AppearanceContent() {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-[var(--color-foreground)]">{t("appearance.editTheme")}</h2>
+            <h2 className="text-lg font-semibold text-[var(--color-foreground)]">编辑主题</h2>
             <p className="text-sm text-[var(--color-muted-foreground)]">{editingTheme?.name}</p>
           </div>
           <div className="flex gap-2">
@@ -164,13 +182,13 @@ export function AppearanceContent() {
               onClick={handleCancelEdit}
               className="px-3 py-1.5 text-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)] transition-colors"
             >
-              {t("common.cancel")}
+              取消
             </button>
             <button
               onClick={handleSaveCustomTheme}
               className="px-3 py-1.5 text-sm rounded-lg bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 transition-opacity"
             >
-              {t("common.save")}
+              保存
             </button>
           </div>
         </div>
@@ -179,7 +197,7 @@ export function AppearanceContent() {
           {COLOR_KEYS.map((key) => (
             <ColorPicker
               key={key}
-              label={getColorLabel(key)}
+              label={COLOR_LABELS[key]}
               value={editingColors[key]}
               onChange={(color) => handleColorChange(key, color)}
             />
@@ -193,15 +211,15 @@ export function AppearanceContent() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-[var(--color-foreground)]">{t("appearance.title")}</h2>
-          <p className="text-sm text-[var(--color-muted-foreground)]">{t("appearance.subtitle")}</p>
+          <h2 className="text-lg font-semibold text-[var(--color-foreground)]">外观</h2>
+          <p className="text-sm text-[var(--color-muted-foreground)]">自定义主题颜色和外观风格</p>
         </div>
         <div className="flex gap-2">
           <label className="cursor-pointer">
             <input type="file" accept=".json" className="hidden" onChange={handleImportTheme} />
             <div className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)] transition-colors">
               <Upload className="w-4 h-4" />
-              {t("common.import")}
+              导入
             </div>
           </label>
           {activeTheme && !activeTheme.isBuiltIn && (
@@ -210,7 +228,7 @@ export function AppearanceContent() {
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)] transition-colors"
             >
               <Download className="w-4 h-4" />
-              {t("common.export")}
+              导出
             </button>
           )}
           <button
@@ -218,7 +236,7 @@ export function AppearanceContent() {
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 transition-opacity"
           >
             <Plus className="w-4 h-4" />
-            {t("appearance.newTheme")}
+            新建
           </button>
         </div>
       </div>
@@ -233,7 +251,7 @@ export function AppearanceContent() {
               : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]",
           )}
         >
-          {t("appearance.presets")}
+          预设主题
         </button>
         <button
           onClick={() => setTab("custom")}
@@ -244,7 +262,7 @@ export function AppearanceContent() {
               : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]",
           )}
         >
-          {t("appearance.customCount", { count: customThemes.length })}
+          自定义主题 ({customThemes.length})
         </button>
       </div>
 
@@ -265,7 +283,7 @@ export function AppearanceContent() {
                       handleEditTheme(theme.id);
                     }}
                     className="p-1.5 rounded bg-[var(--color-card)] border border-[var(--color-border)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)] shadow-sm"
-                    title={t("common.edit")}
+                    title="编辑"
                   >
                     <Edit3 className="w-3 h-3" />
                   </button>
@@ -275,7 +293,7 @@ export function AppearanceContent() {
                       handleDeleteTheme(theme.id);
                     }}
                     className="p-1.5 rounded bg-[var(--color-destructive)]/10 border border-[var(--color-destructive)]/20 text-[var(--color-destructive)] hover:bg-[var(--color-destructive)]/20 shadow-sm"
-                    title={t("common.delete")}
+                    title="删除"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -290,13 +308,13 @@ export function AppearanceContent() {
         <div>
           {customThemes.length === 0 ? (
             <div className="text-center py-12 text-[var(--color-muted-foreground)]">
-              <p className="mb-4">{t("appearance.noCustomThemes")}</p>
+              <p className="mb-4">还没有自定义主题</p>
               <button
                 onClick={handleCreateCustomTheme}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 transition-opacity"
               >
                 <Plus className="w-4 h-4" />
-                {t("appearance.createFirstTheme")}
+                创建第一个自定义主题
               </button>
             </div>
           ) : (
@@ -315,7 +333,7 @@ export function AppearanceContent() {
                         handleEditTheme(theme.id);
                       }}
                       className="p-1.5 rounded bg-[var(--color-card)] border border-[var(--color-border)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)] shadow-sm"
-                      title={t("common.edit")}
+                      title="编辑"
                     >
                       <Edit3 className="w-3 h-3" />
                     </button>
@@ -325,7 +343,7 @@ export function AppearanceContent() {
                         handleDeleteTheme(theme.id);
                       }}
                       className="p-1.5 rounded bg-[var(--color-destructive)]/10 border border-[var(--color-destructive)]/20 text-[var(--color-destructive)] hover:bg-[var(--color-destructive)]/20 shadow-sm"
-                      title={t("common.delete")}
+                      title="删除"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
