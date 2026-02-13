@@ -1100,14 +1100,22 @@ Your output must be:
       this.setPlanModeState(id, newState);
       managed.session.setActiveToolsByName(NORMAL_MODE_TOOLS);
 
-      // Send followUp to trigger execution
+      // Send message to trigger execution
+      // If agent is streaming (plan mode just ended), use followUp
+      // Otherwise use prompt to start the agent
       const firstStep = todos.find(t => !t.completed);
       const execMessage = firstStep
         ? `Execute the plan. Start with: ${firstStep.text}`
         : "Execute the plan.";
-      console.log(`[PlanMode] Sending prompt: ${execMessage}`);
-      await managed.session.prompt(execMessage);
-      console.log(`[PlanMode] prompt sent successfully`);
+      
+      if (managed.session.isStreaming) {
+        console.log(`[PlanMode] Agent is streaming, sending followUp: ${execMessage}`);
+        await managed.session.followUp(execMessage);
+      } else {
+        console.log(`[PlanMode] Agent is idle, sending prompt: ${execMessage}`);
+        await managed.session.prompt(execMessage);
+      }
+      console.log(`[PlanMode] Message sent successfully`);
 
     } else if (action === "cancel") {
       // Exit plan mode

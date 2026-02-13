@@ -98,6 +98,10 @@ db-reset:
 install:
     bun install
 
+# 安装 Playwright 浏览器 (用于 browser tool)
+playwright-install:
+    cd packages/server && bunx playwright install chromium
+
 # ── 清理 ──────────────────────────────────────────
 
 # 清理构建产物
