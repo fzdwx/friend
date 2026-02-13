@@ -1,20 +1,15 @@
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface EmbeddingConfig {
   provider: "openai" | "gemini" | "voyage" | "auto";
   model?: string;
 }
 
-const PROVIDER_OPTIONS = [
-  { value: "auto", label: "Auto (use first available)", description: "Automatically select the best available provider" },
-  { value: "openai", label: "OpenAI", description: "text-embedding-3-small (default)" },
-  { value: "gemini", label: "Google Gemini", description: "gemini-embedding-001" },
-  { value: "voyage", label: "Voyage AI", description: "voyage-4-large" },
-];
-
 export function MemoryContent() {
+  const { t } = useTranslation();
   const [config, setConfig] = useState<EmbeddingConfig>({ provider: "auto" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -52,18 +47,24 @@ export function MemoryContent() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
-        Loading...
+        {t("common.loading")}
       </div>
     );
   }
 
+  const PROVIDER_OPTIONS = [
+    { value: "auto", label: t("memory.auto"), description: t("memory.autoDesc") },
+    { value: "openai", label: "OpenAI", description: "text-embedding-3-small (default)" },
+    { value: "gemini", label: "Google Gemini", description: "gemini-embedding-001" },
+    { value: "voyage", label: "Voyage AI", description: "voyage-4-large" },
+  ];
+
   return (
     <div className="p-4 space-y-6">
       <div>
-        <h2 className="text-sm font-semibold mb-1">Memory Search</h2>
+        <h2 className="text-sm font-semibold mb-1">{t("memory.title")}</h2>
         <p className="text-xs text-muted-foreground">
-          Configure embedding provider for semantic memory search. 
-          Without embedding, memory search uses BM25 keyword matching.
+          {t("memory.subtitle")}
         </p>
       </div>
 
@@ -72,12 +73,10 @@ export function MemoryContent() {
         <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
         <div className="text-xs text-muted-foreground space-y-1">
           <p>
-            <strong>BM25 (default)</strong>: Works out of the box with keyword matching. 
-            No configuration needed.
+            <strong>{t("memory.bm25Title")}</strong>: {t("memory.bm25Desc")}
           </p>
           <p>
-            <strong>Vector Search</strong>: Requires an embedding API key. 
-            Provides semantic understanding and better relevance.
+            <strong>{t("memory.vectorSearchTitle")}</strong>: {t("memory.vectorSearchDesc")}
           </p>
         </div>
       </div>
@@ -85,7 +84,7 @@ export function MemoryContent() {
       {/* Provider Selection */}
       <div>
         <label className="text-xs font-medium text-muted-foreground block mb-2">
-          Embedding Provider
+          {t("memory.embeddingProvider")}
         </label>
         <div className="space-y-2">
           {PROVIDER_OPTIONS.map((option) => (
@@ -117,25 +116,25 @@ export function MemoryContent() {
       {/* Model Override (optional) */}
       <div>
         <label className="text-xs font-medium text-muted-foreground block mb-1">
-          Model Override (optional)
+          {t("memory.modelOverride")}
         </label>
         <input
           type="text"
           value={config.model || ""}
           onChange={(e) => setConfig({ ...config, model: e.target.value || undefined })}
-          placeholder="e.g. text-embedding-3-large"
+          placeholder={t("memory.modelOverridePlaceholder")}
           className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
         />
         <p className="text-xs text-muted-foreground mt-1">
-          Leave empty to use the default model for the selected provider.
+          {t("memory.modelOverrideHint")}
         </p>
       </div>
 
       {/* API Key Info */}
       <div className="bg-secondary/50 border border-border rounded-md p-3">
-        <h3 className="text-xs font-medium mb-2">API Keys</h3>
+        <h3 className="text-xs font-medium mb-2">{t("memory.apiKeys")}</h3>
         <p className="text-xs text-muted-foreground mb-2">
-          Embedding API keys are read from your OAuth login or environment variables:
+          {t("memory.apiKeysDesc")}
         </p>
         <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
           <li><strong>OpenAI</strong>: OAuth login or <code className="bg-muted px-1 rounded">OPENAI_API_KEY</code></li>
@@ -151,7 +150,7 @@ export function MemoryContent() {
           disabled={saving}
           className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90 disabled:opacity-50 transition-colors"
         >
-          {saving ? "Saving..." : saved ? "Saved!" : "Save"}
+          {saving ? t("memory.saving") : saved ? t("memory.saved") : t("common.save")}
         </button>
       </div>
     </div>

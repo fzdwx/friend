@@ -258,6 +258,12 @@ interface PlanProgressProps {
 
 export function PlanProgress({ completed, total, todos }: PlanProgressProps) {
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+  
+  // Filter to show only incomplete tasks (collapse completed)
+  const incompleteTodos = todos.filter(t => !t.completed).map(t => ({
+    ...t,
+    subtasks: t.subtasks?.filter(s => !s.completed)
+  }));
 
   return (
     <div className="plan-progress bg-secondary/30 border border-border rounded-lg p-3 my-2 max-h-[40vh] flex flex-col">
@@ -265,6 +271,7 @@ export function PlanProgress({ completed, total, todos }: PlanProgressProps) {
         <span className="text-sm font-medium">Executing Plan</span>
         <span className="text-xs text-muted-foreground">
           {completed}/{total} steps
+          {completed > 0 && <span className="text-green-500 ml-1">({completed} done)</span>}
         </span>
       </div>
 
@@ -276,45 +283,35 @@ export function PlanProgress({ completed, total, todos }: PlanProgressProps) {
         />
       </div>
 
-      {/* Current Steps - scrollable */}
+      {/* Current Steps - scrollable, only show incomplete */}
       <div className="mt-2 space-y-0.5 overflow-y-auto flex-1 min-h-0">
-        {todos.map((todo) => (
-          <div key={todo.step}>
-            {/* Main task */}
-            <div
-              className={cn(
-                "flex items-center gap-2 text-xs py-0.5",
-                todo.completed ? "text-muted-foreground line-through" : "text-foreground",
-              )}
-            >
-              {todo.completed ? (
-                <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
-              ) : (
-                <div className="w-3 h-3 rounded-full border border-muted-foreground/50 flex-shrink-0" />
-              )}
-              <span className="truncate">{todo.step}. {todo.text}</span>
-            </div>
-            {/* Subtasks */}
-            {todo.subtasks?.map((subtask) => (
-              <div
-                key={`${todo.step}.${subtask.step}`}
-                className={cn(
-                  "flex items-center gap-2 text-xs py-0.5 ml-4",
-                  subtask.completed ? "text-muted-foreground line-through" : "text-foreground",
-                )}
-              >
-                {subtask.completed ? (
-                  <Check className="w-2.5 h-2.5 text-green-500 flex-shrink-0" />
-                ) : (
-                  <div className="w-2.5 h-2.5 rounded-full border border-muted-foreground/50 flex-shrink-0" />
-                )}
-                <span className="truncate text-[11px]">
-                  {todo.step}.{subtask.step}. {subtask.text}
-                </span>
-              </div>
-            ))}
+        {incompleteTodos.length === 0 ? (
+          <div className="text-xs text-muted-foreground text-center py-2">
+            ✓ All steps completed!
           </div>
-        ))}
+        ) : (
+          incompleteTodos.map((todo) => (
+            <div key={todo.step}>
+              {/* Main task */}
+              <div className="flex items-center gap-2 text-xs py-0.5 text-foreground">
+                <div className="w-3 h-3 rounded-full border border-muted-foreground/50 flex-shrink-0" />
+                <span className="truncate">{todo.step}. {todo.text}</span>
+              </div>
+              {/* Subtasks */}
+              {todo.subtasks?.map((subtask) => (
+                <div
+                  key={`${todo.step}.${subtask.step}`}
+                  className="flex items-center gap-2 text-xs py-0.5 ml-4 text-foreground"
+                >
+                  <div className="w-2.5 h-2.5 rounded-full border border-muted-foreground/50 flex-shrink-0" />
+                  <span className="truncate text-[11px]">
+                    {todo.step}.{subtask.step}. {subtask.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

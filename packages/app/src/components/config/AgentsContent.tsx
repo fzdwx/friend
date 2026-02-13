@@ -113,9 +113,9 @@ export function AgentsContent() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold">Agents</h2>
+          <h2 className="text-xl font-semibold">{t("agents.title")}</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage agent personalities. Select an agent when creating a session.
+            {t("agents.subtitle")}
           </p>
         </div>
         {editMode === "none" && (
@@ -124,7 +124,7 @@ export function AgentsContent() {
             className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-accent text-accent-foreground text-sm hover:bg-accent/80 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            <span>New Agent</span>
+            <span>{t("agents.newAgent")}</span>
           </button>
         )}
       </div>
@@ -160,12 +160,12 @@ export function AgentsContent() {
                     <span className="font-medium">{name}</span>
                     {agent.isDefault && (
                       <span className="text-xs px-1.5 py-0.5 rounded bg-accent/50 text-accent-foreground">
-                        default
+                        {t("agents.default")}
                       </span>
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    ID: {agent.id}
+                    {t("agents.id")}: {agent.id}
                     {agent.model && ` • ${agent.model}`}
                   </div>
                 </div>
@@ -177,7 +177,7 @@ export function AgentsContent() {
                         handleEdit(agent);
                       }}
                       className="p-1.5 rounded hover:bg-accent/50 transition-colors"
-                      title="Edit"
+                      title={t("common.edit")}
                     >
                       <Edit3 className="w-4 h-4" />
                     </button>
@@ -188,7 +188,7 @@ export function AgentsContent() {
                           handleDelete(agent.id);
                         }}
                         className="p-1.5 rounded hover:bg-destructive/20 transition-colors text-destructive"
-                        title="Delete"
+                        title={t("common.delete")}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -207,6 +207,7 @@ export function AgentsContent() {
                       onSave={handleSave}
                       onCancel={handleCancel}
                       modelsByProvider={modelsByProvider}
+                      t={t}
                     />
                   ) : (
                     <>
@@ -214,15 +215,15 @@ export function AgentsContent() {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="text-xs text-muted-foreground uppercase tracking-wide">
-                            Vibe
+                            {t("agents.vibe")}
                           </label>
                           <p className="text-sm mt-1">
-                            {agent.identity?.vibe || "No vibe set"}
+                            {agent.identity?.vibe || t("agents.noVibe")}
                           </p>
                         </div>
                         <div>
                           <label className="text-xs text-muted-foreground uppercase tracking-wide">
-                            Thinking Level
+                            {t("agents.thinkingLevel")}
                           </label>
                           <p className="text-sm mt-1">
                             {agent.thinkingLevel || "default"}
@@ -232,10 +233,10 @@ export function AgentsContent() {
 
                       <div>
                         <label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          Default Model
+                          {t("agents.defaultModel")}
                         </label>
                         <p className="text-sm mt-1 font-mono">
-                          {agent.model || "Not set"}
+                          {agent.model || t("agents.notSet")}
                         </p>
                       </div>
                     </>
@@ -249,7 +250,7 @@ export function AgentsContent() {
         {/* Create Form */}
         {editMode === "create" && (
           <div className="border border-border rounded-lg p-4">
-            <h3 className="font-medium mb-4">Create New Agent</h3>
+            <h3 className="font-medium mb-4">{t("agents.createNewAgent")}</h3>
             <EditAgentForm
               agent={editingAgent}
               onChange={setEditingAgent}
@@ -257,6 +258,7 @@ export function AgentsContent() {
               onCancel={handleCancel}
               isNew
               modelsByProvider={modelsByProvider}
+              t={t}
             />
           </div>
         )}
@@ -264,12 +266,12 @@ export function AgentsContent() {
         {agents.length === 0 && editMode === "none" && (
           <div className="text-center py-12 text-muted-foreground">
             <Bot className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>No agents yet.</p>
+            <p>{t("agents.noAgents")}</p>
             <button
               onClick={handleCreate}
               className="mt-2 text-accent hover:underline"
             >
-              Create your first agent
+              {t("agents.createFirst")}
             </button>
           </div>
         )}
@@ -287,15 +289,16 @@ interface EditFormProps {
   onCancel: () => void;
   isNew?: boolean;
   modelsByProvider: Record<string, ModelInfo[]>;
+  t: (key: string, options?: Record<string, unknown>) => string;
 }
 
-function EditAgentForm({ agent, onChange, onSave, onCancel, isNew, modelsByProvider }: EditFormProps) {
+function EditAgentForm({ agent, onChange, onSave, onCancel, isNew, modelsByProvider, t }: EditFormProps) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         {isNew && (
           <div>
-            <label className="text-xs text-muted-foreground">Agent ID</label>
+            <label className="text-xs text-muted-foreground">{t("agents.id")}</label>
             <input
               type="text"
               value={agent.id || ""}
@@ -306,7 +309,7 @@ function EditAgentForm({ agent, onChange, onSave, onCancel, isNew, modelsByProvi
           </div>
         )}
         <div>
-          <label className="text-xs text-muted-foreground">Display Name</label>
+          <label className="text-xs text-muted-foreground">{t("agents.displayName")}</label>
           <input
             type="text"
             value={agent.identity?.name || agent.name || ""}
@@ -322,7 +325,7 @@ function EditAgentForm({ agent, onChange, onSave, onCancel, isNew, modelsByProvi
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground">Emoji</label>
+          <label className="text-xs text-muted-foreground">{t("agents.emoji")}</label>
           <input
             type="text"
             value={agent.identity?.emoji || "🤖"}
@@ -335,13 +338,13 @@ function EditAgentForm({ agent, onChange, onSave, onCancel, isNew, modelsByProvi
       </div>
 
       <div>
-        <label className="text-xs text-muted-foreground">Vibe / Personality</label>
+        <label className="text-xs text-muted-foreground">{t("agents.personality")}</label>
         <textarea
           value={agent.identity?.vibe || ""}
           onChange={(e) =>
             onChange({ ...agent, identity: { ...agent.identity, vibe: e.target.value } })
           }
-          placeholder="Professional and efficient"
+          placeholder={t("agents.personalityPlaceholder")}
           rows={2}
           className="w-full mt-1 px-3 py-2 rounded-md bg-secondary border border-border text-sm focus:outline-none focus:ring-1 focus:ring-ring resize-none"
         />
@@ -349,13 +352,13 @@ function EditAgentForm({ agent, onChange, onSave, onCancel, isNew, modelsByProvi
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="text-xs text-muted-foreground">Default Model</label>
+          <label className="text-xs text-muted-foreground">{t("agents.defaultModel")}</label>
           <select
             value={agent.model || ""}
             onChange={(e) => onChange({ ...agent, model: e.target.value || undefined })}
             className="w-full mt-1 px-3 py-2 rounded-md bg-secondary border border-border text-sm focus:outline-none focus:ring-1 focus:ring-ring"
           >
-            <option value="">Use system default</option>
+            <option value="">{t("agents.useSystemDefault")}</option>
             {Object.entries(modelsByProvider).map(([provider, models]) => (
               <optgroup key={provider} label={provider}>
                 {models.map((model) => (
@@ -368,7 +371,7 @@ function EditAgentForm({ agent, onChange, onSave, onCancel, isNew, modelsByProvi
           </select>
         </div>
         <div>
-          <label className="text-xs text-muted-foreground">Thinking Level</label>
+          <label className="text-xs text-muted-foreground">{t("agents.thinkingLevel")}</label>
           <select
             value={agent.thinkingLevel || "medium"}
             onChange={(e) => onChange({ ...agent, thinkingLevel: e.target.value })}
@@ -389,14 +392,14 @@ function EditAgentForm({ agent, onChange, onSave, onCancel, isNew, modelsByProvi
           onClick={onCancel}
           className="px-4 py-2 rounded-md text-sm text-muted-foreground hover:bg-accent/50 transition-colors"
         >
-          Cancel
+          {t("common.cancel")}
         </button>
         <button
           onClick={onSave}
           className="flex items-center gap-2 px-4 py-2 rounded-md bg-accent text-accent-foreground text-sm hover:bg-accent/80 transition-colors"
         >
           <Check className="w-4 h-4" />
-          <span>{isNew ? "Create" : "Save"}</span>
+          <span>{isNew ? t("common.create") : t("common.save")}</span>
         </button>
       </div>
     </div>
