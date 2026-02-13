@@ -1105,9 +1105,9 @@ Your output must be:
       const execMessage = firstStep
         ? `Execute the plan. Start with: ${firstStep.text}`
         : "Execute the plan.";
-      console.log(`[PlanMode] Sending followUp: ${execMessage}`);
-      await managed.session.followUp(execMessage);
-      console.log(`[PlanMode] followUp sent successfully`);
+      console.log(`[PlanMode] Sending prompt: ${execMessage}`);
+      await managed.session.prompt(execMessage);
+      console.log(`[PlanMode] prompt sent successfully`);
 
     } else if (action === "cancel") {
       // Exit plan mode
