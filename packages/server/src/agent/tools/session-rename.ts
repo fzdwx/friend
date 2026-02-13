@@ -6,8 +6,7 @@ import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
 export const RenameSessionParams = Type.Object({
   sessionId: Type.Optional(
     Type.String({
-      description:
-        "The ID of the session to rename. If not provided, renames the current session.",
+      description: "The ID of the session to rename. If not provided, renames the current session.",
     }),
   ),
   newName: Type.String({

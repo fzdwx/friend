@@ -31,10 +31,7 @@ export function useGlobalSSE() {
 
     // Calculate retry delay with exponential backoff
     const getRetryDelay = (): number => {
-      const delay = Math.min(
-        INITIAL_RETRY_DELAY * Math.pow(2, retryCount),
-        MAX_RETRY_DELAY
-      );
+      const delay = Math.min(INITIAL_RETRY_DELAY * Math.pow(2, retryCount), MAX_RETRY_DELAY);
       // Add some jitter to avoid thundering herd
       return delay + Math.random() * 1000;
     };
@@ -112,11 +109,11 @@ export function useGlobalSSE() {
         // Handle session rename before session filter (updates sidebar for any session)
         if (event.type === "session_renamed") {
           const sessions = useSessionStore.getState().sessions;
-          useSessionStore.getState().setSessions(
-            sessions.map((s) =>
-              s.id === event.sessionId ? { ...s, name: event.newName } : s,
-            ),
-          );
+          useSessionStore
+            .getState()
+            .setSessions(
+              sessions.map((s) => (s.id === event.sessionId ? { ...s, name: event.newName } : s)),
+            );
           return;
         }
 

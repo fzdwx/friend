@@ -38,7 +38,7 @@ import {
 import type { IAgentManager } from "./tools";
 import { GLOBAL_SKILLS_DIR, getProjectSkillsDir, SkillWatcher, ensureSkillsDir } from "./skills.js";
 import { SESSIONS_DIR } from "./paths.js";
-import { ensureDefaults, ensureProjectDefaults } from "./bootstrap.js";
+import { ensureProjectDefaults } from "./bootstrap.js";
 import { loadWorkspaceFiles, buildWorkspacePrompt } from "./context.js";
 
 // ─── DB mapping types ──────────────────────────────────────
@@ -107,6 +107,7 @@ interface ManagedSession {
 
 interface EventSubscriber {
   push(event: GlobalSSEEvent): void;
+
   close(): void;
 }
 
@@ -142,14 +143,15 @@ export class AgentManager implements IAgentManager {
       noPromptTemplates: true,
       noThemes: true,
       systemPromptOverride: (base) => {
-        const workspacePrompt = buildWorkspacePrompt(cwd,workspaceFiles);
-        // let strings = workspacePrompt ? [...base, workspacePrompt] : base;
-        // return strings;
-        return workspacePrompt
+        const workspacePrompt = buildWorkspacePrompt(cwd, workspaceFiles);
+        return [base, workspacePrompt].filter(Boolean).join("\n\n");
       },
       skillsOverride: () => {
         const globalResult = loadSkillsFromDir({ dir: GLOBAL_SKILLS_DIR, source: "user" });
-        const projectResult = loadSkillsFromDir({ dir: getProjectSkillsDir(cwd), source: "project" });
+        const projectResult = loadSkillsFromDir({
+          dir: getProjectSkillsDir(cwd),
+          source: "project",
+        });
 
         const skillMap = new Map<string, Skill>();
         for (const s of globalResult.skills) skillMap.set(s.name, s);
@@ -186,9 +188,6 @@ export class AgentManager implements IAgentManager {
   }
 
   async init(): Promise<void> {
-    // 0. Ensure first-run default files exist
-    await ensureDefaults();
-
     // 1. Load AppConfig
     const config = await prisma.appConfig.findFirst({ where: { id: "singleton" } });
     if (config) {
@@ -225,7 +224,10 @@ export class AgentManager implements IAgentManager {
         sessionManager = SessionManager.inMemory(cwd);
       }
 
-      const { session, resourceLoader } = await this.createAgentSessionWithSkills(cwd, sessionManager);
+      const { session, resourceLoader } = await this.createAgentSessionWithSkills(
+        cwd,
+        sessionManager,
+      );
 
       const managed: ManagedSession = {
         id: s.id,
@@ -429,7 +431,10 @@ export class AgentManager implements IAgentManager {
   /**
    * Get skill directory paths for all sessions.
    */
-  getSkillPaths(): { global: string; projects: Array<{ path: string; sessionId: string; sessionName: string }> } {
+  getSkillPaths(): {
+    global: string;
+    projects: Array<{ path: string; sessionId: string; sessionName: string }>;
+  } {
     const projects: Array<{ path: string; sessionId: string; sessionName: string }> = [];
     const seenPaths = new Set<string>();
 
@@ -498,7 +503,10 @@ export class AgentManager implements IAgentManager {
 
     const sessionManager = SessionManager.create(cwd, SESSIONS_DIR);
 
-    const { session, resourceLoader } = await this.createAgentSessionWithSkills(cwd, sessionManager);
+    const { session, resourceLoader } = await this.createAgentSessionWithSkills(
+      cwd,
+      sessionManager,
+    );
 
     // Set default model if none selected
     if (!session.model) {
@@ -596,7 +604,15 @@ export class AgentManager implements IAgentManager {
     return true;
   }
 
-  async renameSession(id: string, name: string, broadcastEvent = true): Promise<{ success: boolean; oldName?: string; error?: "not_found" }> {
+  async renameSession(
+    id: string,
+    name: string,
+    broadcastEvent = true,
+  ): Promise<{
+    success: boolean;
+    oldName?: string;
+    error?: "not_found";
+  }> {
     const managed = this.managedSessions.get(id);
     if (!managed) return { success: false, error: "not_found" };
 
@@ -676,9 +692,13 @@ Your output must be:
     const userMessages = managed.session.messages
       .filter((m) => m.role === "user")
       .map((m) => {
-        const text = typeof m.content === "string"
-          ? m.content
-          : m.content.filter((c: any) => c.type === "text").map((c: any) => c.text).join("");
+        const text =
+          typeof m.content === "string"
+            ? m.content
+            : m.content
+                .filter((c: any) => c.type === "text")
+                .map((c: any) => c.text)
+                .join("");
         return text;
       })
       .filter(Boolean);
@@ -687,16 +707,20 @@ Your output must be:
 
     try {
       const apiKey = await this.modelRegistry.getApiKey(model);
-      const result = await completeSimple(model, {
-        systemPrompt: AgentManager.TITLE_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: userMessages.join("\n\n"),
-            timestamp: Date.now(),
-          },
-        ],
-      }, { maxTokens: 60, apiKey: apiKey || undefined });
+      const result = await completeSimple(
+        model,
+        {
+          systemPrompt: AgentManager.TITLE_PROMPT,
+          messages: [
+            {
+              role: "user",
+              content: userMessages.join("\n\n"),
+              timestamp: Date.now(),
+            },
+          ],
+        },
+        { maxTokens: 60, apiKey: apiKey || undefined },
+      );
 
       const title = result.content
         .filter((c) => c.type === "text")
@@ -713,14 +737,16 @@ Your output must be:
   }
 
   private fallbackSessionName(managed: ManagedSession): string {
-    const lastUserMsg = managed.session.messages
-      .filter((m) => m.role === "user")
-      .pop();
+    const lastUserMsg = managed.session.messages.filter((m) => m.role === "user").pop();
     if (!lastUserMsg) return managed.name;
 
-    const text = typeof lastUserMsg.content === "string"
-      ? lastUserMsg.content
-      : lastUserMsg.content.filter((c: any) => c.type === "text").map((c: any) => c.text).join("");
+    const text =
+      typeof lastUserMsg.content === "string"
+        ? lastUserMsg.content
+        : lastUserMsg.content
+            .filter((c: any) => c.type === "text")
+            .map((c: any) => c.text)
+            .join("");
 
     const trimmed = text.trim();
     if (trimmed.length <= 50) return trimmed;

@@ -1,4 +1,10 @@
-import type { CustomProviderConfig, ModelInfo, ThemeConfig, SkillInfo, SkillPaths } from "@friend/shared";
+import type {
+  CustomProviderConfig,
+  ModelInfo,
+  ThemeConfig,
+  SkillInfo,
+  SkillPaths,
+} from "@friend/shared";
 
 const API_BASE = "/api";
 
@@ -90,7 +96,9 @@ export const api = {
 
   // Skills
   getSkills: (sessionId?: string) =>
-    request<SkillInfo[]>(`/skills${sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : ""}`),
+    request<SkillInfo[]>(
+      `/skills${sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : ""}`,
+    ),
   getSkillPaths: () => request<SkillPaths>("/skills/paths"),
   reloadSkills: (sessionId?: string) =>
     request<void>("/skills/reload", {

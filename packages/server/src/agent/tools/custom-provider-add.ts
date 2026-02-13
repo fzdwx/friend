@@ -64,7 +64,10 @@ export interface IAgentManager {
   setActiveTheme?(themeId: string): Promise<void>;
   addCustomTheme?(theme: ThemeConfig): Promise<void>;
   listSessions?(): Promise<SessionInfo[]>;
-  renameSession?(id: string, name: string): Promise<{ success: boolean; oldName?: string; error?: "not_found" }>;
+  renameSession?(
+    id: string,
+    name: string,
+  ): Promise<{ success: boolean; oldName?: string; error?: "not_found" }>;
   getSession?(id: string): Promise<SessionDetail | null>;
 }
 

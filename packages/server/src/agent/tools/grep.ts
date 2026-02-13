@@ -110,7 +110,9 @@ export function createGrepTool(): ToolDefinition {
 
 async function resolveSearchPath(searchPath: string): Promise<string> {
   // Resolve relative paths
-  let resolvedPath = path.isAbsolute(searchPath) ? searchPath : path.resolve(DEFAULT_WORKING_DIR, searchPath);
+  let resolvedPath = path.isAbsolute(searchPath)
+    ? searchPath
+    : path.resolve(DEFAULT_WORKING_DIR, searchPath);
 
   // Check if path exists and is a directory
   try {
@@ -119,7 +121,9 @@ async function resolveSearchPath(searchPath: string): Promise<string> {
       throw new Error(`Path is not a directory: ${resolvedPath}`);
     }
   } catch (err) {
-    throw new Error(`Cannot access directory: ${resolvedPath} (${err instanceof Error ? err.message : String(err)})`);
+    throw new Error(
+      `Cannot access directory: ${resolvedPath} (${err instanceof Error ? err.message : String(err)})`,
+    );
   }
 
   return resolvedPath;
@@ -238,7 +242,9 @@ async function runRipgrep(options: {
   }
 
   // Format output
-  const outputLines = [`Found ${displayMatches.length} match${displayMatches.length === 1 ? "" : "es"}${wasTruncated ? ` (showing first ${MAX_RESULTS})` : ""}`];
+  const outputLines = [
+    `Found ${displayMatches.length} match${displayMatches.length === 1 ? "" : "es"}${wasTruncated ? ` (showing first ${MAX_RESULTS})` : ""}`,
+  ];
 
   let currentFile = "";
   for (const match of displayMatches) {

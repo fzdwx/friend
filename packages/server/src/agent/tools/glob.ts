@@ -11,7 +11,9 @@ const DEFAULT_WORKING_DIR = process.cwd();
 // ─── Tool Parameters Schema ───────────────────────────────────
 
 export const GlobParams = Type.Object({
-  pattern: Type.String({ description: "The glob pattern to match files against (e.g., '*.ts', 'src/**/*.js')" }),
+  pattern: Type.String({
+    description: "The glob pattern to match files against (e.g., '*.ts', 'src/**/*.js')",
+  }),
   path: Type.Optional(
     Type.String({
       description: "The directory to search in. Defaults to the current working directory.",
@@ -116,7 +118,9 @@ export function createGlobTool(): ToolDefinition {
 
 async function resolveSearchPath(searchPath: string): Promise<string> {
   // Resolve relative paths
-  let resolvedPath = path.isAbsolute(searchPath) ? searchPath : path.resolve(DEFAULT_WORKING_DIR, searchPath);
+  let resolvedPath = path.isAbsolute(searchPath)
+    ? searchPath
+    : path.resolve(DEFAULT_WORKING_DIR, searchPath);
 
   // Check if path exists and is a directory
   try {
@@ -125,7 +129,9 @@ async function resolveSearchPath(searchPath: string): Promise<string> {
       throw new Error(`Path is not a directory: ${resolvedPath}`);
     }
   } catch (err) {
-    throw new Error(`Cannot access directory: ${resolvedPath} (${err instanceof Error ? err.message : String(err)})`);
+    throw new Error(
+      `Cannot access directory: ${resolvedPath} (${err instanceof Error ? err.message : String(err)})`,
+    );
   }
 
   return resolvedPath;
@@ -143,7 +149,8 @@ async function runGlob(options: {
   const args = [
     "--files", // Show only matching files
     "--hidden", // Search hidden files
-    "--glob", pattern, // Glob pattern
+    "--glob",
+    pattern, // Glob pattern
     "--null", // Use null character as separator (handles filenames with spaces/newlines)
   ];
 
@@ -224,7 +231,9 @@ async function runGlob(options: {
   }
 
   // Format output
-  const outputLines = [`Found ${displayFiles.length} file${displayFiles.length === 1 ? "" : "s"}${wasTruncated ? ` (showing first ${maxResults})` : ""}`];
+  const outputLines = [
+    `Found ${displayFiles.length} file${displayFiles.length === 1 ? "" : "s"}${wasTruncated ? ` (showing first ${maxResults})` : ""}`,
+  ];
   outputLines.push("");
 
   for (const file of displayFiles) {
@@ -233,7 +242,9 @@ async function runGlob(options: {
 
   if (wasTruncated) {
     outputLines.push("");
-    outputLines.push(`(Results are truncated. Found ${fileCountEstimate(displayFiles.length, maxResults)}+ total files. Consider using a more specific pattern or path.)`);
+    outputLines.push(
+      `(Results are truncated. Found ${fileCountEstimate(displayFiles.length, maxResults)}+ total files. Consider using a more specific pattern or path.)`,
+    );
   }
 
   if (hasErrors) {

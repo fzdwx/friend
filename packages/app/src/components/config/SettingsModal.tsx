@@ -15,7 +15,9 @@ const SECTION_TITLES: Record<"providers" | "appearance" | "skills", string> = {
 export function SettingsModal() {
   const isSettingsOpen = useConfigStore((s) => s.isSettingsOpen);
   const setIsSettingsOpen = useConfigStore((s) => s.setIsSettingsOpen);
-  const [activeSection, setActiveSection] = useState<"providers" | "appearance" | "skills">("appearance");
+  const [activeSection, setActiveSection] = useState<"providers" | "appearance" | "skills">(
+    "appearance",
+  );
 
   return (
     <Modal

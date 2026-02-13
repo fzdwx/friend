@@ -6,12 +6,14 @@ import type { IAgentManager } from "./custom-provider-add";
 export const GetSessionParams = Type.Object({
   sessionId: Type.Optional(
     Type.String({
-      description: "The ID of the session to get details for. If not provided, uses the current interactive session.",
+      description:
+        "The ID of the session to get details for. If not provided, uses the current interactive session.",
     }),
   ),
   includeMessages: Type.Optional(
     Type.Boolean({
-      description: "Whether to include the full message history. Defaults to false (meta info only).",
+      description:
+        "Whether to include the full message history. Defaults to false (meta info only).",
     }),
   ),
 });
@@ -20,13 +22,14 @@ export function createGetSessionTool(manager: IAgentManager): ToolDefinition {
   return {
     name: "get_session",
     label: "Get Session Info",
-    description: "Get detailed information about the current session (or a specific session), including meta data and optionally the full message history.",
+    description:
+      "Get detailed information about the current session (or a specific session), including meta data and optionally the full message history.",
     parameters: GetSessionParams,
     async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       try {
         const p = params as { sessionId?: string; includeMessages?: boolean };
         const { sessionId: requestedId, includeMessages = false } = p;
-        console.log("111111111111:::",_ctx.sessionManager.getSessionId)
+        console.log("111111111111:::", _ctx.sessionManager.getSessionId());
 
         if (!manager.getSession) {
           return {
@@ -146,7 +149,9 @@ export function createGetSessionTool(manager: IAgentManager): ToolDefinition {
         };
       } catch (err) {
         return {
-          content: [{ type: "text" as const, text: `Failed to get session information: ${String(err)}` }],
+          content: [
+            { type: "text" as const, text: `Failed to get session information: ${String(err)}` },
+          ],
           details: undefined,
         };
       }

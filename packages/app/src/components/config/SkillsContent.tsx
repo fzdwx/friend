@@ -1,7 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { api } from "@/lib/api";
 import type { SkillInfo, SkillPaths } from "@friend/shared";
-import { RefreshCw, FolderOpen, BookOpen, ExternalLink, AlertCircle, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  RefreshCw,
+  FolderOpen,
+  BookOpen,
+  ExternalLink,
+  AlertCircle,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SkillGroup {
@@ -21,10 +29,7 @@ export function SkillsContent() {
   const loadSkills = async () => {
     try {
       setError(null);
-      const [skillsRes, pathsRes] = await Promise.all([
-        api.getSkills(),
-        api.getSkillPaths(),
-      ]);
+      const [skillsRes, pathsRes] = await Promise.all([api.getSkills(), api.getSkillPaths()]);
 
       if (skillsRes.ok && skillsRes.data) {
         setSkills(skillsRes.data);
@@ -113,7 +118,7 @@ export function SkillsContent() {
           className={cn(
             "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors",
             "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-            "disabled:opacity-50 disabled:cursor-not-allowed"
+            "disabled:opacity-50 disabled:cursor-not-allowed",
           )}
         >
           <RefreshCw className={cn("w-4 h-4", reloading && "animate-spin")} />
@@ -140,8 +145,8 @@ export function SkillsContent() {
           <BookOpen className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
           <h3 className="text-sm font-medium mb-2">No skills installed</h3>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-            Add skills by creating SKILL.md files in the skills directory.
-            Skills extend the AI's capabilities with specialized instructions.
+            Add skills by creating SKILL.md files in the skills directory. Skills extend the AI's
+            capabilities with specialized instructions.
           </p>
           {paths?.global && (
             <div className="flex items-center justify-center gap-2 mt-4 px-3 py-2 rounded-md bg-muted/50 text-sm max-w-md mx-auto">
@@ -212,12 +217,14 @@ function SkillSection({ group }: SkillSectionProps) {
                 {group.title}
               </code>
             )}
-            <span className={cn(
-              "px-1.5 py-0.5 text-[10px] font-medium rounded",
-              group.type === "global" 
-                ? "bg-primary/10 text-primary" 
-                : "bg-accent text-accent-foreground"
-            )}>
+            <span
+              className={cn(
+                "px-1.5 py-0.5 text-[10px] font-medium rounded",
+                group.type === "global"
+                  ? "bg-primary/10 text-primary"
+                  : "bg-accent text-accent-foreground",
+              )}
+            >
               {group.type === "global" ? "Global" : "Project"}
             </span>
             <span className="text-xs text-muted-foreground">
@@ -256,10 +263,7 @@ function SkillCard({ skill }: SkillCardProps) {
 
   return (
     <div className="hover:bg-accent/20 transition-colors">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full text-left px-4 py-3"
-      >
+      <button onClick={() => setExpanded(!expanded)} className="w-full text-left px-4 py-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
@@ -270,9 +274,7 @@ function SkillCard({ skill }: SkillCardProps) {
                 </span>
               )}
             </div>
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-              {skill.description}
-            </p>
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{skill.description}</p>
           </div>
           <BookOpen className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
         </div>

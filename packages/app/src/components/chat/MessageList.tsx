@@ -105,7 +105,10 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
         }
         if (msg.role === "assistant") {
           return (
-            <AssistantMessage key={`assistant-${msg.timestamp}-${i}`} message={msg as PiAssistantMessage} />
+            <AssistantMessage
+              key={`assistant-${msg.timestamp}-${i}`}
+              message={msg as PiAssistantMessage}
+            />
           );
         }
         return null;

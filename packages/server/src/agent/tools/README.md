@@ -45,8 +45,8 @@ Search for text patterns in files using ripgrep. Supports regular expressions, f
 
 - `pattern` (string, required): The regex pattern to search for in file contents
 - `path` (string, optional): The directory to search in. Defaults to current working directory
-- `include` (string, optional): File pattern to include (e.g., "*.js", "*.{ts,tsx}")
-- `exclude` (string, optional): File pattern to exclude (e.g., "*.test.js", "node_modules")
+- `include` (string, optional): File pattern to include (e.g., "_.js", "_.{ts,tsx}")
+- `exclude` (string, optional): File pattern to exclude (e.g., "\*.test.js", "node_modules")
 - `caseSensitive` (boolean, optional): Case-sensitive search. Defaults to false
 - `maxResults` (number, optional): Maximum number of results to return. Defaults to 100
 
@@ -54,27 +54,45 @@ Search for text patterns in files using ripgrep. Supports regular expressions, f
 
 ```typescript
 // Search for a function name in all TypeScript files
-await tool.execute("grep-1", {
-  pattern: "AgentManager",
-  path: "./src/agent",
-  include: "*.ts",
-}, signal, undefined, ctx);
+await tool.execute(
+  "grep-1",
+  {
+    pattern: "AgentManager",
+    path: "./src/agent",
+    include: "*.ts",
+  },
+  signal,
+  undefined,
+  ctx,
+);
 
 // Case-sensitive search
-await tool.execute("grep-2", {
-  pattern: "Agent",
-  path: "./src/agent",
-  caseSensitive: true,
-  maxResults: 10,
-}, signal, undefined, ctx);
+await tool.execute(
+  "grep-2",
+  {
+    pattern: "Agent",
+    path: "./src/agent",
+    caseSensitive: true,
+    maxResults: 10,
+  },
+  signal,
+  undefined,
+  ctx,
+);
 
 // Search excluding test files
-await tool.execute("grep-3", {
-  pattern: "import",
-  path: "./src",
-  include: "*.ts",
-  exclude: "*.test.ts",
-}, signal, undefined, ctx);
+await tool.execute(
+  "grep-3",
+  {
+    pattern: "import",
+    path: "./src",
+    include: "*.ts",
+    exclude: "*.test.ts",
+  },
+  signal,
+  undefined,
+  ctx,
+);
 ```
 
 #### Response Details
@@ -92,11 +110,13 @@ The tool returns both a formatted text output and a details object:
   }
 }
 ```
-  path: "./src",
-  include: "*.ts",
-  exclude: "*.test.ts",
+
+path: "./src",
+include: "_.ts",
+exclude: "_.test.ts",
 }, signal, undefined, ctx);
-```
+
+````
 
 ### Glob / Find Files (`glob`)
 
@@ -149,7 +169,7 @@ await tool.execute("glob-3", {
   path: "./src",
   maxResults: 20,
 }, signal, undefined, ctx);
-```
+````
 
 #### Response Details
 
@@ -253,23 +273,41 @@ Rename a session to make it easier to identify and organize conversations. This 
 
 ```typescript
 // Simple rename
-await tool.execute("rename-1", {
-  sessionId: "session-abc123",
-  newName: "Debugging API errors",
-}, signal, undefined, ctx);
+await tool.execute(
+  "rename-1",
+  {
+    sessionId: "session-abc123",
+    newName: "Debugging API errors",
+  },
+  signal,
+  undefined,
+  ctx,
+);
 
 // Rename with AI-generated title
 const aiTitle = await generateTitle(sessionContext);
-await tool.execute("rename-2", {
-  sessionId: session.id,
-  newName: aiTitle,
-}, signal, undefined, ctx);
+await tool.execute(
+  "rename-2",
+  {
+    sessionId: session.id,
+    newName: aiTitle,
+  },
+  signal,
+  undefined,
+  ctx,
+);
 
 // Rename to organize projects
-await tool.execute("rename-3", {
-  sessionId: "session-def456",
-  newName: "React hooks refactoring",
-}, signal, undefined, ctx);
+await tool.execute(
+  "rename-3",
+  {
+    sessionId: "session-def456",
+    newName: "React hooks refactoring",
+  },
+  signal,
+  undefined,
+  ctx,
+);
 ```
 
 #### Response Details
@@ -321,14 +359,26 @@ Get detailed information about the current session or a specific session, includ
 await tool.execute("get-1", {}, signal, undefined, ctx);
 
 // Get info with full message history
-await tool.execute("get-2", {
-  includeMessages: true,
-}, signal, undefined, ctx);
+await tool.execute(
+  "get-2",
+  {
+    includeMessages: true,
+  },
+  signal,
+  undefined,
+  ctx,
+);
 
 // Get info about specific session
-await tool.execute("get-3", {
-  sessionId: "session-abc123",
-}, signal, undefined, ctx);
+await tool.execute(
+  "get-3",
+  {
+    sessionId: "session-abc123",
+  },
+  signal,
+  undefined,
+  ctx,
+);
 
 // Check session before renaming
 const sessionInfo = await tool.execute("get-4", {}, signal, undefined, ctx);

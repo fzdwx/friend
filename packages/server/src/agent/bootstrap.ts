@@ -21,17 +21,13 @@ async function ensureDefaultFile(targetPath: string, content: string): Promise<v
   }
 }
 
-/** Seed global AGENTS.md into APP_CONFIG_DIR */
-export async function ensureDefaults(): Promise<void> {
-  await ensureDefaultFile(GLOBAL_AGENTS_MD_PATH, defaultAgentsMd);
-}
-
 /** Seed workspace context files into {cwd}/.friend/ */
 export async function ensureProjectDefaults(cwd: string): Promise<void> {
   const friendDir = join(cwd, ".friend");
   await mkdir(friendDir, { recursive: true });
 
   await Promise.all([
+    ensureDefaultFile(join(friendDir, "AGENTS.md"), defaultAgentsMd),
     ensureDefaultFile(join(friendDir, "BOOTSTRAP.md"), defaultBootstrapMd),
     ensureDefaultFile(join(friendDir, "IDENTITY.md"), defaultIdentityMd),
     ensureDefaultFile(join(friendDir, "USER.md"), defaultUserMd),
