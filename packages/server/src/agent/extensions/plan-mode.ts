@@ -239,22 +239,64 @@ export function extractTodoItems(message: string): TodoItem[] {
   return items;
 }
 
-function extractDoneSteps(message: string): number[] {
-  const steps: number[] = [];
-  for (const match of message.matchAll(/\[DONE:(\d+)\]/gi)) {
-    const step = Number(match[1]);
-    if (Number.isFinite(step)) steps.push(step);
+// Extract completed steps from message, returns { main: number[], sub: Map<main, number[]> }
+function extractDoneSteps(message: string): { mainSteps: number[]; subSteps: Map<number, number[]> } {
+  const mainSteps: number[] = [];
+  const subSteps = new Map<number, number[]>();
+  
+  // Match [DONE:1] or [DONE:1.1]
+  for (const match of message.matchAll(/\[DONE:(\d+)(?:\.(\d+))?\]/gi)) {
+    const mainStep = Number(match[1]);
+    const subStep = match[2] ? Number(match[2]) : null;
+    
+    if (Number.isFinite(mainStep)) {
+      if (subStep !== null && Number.isFinite(subStep)) {
+        // Subtask: [DONE:1.1]
+        if (!subSteps.has(mainStep)) {
+          subSteps.set(mainStep, []);
+        }
+        subSteps.get(mainStep)!.push(subStep);
+      } else {
+        // Main task: [DONE:1]
+        mainSteps.push(mainStep);
+      }
+    }
   }
-  return steps;
+  return { mainSteps, subSteps };
 }
 
 export function markCompletedSteps(text: string, items: TodoItem[]): number {
-  const doneSteps = extractDoneSteps(text);
-  for (const step of doneSteps) {
+  const { mainSteps, subSteps } = extractDoneSteps(text);
+  let changedCount = 0;
+  
+  // Mark main tasks
+  for (const step of mainSteps) {
     const item = items.find((t) => t.step === step);
-    if (item) item.completed = true;
+    if (item && !item.completed) {
+      item.completed = true;
+      changedCount++;
+    }
   }
-  return doneSteps.length;
+  
+  // Mark subtasks
+  for (const [mainStep, subs] of subSteps) {
+    const item = items.find((t) => t.step === mainStep);
+    if (item?.subtasks) {
+      for (const subStep of subs) {
+        const subtask = item.subtasks.find((s) => s.step === subStep);
+        if (subtask && !subtask.completed) {
+          subtask.completed = true;
+          changedCount++;
+        }
+      }
+      // If all subtasks completed, mark main task as completed too
+      if (item.subtasks.every((s) => s.completed)) {
+        item.completed = true;
+      }
+    }
+  }
+  
+  return changedCount;
 }
 
 // Type guard for assistant messages
@@ -322,14 +364,26 @@ export function getExecutionContextPrompt(todos: TodoItem[]): string {
   const remaining = todos.filter((t) => !t.completed);
   if (remaining.length === 0) return "";
 
-  const todoList = remaining.map((t) => `${t.step}. ${t.text}`).join("\n");
+  // Build todo list with subtasks
+  const lines: string[] = [];
+  for (const t of remaining) {
+    lines.push(`${t.step}. ${t.text}`);
+    if (t.subtasks) {
+      for (const sub of t.subtasks.filter(s => !s.completed)) {
+        lines.push(`   ${t.step}.${sub.step}. ${sub.text}`);
+      }
+    }
+  }
+  const todoList = lines.join("\n");
+
   return `[EXECUTING PLAN - Full tool access enabled]
 
 Remaining steps:
 ${todoList}
 
 Execute each step in order.
-After completing a step, include a [DONE:n] tag in your response (e.g., [DONE:1] for step 1).`;
+After completing a step, include a [DONE:n] tag in your response.
+For subtasks, use [DONE:n.m] format (e.g., [DONE:1.1] for subtask 1.1).`;
 }
 
 // ─── Plan Mode Extension Factory ──────────────────────────────────────────

@@ -7,27 +7,32 @@ import { AppearanceContent } from "@/components/config/AppearanceContent";
 import { SkillsContent } from "@/components/config/SkillsContent";
 import { MemoryContent } from "@/components/config/MemoryContent";
 import { useConfigStore } from "@/stores/configStore";
+import { useTranslation } from "react-i18next";
 
 type SettingsSection = "agents" | "providers" | "memory" | "appearance" | "skills";
 
-const SECTION_TITLES: Record<SettingsSection, string> = {
-  agents: "Agents",
-  providers: "Providers",
-  memory: "Memory",
-  appearance: "Appearance",
-  skills: "Skills",
-};
-
 export function SettingsModal() {
+  const { t } = useTranslation();
   const isSettingsOpen = useConfigStore((s) => s.isSettingsOpen);
   const setIsSettingsOpen = useConfigStore((s) => s.setIsSettingsOpen);
   const [activeSection, setActiveSection] = useState<SettingsSection>("agents");
+
+  const getSectionTitle = (section: SettingsSection): string => {
+    const keyMap: Record<SettingsSection, string> = {
+      agents: "settings.sections.agents",
+      providers: "settings.sections.providers",
+      memory: "settings.sections.memory",
+      appearance: "settings.sections.appearance",
+      skills: "settings.sections.skills",
+    };
+    return t(keyMap[section]);
+  };
 
   return (
     <Modal
       isOpen={isSettingsOpen}
       onClose={() => setIsSettingsOpen(false)}
-      title={SECTION_TITLES[activeSection]}
+      title={getSectionTitle(activeSection)}
       size="xl"
     >
       <div className="flex h-[600px]">

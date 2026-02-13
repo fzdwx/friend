@@ -1,5 +1,6 @@
 import { Server, Palette, Sparkles, Bot, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 type SettingsSection = "agents" | "appearance" | "providers" | "memory" | "skills";
 
@@ -8,20 +9,22 @@ interface SettingsSidebarProps {
   onSectionChange: (section: SettingsSection) => void;
 }
 
-const SECTIONS: { id: SettingsSection; label: string; icon: React.ElementType }[] = [
-  { id: "agents", label: "Agents", icon: Bot },
-  { id: "appearance", label: "Appearance", icon: Palette },
-  { id: "providers", label: "Provider", icon: Server },
-  { id: "memory", label: "Memory", icon: Brain },
-  { id: "skills", label: "Skills", icon: Sparkles },
-];
-
 export function SettingsSidebar({ activeSection, onSectionChange }: SettingsSidebarProps) {
+  const { t } = useTranslation();
+  
+  const SECTIONS: { id: SettingsSection; labelKey: string; icon: React.ElementType }[] = [
+    { id: "agents", labelKey: "settings.sections.agents", icon: Bot },
+    { id: "appearance", labelKey: "settings.sections.appearance", icon: Palette },
+    { id: "providers", labelKey: "settings.sections.providers", icon: Server },
+    { id: "memory", labelKey: "settings.sections.memory", icon: Brain },
+    { id: "skills", labelKey: "settings.sections.skills", icon: Sparkles },
+  ];
+
   return (
     <div className="w-48 flex-shrink-0 border-r border-border bg-card">
       <div className="p-3">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Settings
+          {t("settings.title")}
         </h3>
       </div>
 
@@ -42,7 +45,7 @@ export function SettingsSidebar({ activeSection, onSectionChange }: SettingsSide
               )}
             >
               <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>{section.label}</span>
+              <span>{t(section.labelKey)}</span>
             </button>
           );
         })}

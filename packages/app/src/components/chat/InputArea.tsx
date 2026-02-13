@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Send, Square, Zap, MessageSquarePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ModelSelector } from "@/components/ModelSelector";
+import { useTranslation } from "react-i18next";
 
 interface InputAreaProps {
   onSend: (message: string) => void;
@@ -13,6 +14,7 @@ interface InputAreaProps {
 }
 
 export function InputArea({ onSend, onSteer, onFollowUp, onAbort, isStreaming, disabled }: InputAreaProps) {
+  const { t } = useTranslation();
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 

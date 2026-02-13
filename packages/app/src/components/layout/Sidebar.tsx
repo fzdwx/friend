@@ -6,8 +6,10 @@ import { Plus, MessageSquare, Trash2, Settings, Folder, Bot, Hash, Coins, Loader
 import { cn } from "@/lib/utils";
 import { selectDirectory, isTauri } from "@/lib/tauri";
 import { AgentSelector } from "@/components/agents/AgentSelector";
+import { useTranslation } from "react-i18next";
 
 function SessionStatsBar() {
+  const { t } = useTranslation();
   const activeSessionId = useSessionStore((s) => s.activeSessionId);
   const sessionStats = useSessionStore((s) => s.sessionStats);
   const contextUsage = useSessionStore((s) => s.contextUsage);
@@ -35,13 +37,13 @@ function SessionStatsBar() {
       {isCompacting && (
         <div className="flex items-center gap-1.5 text-yellow-500 animate-pulse">
           <Loader2 className="w-3 h-3 animate-spin" />
-          <span>Compacting context...</span>
+          <span>{t("sidebar.compacting")}</span>
         </div>
       )}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1">
           <Hash className="w-3 h-3" />
-          <span>{sessionStats?.messageCount ?? 0} msgs</span>
+          <span>{t("sidebar.msgs", { count: sessionStats?.messageCount ?? 0 })}</span>
         </div>
         <div className="flex items-center gap-1">
           <Coins className="w-3 h-3" />
@@ -51,7 +53,7 @@ function SessionStatsBar() {
       {contextUsage && (
         <div className="space-y-0.5">
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground/70">Context</span>
+            <span className="text-muted-foreground/70">{t("sidebar.context")}</span>
             <span>
               {((contextUsage.tokens / 1000) | 0)}k / {((contextUsage.contextWindow / 1000) | 0)}k
             </span>
@@ -76,6 +78,7 @@ function SessionStatsBar() {
 }
 
 export function Sidebar() {
+  const { t } = useTranslation();
   const {
     sessions,
     activeSessionId,
@@ -156,11 +159,11 @@ export function Sidebar() {
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
       <div className="p-3 border-b border-sidebar-border">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold tracking-wide">Friend</span>
+          <span className="text-sm font-semibold tracking-wide">{t("sidebar.title")}</span>
           <button
             onClick={handleNewSession}
             className="p-1.5 rounded-md hover:bg-accent transition-colors"
-            title="New session"
+            title={t("sidebar.newSession")}
           >
             <Plus className="w-4 h-4" />
           </button>
@@ -169,7 +172,7 @@ export function Sidebar() {
 
       {showPathInput && (
         <div className="p-2 border-b border-sidebar-border space-y-2">
-          <label className="text-xs text-muted-foreground">Working directory (optional)</label>
+          <label className="text-xs text-muted-foreground">{t("sidebar.workingDirectory")}</label>
           <input
             type="text"
             value={pathValue}
@@ -200,7 +203,7 @@ export function Sidebar() {
               onClick={handlePathSubmit}
               className="flex-1 px-2 py-1 rounded-md bg-accent text-accent-foreground text-xs hover:bg-accent/80 transition-colors"
             >
-              Create
+              {t("sidebar.createSession")}
             </button>
             <button
               onClick={() => {
@@ -209,7 +212,7 @@ export function Sidebar() {
               }}
               className="px-2 py-1 rounded-md text-xs text-muted-foreground hover:bg-accent/50 transition-colors"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
           </div>
         </div>
@@ -217,7 +220,7 @@ export function Sidebar() {
 
       <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
         <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium uppercase tracking-wider">
-          Sessions
+          {t("sidebar.sessions")}
         </div>
         {sessions.map((session) => (
           <div
@@ -300,7 +303,7 @@ export function Sidebar() {
                       handleStartRename(session.id, session.name);
                     }}
                     className="p-0.5 rounded hover:bg-accent transition-all flex-shrink-0"
-                    title="Rename"
+                    title={t("sidebar.rename")}
                   >
                     ✏️
                   </button>
@@ -310,7 +313,7 @@ export function Sidebar() {
                       deleteSession(session.id);
                     }}
                     className="p-0.5 rounded hover:bg-destructive/20 transition-all flex-shrink-0"
-                    title="Delete"
+                    title={t("sidebar.delete")}
                   >
                     <Trash2 className="w-3 h-3 text-muted-foreground" />
                   </button>
@@ -321,9 +324,9 @@ export function Sidebar() {
         ))}
         {sessions.length === 0 && (
           <div className="px-2 py-8 text-center text-xs text-muted-foreground">
-            No sessions yet.
+            {t("sidebar.noSessions")}
             <br />
-            Click + to start.
+            {t("sidebar.clickToStart")}
           </div>
         )}
       </div>
@@ -335,7 +338,7 @@ export function Sidebar() {
           className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent/50 transition-colors"
         >
           <Settings className="w-3.5 h-3.5" />
-          <span>Settings</span>
+          <span>{t("sidebar.settings")}</span>
         </button>
       </div>
     </div>

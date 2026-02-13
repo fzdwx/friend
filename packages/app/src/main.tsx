@@ -1,5 +1,6 @@
 import "@/styles/globals.css";
 import "@/components/tools/registry/renderers";
+import "@/i18n"; // Initialize i18n
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
