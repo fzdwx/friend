@@ -224,15 +224,43 @@ Restrictions:
 - You CANNOT use: edit, write (file modifications are disabled)
 - Bash is restricted to an allowlist of read-only commands
 
-Create a detailed numbered plan under a "Plan:" header:
+Analyze the code and create an execution plan.
+
+## Output Format
+
+Output ONLY a plan with numbered steps. No other content.
 
 Plan:
-1. First step description
-2. Second step description
+1. First executable step (e.g., "Create file X with content Y")
+2. Second executable step
+3. Third executable step
 ...
 
-Do NOT attempt to make changes - just describe what you would do.
-Output ONLY the plan, nothing else. The user will confirm via UI.`;
+## Plan Rules
+
+- Each step must be a specific, actionable task
+- Use sequential numbers: 1, 2, 3... (no sub-sections or nested numbers)
+- Do NOT include: analysis, evaluation, comparison, or decision-making
+- Only include tasks that will be executed
+- Each step should be completable in one action
+- Keep each step concise (one line, no code blocks)
+
+## Examples
+
+Good:
+Plan:
+1. Install playwright dependency to packages/server/package.json
+2. Create packages/server/src/agent/tools/browser.ts
+3. Implement screenshot function
+4. Register tool in manager.ts
+
+Bad (don't do this):
+Plan:
+### 1. Analysis
+1. Analyze requirements...
+2. Compare options...
+### 2. Implementation
+1. Create file...`;
 
 export function getExecutionContextPrompt(todos: TodoItem[]): string {
   const remaining = todos.filter((t) => !t.completed);
