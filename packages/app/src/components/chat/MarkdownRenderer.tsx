@@ -5,6 +5,7 @@ import { File, type FileContents } from "@pierre/diffs/react";
 import { Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConfigStore } from "@/stores/configStore";
+import { FileIcon } from "@/components/ui/FileIcon";
 
 interface MarkdownRendererProps {
   children: string;
@@ -14,6 +15,7 @@ interface MarkdownRendererProps {
 interface CodeBlockProps {
   className?: string;
   children?: React.ReactNode;
+  node?: { data?: { meta?: string | null } };
 }
 
 // Map common language names to file extensions
@@ -77,11 +79,21 @@ const langToExt: Record<string, string> = {
   env: "env",
 };
 
-function CodeBlock({ className, children }: CodeBlockProps) {
+function CodeBlock({ className, children, node }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
   const activeThemeId = useConfigStore((s) => s.activeThemeId);
-  const match = /language-(\w+)/.exec(className || "");
+
+  // Parse language and filename from className
+  // Supports: `language-tsx`, `language-tsx:App.tsx`, or meta from node
+  const match = /language-(\w+)(?::([^\s]+))?/.exec(className || "");
   const language = match ? match[1].toLowerCase() : "";
+  const metaFilename = match?.[2];
+
+  // Try to get filename from meta string (e.g. ```tsx filename="App.tsx")
+  const meta = (node as { data?: { meta?: string } })?.data?.meta;
+  const metaMatch = meta?.match(/filename=["']?([^"'\s]+)["']?/);
+  const filename = metaFilename || metaMatch?.[1];
+
   const code = String(children).replace(/\n$/, "");
 
   // Determine theme for code highlighting
@@ -116,23 +128,27 @@ function CodeBlock({ className, children }: CodeBlockProps) {
 
   // Use @pierre/diffs File component for syntax highlighting
   const ext = langToExt[language] || language || "txt";
-  const fileName = `code.${ext}`;
+  // Use provided filename or generate from language
+  const displayFilename = filename || `code.${ext}`;
 
   const file: FileContents = useMemo(
     () => ({
-      name: fileName,
+      name: displayFilename,
       contents: code,
     }),
-    [fileName, code],
+    [displayFilename, code],
   );
 
   return (
     <div className="relative group my-3 rounded-lg overflow-hidden border border-border">
-      {/* Header with language badge and copy button - darker background to contrast with code */}
+      {/* Header with filename and copy button */}
       <div className="flex items-center justify-between px-4 py-2 bg-card border-b border-border">
-        <span className="text-xs text-muted-foreground font-mono uppercase tracking-wide">
-          {language || "text"}
-        </span>
+        <div className="flex items-center gap-2">
+          <FileIcon filename={displayFilename} size={14} />
+          <span className="text-xs text-muted-foreground font-mono">
+            {displayFilename}
+          </span>
+        </div>
         <button
           onClick={handleCopy}
           className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors rounded hover:bg-muted"
@@ -156,6 +172,7 @@ function CodeBlock({ className, children }: CodeBlockProps) {
         <File
           file={file}
           options={{
+            disableFileHeader:true,
             theme: { dark: "pierre-dark", light: "pierre-light" },
             themeType: isDark ? "dark" : "light",
           }}
