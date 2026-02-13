@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useSessionStore } from "@/stores/sessionStore";
 import { useToolStore } from "@/stores/toolStore";
 import { useConfigStore } from "@/stores/configStore";
+import { api } from "@/lib/api";
 import type { GlobalSSEEvent, ToolCall } from "@friend/shared";
 
 export function useGlobalSSE() {
@@ -14,8 +15,23 @@ export function useGlobalSSE() {
   const resetStreaming = useSessionStore((s) => s.resetStreaming);
   const addMessage = useSessionStore((s) => s.addMessage);
   const setSseConnected = useSessionStore((s) => s.setSseConnected);
+  const setSteeringMessages = useSessionStore((s) => s.setSteeringMessages);
+  const setFollowUpMessages = useSessionStore((s) => s.setFollowUpMessages);
 
   const { addExecution, updateExecution, completeExecution, clearExecutions } = useToolStore();
+
+  // Helper to refresh pending messages from backend
+  const refreshPendingMessages = async (sessionId: string) => {
+    try {
+      const res = await api.getPendingMessages(sessionId);
+      if (res.ok && res.data) {
+        setSteeringMessages(res.data.steering);
+        setFollowUpMessages(res.data.followUp);
+      }
+    } catch {
+      // Ignore errors
+    }
+  };
 
   useEffect(() => {
     let es: EventSource | null = null;
@@ -41,13 +57,15 @@ export function useGlobalSSE() {
       setSseConnected(false);
       es = new EventSource("/api/events");
 
-      // Handle connection errors
-      es.addEventListener("error", (e) => {
-        if (es?.readyState === EventSource.CLOSED) {
-          console.error("[SSE] Connection closed, will retry...");
-          setSseConnected(false);
-          scheduleReconnect();
+      // Handle connection errors - any error means disconnected
+      es.addEventListener("error", () => {
+        console.error("[SSE] Connection error, readyState:", es?.readyState);
+        setSseConnected(false);
+        // Close and reconnect
+        if (es && es.readyState !== EventSource.CLOSED) {
+          es.close();
         }
+        scheduleReconnect();
       });
 
       // Monitor ready state changes
@@ -74,6 +92,7 @@ export function useGlobalSSE() {
     const scheduleReconnect = () => {
       if (retryCount >= MAX_RETRIES) {
         console.error("[SSE] Max retry attempts reached, giving up");
+        setSseConnected(false);
         return;
       }
 
@@ -157,6 +176,10 @@ export function useGlobalSSE() {
           case "message_start":
             resetStreaming();
             setStreamingPhase("started");
+            // Refresh pending messages when a user message is delivered
+            if (event.message.role === "user") {
+              refreshPendingMessages(event.sessionId);
+            }
             break;
 
           case "message_update": {

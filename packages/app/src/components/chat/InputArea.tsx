@@ -1,16 +1,18 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Send, Square } from "lucide-react";
+import { Send, Square, Zap, MessageSquarePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ModelSelector } from "@/components/ModelSelector";
 
 interface InputAreaProps {
   onSend: (message: string) => void;
+  onSteer: (message: string) => void;
+  onFollowUp: (message: string) => void;
   onAbort: () => void;
   isStreaming: boolean;
   disabled?: boolean;
 }
 
-export function InputArea({ onSend, onAbort, isStreaming, disabled }: InputAreaProps) {
+export function InputArea({ onSend, onSteer, onFollowUp, onAbort, isStreaming, disabled }: InputAreaProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -21,15 +23,40 @@ export function InputArea({ onSend, onAbort, isStreaming, disabled }: InputAreaP
     setInput("");
   }, [input, disabled, onSend]);
 
+  const handleSteer = useCallback(() => {
+    const trimmed = input.trim();
+    if (!trimmed || disabled) return;
+    onSteer(trimmed);
+    setInput("");
+  }, [input, disabled, onSteer]);
+
+  const handleFollowUp = useCallback(() => {
+    const trimmed = input.trim();
+    if (!trimmed || disabled) return;
+    onFollowUp(trimmed);
+    setInput("");
+  }, [input, disabled, onFollowUp]);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        if (isStreaming) return;
-        handleSend();
+        if (isStreaming) {
+          // Streaming: Enter = steer
+          handleSteer();
+        } else {
+          handleSend();
+        }
+      } else if (e.key === "Enter" && e.shiftKey && isStreaming) {
+        // Streaming: Shift+Enter = followUp
+        e.preventDefault();
+        handleFollowUp();
+      } else if (e.key === "Escape" && isStreaming) {
+        e.preventDefault();
+        onAbort();
       }
     },
-    [handleSend, isStreaming],
+    [handleSend, handleSteer, handleFollowUp, isStreaming, onAbort],
   );
 
   // Auto-resize textarea
@@ -41,6 +68,8 @@ export function InputArea({ onSend, onAbort, isStreaming, disabled }: InputAreaP
     }
   }, [input]);
 
+  const hasInput = input.trim() && !disabled;
+
   return (
     <div className="border-t border-border p-3">
       <div className="bg-secondary/30 rounded-lg border border-border px-3 py-2">
@@ -50,7 +79,7 @@ export function InputArea({ onSend, onAbort, isStreaming, disabled }: InputAreaP
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder='Ask anything... "Add input validation"'
+            placeholder={isStreaming ? 'Type to steer (Enter) or follow-up (Shift+Enter)...' : 'Ask anything... "Add input validation"'}
             disabled={disabled}
             rows={1}
             className={cn(
@@ -66,20 +95,50 @@ export function InputArea({ onSend, onAbort, isStreaming, disabled }: InputAreaP
           </div>
           <div className="flex items-center gap-1">
             {isStreaming ? (
-              <button
-                onClick={onAbort}
-                className="flex-shrink-0 p-1.5 rounded-md bg-destructive/20 hover:bg-destructive/30 text-destructive transition-colors"
-                title="Stop"
-              >
-                <Square className="w-4 h-4" />
-              </button>
+              <>
+                <button
+                  onClick={handleSteer}
+                  disabled={!hasInput}
+                  className={cn(
+                    "flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors",
+                    hasInput
+                      ? "bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-600 dark:text-yellow-400"
+                      : "text-muted-foreground/30",
+                  )}
+                  title="Steer: interrupt and send now"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  Steer
+                </button>
+                <button
+                  onClick={handleFollowUp}
+                  disabled={!hasInput}
+                  className={cn(
+                    "flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors",
+                    hasInput
+                      ? "bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 dark:text-blue-400"
+                      : "text-muted-foreground/30",
+                  )}
+                  title="Follow-up: queue for after completion"
+                >
+                  <MessageSquarePlus className="w-3.5 h-3.5" />
+                  FollowUp
+                </button>
+                <button
+                  onClick={onAbort}
+                  className="flex-shrink-0 p-1.5 rounded-md bg-destructive/20 hover:bg-destructive/30 text-destructive transition-colors"
+                  title="Stop"
+                >
+                  <Square className="w-4 h-4" />
+                </button>
+              </>
             ) : (
               <button
                 onClick={handleSend}
-                disabled={!input.trim() || disabled}
+                disabled={!hasInput}
                 className={cn(
                   "flex-shrink-0 p-1.5 rounded-md transition-colors",
-                  input.trim() && !disabled
+                  hasInput
                     ? "bg-primary text-primary-foreground hover:bg-primary/90"
                     : "text-muted-foreground/30",
                 )}

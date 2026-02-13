@@ -57,6 +57,19 @@ export const sessionRoutes = new Elysia({ prefix: "/api/sessions" })
     { body: t.Object({ message: t.String() }) },
   )
 
+  .post(
+    "/:id/followUp",
+    async ({ params: { id }, body }) => {
+      try {
+        await getAgentManager().followUp(id, body.message);
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: String(e) };
+      }
+    },
+    { body: t.Object({ message: t.String() }) },
+  )
+
   .post("/:id/abort", async ({ params: { id } }) => {
     try {
       await getAgentManager().abort(id);
@@ -79,6 +92,12 @@ export const sessionRoutes = new Elysia({ prefix: "/api/sessions" })
     const stats = getAgentManager().getStats(id);
     if (!stats) return { ok: false, error: "Session not found" };
     return { ok: true, data: stats };
+  })
+
+  .get("/:id/pending", ({ params: { id } }) => {
+    const pending = getAgentManager().getPendingMessages(id);
+    if (!pending) return { ok: false, error: "Session not found" };
+    return { ok: true, data: pending };
   })
 
   .delete("/:id", async ({ params: { id } }) => {

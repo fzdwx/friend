@@ -24,6 +24,10 @@ interface SessionState {
   currentModel: ModelInfo | null;
   sseConnected: boolean; // SSE connection status
 
+  // Pending messages (steer/followUp queues)
+  steeringMessages: string[];
+  followUpMessages: string[];
+
   // Actions
   setActiveTurnIndex: (index: number | null) => void;
   setSessions: (sessions: SessionInfo[]) => void;
@@ -41,6 +45,15 @@ interface SessionState {
   loadModels: () => Promise<void>;
   setCurrentModel: (sessionId: string, provider: string, modelId: string) => Promise<void>;
   setSseConnected: (connected: boolean) => void;
+
+  // Pending messages actions
+  setSteeringMessages: (messages: string[]) => void;
+  setFollowUpMessages: (messages: string[]) => void;
+  addSteeringMessage: (message: string) => void;
+  addFollowUpMessage: (message: string) => void;
+  removeSteeringMessage: (message: string) => void;
+  removeFollowUpMessage: (message: string) => void;
+  clearPendingMessages: () => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -56,6 +69,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   availableModels: [],
   currentModel: null,
   sseConnected: false,
+  steeringMessages: [],
+  followUpMessages: [],
 
   setActiveTurnIndex: (index) => set({ activeTurnIndex: index }),
   setSessions: (sessions) => set({ sessions }),
@@ -75,6 +90,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           streamingThinking: "",
           streamingBlocks: [],
           activeTurnIndex: null,
+          steeringMessages: [],
+          followUpMessages: [],
         }),
       };
     }),
@@ -89,6 +106,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       streamingThinking: "",
       streamingBlocks: [],
       activeTurnIndex: null,
+      steeringMessages: [],
+      followUpMessages: [],
     });
     if (id) {
       const session = get().sessions.find((s) => s.id === id);
@@ -142,4 +161,18 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       }
     }
   },
+
+  // Pending messages actions
+  setSteeringMessages: (messages) => set({ steeringMessages: messages }),
+  setFollowUpMessages: (messages) => set({ followUpMessages: messages }),
+  addSteeringMessage: (message) =>
+    set((s) => ({ steeringMessages: [...s.steeringMessages, message] })),
+  addFollowUpMessage: (message) =>
+    set((s) => ({ followUpMessages: [...s.followUpMessages, message] })),
+  removeSteeringMessage: (message) =>
+    set((s) => ({ steeringMessages: s.steeringMessages.filter((m) => m !== message) })),
+  removeFollowUpMessage: (message) =>
+    set((s) => ({ followUpMessages: s.followUpMessages.filter((m) => m !== message) })),
+  clearPendingMessages: () =>
+    set({ steeringMessages: [], followUpMessages: [] }),
 }));

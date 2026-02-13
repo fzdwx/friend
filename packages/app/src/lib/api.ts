@@ -84,9 +84,16 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ message }),
     }),
+  followUp: (id: string, message: string) =>
+    request<void>(`/sessions/${id}/followUp`, {
+      method: "POST",
+      body: JSON.stringify({ message }),
+    }),
   abort: (id: string) => request<void>(`/sessions/${id}/abort`, { method: "POST" }),
   compact: (id: string) => request<void>(`/sessions/${id}/compact`, { method: "POST" }),
   getStats: (id: string) => request<any>(`/sessions/${id}/stats`),
+  getPendingMessages: (id: string) =>
+    request<{ steering: string[]; followUp: string[] }>(`/sessions/${id}/pending`),
 
   // Models
   getModels: () => request<ModelInfo[]>("/models"),

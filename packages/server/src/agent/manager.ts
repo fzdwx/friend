@@ -941,6 +941,21 @@ Your output must be:
     await managed.session.steer(message);
   }
 
+  async followUp(id: string, message: string): Promise<void> {
+    const managed = this.managedSessions.get(id);
+    if (!managed) throw new Error(`Session ${id} not found`);
+    await managed.session.followUp(message);
+  }
+
+  getPendingMessages(id: string): { steering: string[]; followUp: string[] } | null {
+    const managed = this.managedSessions.get(id);
+    if (!managed) return null;
+    return {
+      steering: [...managed.session.getSteeringMessages()],
+      followUp: [...managed.session.getFollowUpMessages()],
+    };
+  }
+
   async abort(id: string): Promise<void> {
     const managed = this.managedSessions.get(id);
     if (!managed) throw new Error(`Session ${id} not found`);
