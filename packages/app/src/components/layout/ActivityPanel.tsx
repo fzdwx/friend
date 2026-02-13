@@ -31,6 +31,7 @@ function groupByTurns(messages: Message[]): Turn[] {
 export function ActivityPanel() {
   const messages = useSessionStore((s) => s.messages);
   const isStreaming = useSessionStore((s) => s.isStreaming);
+  const sseConnected = useSessionStore((s) => s.sseConnected);
   const topRef = useRef<HTMLDivElement>(null);
 
   const turns = useMemo(() => groupByTurns(messages), [messages]);
@@ -81,10 +82,16 @@ export function ActivityPanel() {
           <Circle
             className={cn(
               "w-2 h-2 fill-current",
-              isStreaming ? "text-yellow-500 animate-pulse" : "text-emerald-500",
+              isStreaming
+                ? "text-yellow-500 animate-pulse"
+                : sseConnected
+                  ? "text-emerald-500"
+                  : "text-red-500",
             )}
           />
-          <span className="font-medium">{isStreaming ? "Streaming" : "Connected"}</span>
+          <span className="font-medium">
+            {isStreaming ? "Streaming" : sseConnected ? "Connected" : "Disconnected"}
+          </span>
         </div>
       </div>
     </div>

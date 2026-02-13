@@ -22,6 +22,7 @@ interface SessionState {
   activeTurnIndex: number | null;
   availableModels: ModelInfo[];
   currentModel: ModelInfo | null;
+  sseConnected: boolean; // SSE connection status
 
   // Actions
   setActiveTurnIndex: (index: number | null) => void;
@@ -39,6 +40,7 @@ interface SessionState {
   resetStreaming: () => void;
   loadModels: () => Promise<void>;
   setCurrentModel: (sessionId: string, provider: string, modelId: string) => Promise<void>;
+  setSseConnected: (connected: boolean) => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -53,10 +55,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   activeTurnIndex: null,
   availableModels: [],
   currentModel: null,
+  sseConnected: false,
 
   setActiveTurnIndex: (index) => set({ activeTurnIndex: index }),
   setSessions: (sessions) => set({ sessions }),
   addSession: (session) => set((s) => ({ sessions: [...s.sessions, session] })),
+  setSseConnected: (connected) => set({ sseConnected: connected }),
   removeSession: (id) =>
     set((s) => {
       const isRemovingActive = s.activeSessionId === id;

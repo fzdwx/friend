@@ -13,6 +13,7 @@ export function useGlobalSSE() {
   const addStreamingBlock = useSessionStore((s) => s.addStreamingBlock);
   const resetStreaming = useSessionStore((s) => s.resetStreaming);
   const addMessage = useSessionStore((s) => s.addMessage);
+  const setSseConnected = useSessionStore((s) => s.setSseConnected);
 
   const { addExecution, updateExecution, completeExecution, clearExecutions } = useToolStore();
 
@@ -37,18 +38,14 @@ export function useGlobalSSE() {
       }
 
       console.log(`[SSE] Connecting (attempt ${retryCount + 1})...`);
+      setSseConnected(false);
       es = new EventSource("/api/events");
-
-      // Connection opened
-      if (es.readyState === EventSource.OPEN) {
-        console.log("[SSE] Connected");
-        retryCount = 0;
-      }
 
       // Handle connection errors
       es.addEventListener("error", (e) => {
         if (es?.readyState === EventSource.CLOSED) {
           console.error("[SSE] Connection closed, will retry...");
+          setSseConnected(false);
           scheduleReconnect();
         }
       });
@@ -60,8 +57,10 @@ export function useGlobalSSE() {
         if (es.readyState === EventSource.OPEN) {
           console.log("[SSE] Connection opened");
           retryCount = 0;
+          setSseConnected(true);
         } else if (es.readyState === EventSource.CLOSED) {
           console.error("[SSE] Connection closed");
+          setSseConnected(false);
         } else if (es.readyState === EventSource.CONNECTING) {
           console.log("[SSE] Connecting...");
         }
