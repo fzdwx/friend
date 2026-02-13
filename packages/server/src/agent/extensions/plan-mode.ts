@@ -232,7 +232,7 @@ Plan:
 ...
 
 Do NOT attempt to make changes - just describe what you would do.
-After completing your analysis, present the plan and wait for user confirmation.`;
+Output ONLY the plan, nothing else. The user will confirm via UI.`;
 
 export function getExecutionContextPrompt(todos: TodoItem[]): string {
   const remaining = todos.filter((t) => !t.completed);
