@@ -66,9 +66,9 @@ export function PlanEditor({ todos: initialTodos, onExecute, onCancel, disabled 
   }, [todos, initialTodos, onExecute]);
 
   return (
-    <div className="plan-editor bg-secondary/30 border border-border rounded-lg p-4 my-3">
+    <div className="plan-editor bg-secondary/30 border border-border rounded-lg p-4 my-3 max-h-[60vh] flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3 pb-2 border-b border-border">
+      <div className="flex items-center justify-between mb-3 pb-2 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-yellow-500" />
           <span className="font-medium text-sm">Plan Mode</span>
@@ -79,8 +79,8 @@ export function PlanEditor({ todos: initialTodos, onExecute, onCancel, disabled 
         </div>
       </div>
 
-      {/* Todo List */}
-      <div className="space-y-2">
+      {/* Todo List - scrollable */}
+      <div className="space-y-2 overflow-y-auto flex-1 min-h-0">
         {todos.map((todo, index) => (
           <div
             key={todo.step}
@@ -123,7 +123,7 @@ export function PlanEditor({ todos: initialTodos, onExecute, onCancel, disabled 
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border">
+      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border flex-shrink-0">
         <button
           onClick={handleExecute}
           disabled={disabled}
@@ -169,8 +169,8 @@ export function PlanProgress({ completed, total, todos }: PlanProgressProps) {
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
-    <div className="plan-progress bg-secondary/30 border border-border rounded-lg p-3 my-2">
-      <div className="flex items-center justify-between mb-2">
+    <div className="plan-progress bg-secondary/30 border border-border rounded-lg p-3 my-2 max-h-[40vh] flex flex-col">
+      <div className="flex items-center justify-between mb-2 flex-shrink-0">
         <span className="text-sm font-medium">Executing Plan</span>
         <span className="text-xs text-muted-foreground">
           {completed}/{total} steps
@@ -178,15 +178,15 @@ export function PlanProgress({ completed, total, todos }: PlanProgressProps) {
       </div>
 
       {/* Progress Bar */}
-      <div className="h-2 bg-secondary rounded-full overflow-hidden">
+      <div className="h-2 bg-secondary rounded-full overflow-hidden flex-shrink-0">
         <div
           className="h-full bg-primary transition-all duration-300"
           style={{ width: `${percent}%` }}
         />
       </div>
 
-      {/* Current Steps */}
-      <div className="mt-2 space-y-1">
+      {/* Current Steps - scrollable */}
+      <div className="mt-2 space-y-1 overflow-y-auto flex-1 min-h-0">
         {todos.map((todo) => (
           <div
             key={todo.step}
