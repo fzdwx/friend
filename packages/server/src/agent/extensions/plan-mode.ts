@@ -282,7 +282,7 @@ export function createPlanModeExtension(callbacks: PlanModeExtensionCallbacks): 
     // Register /plan command to toggle plan mode
     pi.registerCommand("plan", {
       description: "Toggle plan mode (read-only exploration)",
-      handler: async (_args, ctx) => {
+      handler: async (args, ctx) => {
         const sessionId = ctx.sessionManager.getSessionId();
         const current = getState(sessionId);
 
@@ -297,6 +297,11 @@ export function createPlanModeExtension(callbacks: PlanModeExtensionCallbacks): 
         if (newState.enabled) {
           pi.setActiveTools(PLAN_MODE_TOOLS);
           ctx.ui.notify("📋 Plan mode enabled. Read-only tools only.");
+          
+          // If there are args, send them as a user message to trigger AI processing
+          if (args && args.trim()) {
+            pi.sendUserMessage(args.trim());
+          }
         } else {
           pi.setActiveTools(NORMAL_MODE_TOOLS);
           ctx.ui.notify("Plan mode disabled. Full access restored.");

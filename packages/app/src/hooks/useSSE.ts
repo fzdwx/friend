@@ -214,8 +214,11 @@ export function useGlobalSSE() {
             setCompacting(false);
             break;
 
-          // Plan mode events
+          // Plan mode events - only process if matches current session
           case "plan_mode_state_changed":
+            if (event.sessionId && event.sessionId !== useSessionStore.getState().activeSessionId) {
+              break; // Ignore events for other sessions
+            }
             useSessionStore.getState().setPlanModeState(
               event.enabled,
               event.executing,
@@ -224,6 +227,9 @@ export function useGlobalSSE() {
             break;
 
           case "plan_mode_request_choice":
+            if (event.sessionId && event.sessionId !== useSessionStore.getState().activeSessionId) {
+              break; // Ignore events for other sessions
+            }
             useSessionStore.getState().setPlanModeState(
               true,  // enabled
               false, // not executing yet
@@ -232,6 +238,9 @@ export function useGlobalSSE() {
             break;
 
           case "plan_mode_progress":
+            if (event.sessionId && event.sessionId !== useSessionStore.getState().activeSessionId) {
+              break; // Ignore events for other sessions
+            }
             useSessionStore.getState().setPlanModeProgress(
               event.completed,
               event.total,
@@ -239,6 +248,9 @@ export function useGlobalSSE() {
             break;
 
           case "plan_mode_complete":
+            if (event.sessionId && event.sessionId !== useSessionStore.getState().activeSessionId) {
+              break; // Ignore events for other sessions
+            }
             useSessionStore.getState().clearPlanMode();
             break;
 
