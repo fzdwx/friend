@@ -40,7 +40,7 @@ export const AssistantMessage = memo(function AssistantMessage({
 
   return (
     <div className="flex justify-start group">
-      <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-secondary px-4 py-2.5 relative">
+      <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-muted/30 px-4 py-2.5 relative">
         {/* Copy message button */}
         {!isStreaming && (
           <button

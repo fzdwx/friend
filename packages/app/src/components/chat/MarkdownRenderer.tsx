@@ -173,12 +173,12 @@ function Tr({ children }: { children?: React.ReactNode }) {
 }
 
 function Td({ children }: { children?: React.ReactNode }) {
-  return <td className="px-4 py-2">{children}</td>;
+  return <td className="px-4 py-2 border border-border">{children}</td>;
 }
 
 function Th({ children }: { children?: React.ReactNode }) {
   return (
-    <th className="px-4 py-2.5 bg-muted/30 font-medium text-left border-b border-border">
+    <th className="px-4 py-2.5 bg-muted/30 font-medium text-left border border-border">
       {children}
     </th>
   );

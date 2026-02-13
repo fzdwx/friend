@@ -36,7 +36,7 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
 
   return (
     <div className="flex justify-end group">
-      <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-primary/15 px-4 py-2.5 relative">
+      <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-primary/10 px-4 py-2.5 relative">
         {/* Copy button */}
         <button
           onClick={handleCopy}
