@@ -113,7 +113,9 @@ const SAFE_PATTERNS = [
   /^\s*top\b/,
   /^\s*htop\b/,
   /^\s*free\b/,
-  /^\s*git\s+(status|log|diff|show|branch|remote|config\s+--get)/i,
+  // Git read-only commands (with optional cd prefix)
+  /(^|\s||&&|\|\|)\s*git\s+(status|log|diff|show|branch|remote|config\s+--get)\b/i,
+  /^\s*git\s+(status|log|diff|show|branch|remote|config\s+--get)\b/i,
   /^\s*git\s+ls-/i,
   /^\s*npm\s+(list|ls|view|info|search|outdated|audit)/i,
   /^\s*yarn\s+(list|info|why|audit)/i,
@@ -427,44 +429,63 @@ export function createPlanModeExtension(callbacks: PlanModeExtensionCallbacks): 
  * Keywords and patterns that suggest a complex task requiring planning.
  */
 const PLAN_TRIGGERS = {
-  // High-confidence keywords
+  // High-confidence keywords (require explicit planning intent)
   keywords: [
-    "重构", "架构", "设计", "实现", "迁移", "从零开始",
-    "refactor", "architect", "design", "implement", "migrate", "from scratch",
-    "完整", "系统", "模块", "框架",
-    "complete", "system", "module", "framework",
+    "重构", "架构设计", "系统设计", "实现方案", "迁移方案", "从零开始",
+    "refactor", "architect", "system design", "implementation plan", "migrate",
+    "完整实现", "系统实现", "模块设计",
+    "step by step", "详细计划", "帮我规划",
   ],
 
-  // Pattern matches
+  // Pattern matches (require multiple steps clearly)
   patterns: [
-    /添加.*功能/i,
+    /添加.*功能.*步骤/i,
     /实现.*系统/i,
-    /创建.*模块/i,
-    /how to implement/i,
-    /step by step/i,
-    /帮我(设计|规划|实现)/i,
+    /创建.*模块.*设计/i,
+    /how to implement.*step/i,
+    /帮我(设计|规划|实现).*方案/i,
     /如何(实现|设计)/i,
+    /详细.*计划/i,
   ],
 };
+
+/**
+ * Simple command patterns that should NOT trigger plan mode.
+ */
+const SIMPLE_COMMANDS = [
+  /^(提交|commit|push|pull|合并|merge)/i,
+  /^(运行|run|启动|start|停止|stop)/i,
+  /^(查看|show|list|显示)/i,
+  /^(修复|fix|更新|update|删除|delete|添加|add)\s*(一个|单个)?/i,
+  /^(先|然后|接下来)/i,
+  /^\/\w+/,  // Slash commands like /plan
+];
 
 /**
  * Check if a message suggests a complex task requiring planning.
  * Returns a score from 0-1, where higher means more likely to need planning.
  */
 export function checkComplexity(message: string): number {
+  // Skip simple commands
+  for (const pattern of SIMPLE_COMMANDS) {
+    if (pattern.test(message.trim())) {
+      return 0;
+    }
+  }
+
   let score = 0;
 
   // Check keywords
   for (const keyword of PLAN_TRIGGERS.keywords) {
     if (message.toLowerCase().includes(keyword.toLowerCase())) {
-      score += 0.15;
+      score += 0.2;
     }
   }
 
   // Check patterns
   for (const pattern of PLAN_TRIGGERS.patterns) {
     if (pattern.test(message)) {
-      score += 0.2;
+      score += 0.25;
     }
   }
 
