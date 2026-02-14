@@ -751,6 +751,7 @@ You can now proceed with your analysis.`,
             const newState: PlanModeState = {
               ...state,
               enabled: true,  // Stay in plan mode
+              executing: false,  // Not executing - plan is ready for review
               modifying: false,  // Clear modifying flag
               modifyMessage: undefined,  // Clear modify message
               todos: extracted,
