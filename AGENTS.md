@@ -1,11 +1,11 @@
 # PROJECT KNOWLEDGE BASE: Friend
 
 **Generated:** 2026-02-14
-**Commit:** 8de3dcf
+**Commit:** 9bd40c2
 **Branch:** main
 **Tech Stack:** Bun + React + Tauri + Elysia + Prisma
 **Type:** AI Coding Agent Desktop App (Monorepo)
-**Stats:** 108 source files, 17131 TS/TSX lines, 4 packages
+**Stats:** 114 source files, 18841 TS/TSX lines, 4 packages
 
 ---
 
@@ -117,7 +117,7 @@ just db-push      # 推送 schema
 - **主题系统**: 15 组内置主题（5 亮色 + 10 暗色），使用 oklch 颜色格式，支持自定义主题导入/导出。注意：`BUILT_IN_THEMES` 运行时数据在 `@friend/shared` 中，而非纯类型
 - **数据库混合存储**: Session 元数据在 SQLite，消息历史在 JSON 文件 (`~/.config/friend/sessions/*.json`)
 - **Tauri Dialog 插件**: 已配置 `dialog:default` 权限，前端通过 `@tauri-apps/plugin-dialog` 选择目录
-- **自定义工具**: `packages/server/src/agent/tools/` 包含工厂函数模式创建 Agent 工具（14 个工具：theme/provider/session/memory 相关）
+- **自定义工具**: `packages/server/src/agent/tools/` 包含工厂函数模式创建 Agent 工具（15 个工具：theme/provider/session/memory/question 相关）
 - **@friend/shared 运行时代码**: 虽然 AGENTS.md 声明纯类型定义，但 `themes.ts` 导出 `BUILT_IN_THEMES` 常量数组（469 行主题数据），被 server 和 app 共享
 - **Memory 系统**: `packages/server/src/agent/memory/` 实现 Agent 长期记忆，支持 BM25 关键词搜索 + 向量语义搜索，使用 SQLite + sqlite-vec
 

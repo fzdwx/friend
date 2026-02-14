@@ -1,8 +1,8 @@
 # AGENT TOOLS MODULE
 
 **Location:** `packages/server/src/agent/tools/`
-**Purpose:** Custom AI Agent tools (14 tools: theme/provider/session/memory/search)
-**Files:** 14 TypeScript files
+**Purpose:** Custom AI Agent tools (15 tools: theme/provider/session/memory/search/question)
+**Files:** 15 TypeScript files
 
 ---
 
@@ -23,7 +23,8 @@ tools/
 ├── session-rename.ts             # Rename session
 ├── memory.ts                     # memory_search, memory_get
 ├── grep.ts                       # Search file contents (ripgrep)
-└── glob.ts                       # Find files by pattern
+├── glob.ts                       # Find files by pattern
+└── question.ts                   # Ask user questions
 ```
 
 ---
@@ -100,23 +101,24 @@ export function createTools(manager: IAgentManager): ToolDefinition[] {
 
 ---
 
-## TOOL RESPONSIBILITIES (14 Tools)
+## TOOL RESPONSIBILITIES (15 Tools)
 
-| Tool                     | Purpose                        | File                        |
-| ------------------------ | ------------------------------ | --------------------------- |
-| `add_custom_provider`    | Add OpenAI-compatible provider | `custom-provider-add.ts`    |
-| `list_custom_providers`  | List registered providers      | `custom-provider-list.ts`   |
-| `update_custom_provider` | Update provider config         | `custom-provider-update.ts` |
-| `get_themes`             | Query available themes         | `theme-get.ts`              |
-| `generate_theme`         | AI-generate custom theme       | `theme-generate.ts`         |
-| `set_theme`              | Switch active theme            | `theme-set.ts`              |
-| `create_session`         | Create new session             | `session-create.ts`         |
-| `get_session`            | Get session details            | `session-get.ts`            |
-| `rename_session`         | Rename session                 | `session-rename.ts`         |
-| `memory_search`          | Semantic search memories       | `memory.ts`                 |
-| `memory_get`             | Read memory file               | `memory.ts`                 |
-| `grep`                   | Search file contents           | `grep.ts`                   |
-| `glob`                   | Find files by pattern          | `glob.ts`                   |
+| Tool                   | Purpose                        | File                        |
+| ---------------------- | ------------------------------ | --------------------------- |
+| `add_custom_provider`  | Add OpenAI-compatible provider | `custom-provider-add.ts`    |
+| `list_custom_providers`| List registered providers      | `custom-provider-list.ts`   |
+| `update_custom_provider`| Update provider config        | `custom-provider-update.ts` |
+| `get_themes`           | Query available themes         | `theme-get.ts`              |
+| `generate_theme`       | AI-generate custom theme       | `theme-generate.ts`         |
+| `set_theme`            | Switch active theme            | `theme-set.ts`              |
+| `create_session`       | Create new session             | `session-create.ts`         |
+| `get_session`          | Get session details            | `session-get.ts`            |
+| `rename_session`       | Rename session                 | `session-rename.ts`         |
+| `memory_search`        | Semantic search memories       | `memory.ts`                 |
+| `memory_get`           | Read memory file               | `memory.ts`                 |
+| `grep`                 | Search file contents           | `grep.ts`                   |
+| `glob`                 | Find files by pattern          | `glob.ts`                   |
+| `question`             | Ask user questions             | `question.ts`               |
 
 ---
 
