@@ -31,6 +31,8 @@ export interface TodoItem {
 export interface PlanModeState {
   enabled: boolean;
   executing: boolean;
+  modifying: boolean;  // True when user is modifying existing plan
+  modifyMessage?: string;  // The user's modification request
   todos: TodoItem[];
 }
 
@@ -177,25 +179,45 @@ function cleanStepText(text: string): string {
 
 export function extractTodoItems(message: string): TodoItem[] {
   const items: TodoItem[] = [];
-  const headerMatch = message.match(/\*{0,2}Plan:\*{0,2}\s*\n/i);
-  if (!headerMatch) return items;
-
-  const planSection = message.slice(message.indexOf(headerMatch[0]) + headerMatch[0].length);
   
-  // Match main tasks: "1. Task text" (not "1.1" or "1.2")
-  const mainTaskPattern = /^\s*(\d+)[.)]\s+\*{0,2}([^*\n]+)/gm;
+  // Enhanced Plan header matching - support \r\n, extra spaces, and various formats
+  const headerMatch = message.match(/\*{0,2}Plan:\*{0,2}\s*\r?\n/i);
+  if (!headerMatch) {
+    console.log('[PlanParser] No Plan: header found in message');
+    return items;
+  }
+
+  console.log('[PlanParser] Found Plan: header, extracting todos...');
+  
+  const planSection = message.slice(message.indexOf(headerMatch[0]) + headerMatch[0].length);
+  console.log('[PlanParser] Plan section length:', planSection.length, 'preview:', planSection.substring(0, 100));
   
   let currentMainTask: TodoItem | null = null;
   let mainTaskIndex = 0;
   
   // Get all lines to find subtasks
-  const lines = planSection.split('\n');
+  const lines = planSection.split(/\r?\n/);
+  console.log('[PlanParser] Total lines to process:', lines.length);
   
-  for (const line of lines) {
-    // Check for main task: "1. Task" (single digit, not "1.1")
-    const mainMatch = line.match(/^\s*(\d+)[.)]\s+\*{0,2}([^*\n]+)/);
-    if (mainMatch && !line.match(/^\s*\d+\.\d+/)) {
-      const text = mainMatch[2].trim().replace(/\*{1,2}$/, "").trim();
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmedLine = line.trim();
+    
+    // Skip empty lines or separator lines
+    if (!trimmedLine || trimmedLine === '---') continue;
+    
+    // Check for main task: "1. Task" or "1) Task" (not "1.1" or "1.2")
+    // More flexible pattern - capture everything after the number and separator
+    const mainMatch = line.match(/^\s*(\d+)[.)]\s+(.+)/);
+    const isSubtaskLine = line.match(/^\s*\d+\.\d+/);
+    
+    if (mainMatch && !isSubtaskLine) {
+      const rawText = mainMatch[2].trim();
+      // Remove trailing markdown bold/italic markers
+      const text = rawText.replace(/\*{1,2}$/, "").trim();
+      
+      console.log('[PlanParser] Line', i, '- Main task match:', mainMatch[1], 'text:', text.substring(0, 50));
+      
       if (text.length > 3 && !text.startsWith("`") && !text.startsWith("/") && !text.startsWith("-")) {
         const cleaned = cleanStepText(text);
         if (cleaned.length > 3) {
@@ -207,14 +229,19 @@ export function extractTodoItems(message: string): TodoItem[] {
             subtasks: []
           };
           items.push(currentMainTask);
+          console.log('[PlanParser] Added main task', mainTaskIndex, ':', cleaned);
         }
       }
     }
-    // Check for subtask: "1.1. Subtask" or "  - Subtask" (indented)
-    else if (currentMainTask) {
-      const subMatch = line.match(/^\s*(\d+)\.(\d+)[.)]\s+\*{0,2}([^*\n]+)/);
+    // Check for subtask: "1.1. Subtask"
+    else if (currentMainTask && isSubtaskLine) {
+      const subMatch = line.match(/^\s*(\d+)\.(\d+)[.)]\s+(.+)/);
       if (subMatch) {
-        const text = subMatch[3].trim().replace(/\*{1,2}$/, "").trim();
+        const rawText = subMatch[3].trim();
+        const text = rawText.replace(/\*{1,2}$/, "").trim();
+        
+        console.log('[PlanParser] Line', i, '- Subtask match:', subMatch[1] + '.' + subMatch[2], 'text:', text.substring(0, 50));
+        
         if (text.length > 3) {
           const cleaned = cleanStepText(text);
           if (cleaned.length > 3 && currentMainTask.subtasks) {
@@ -223,21 +250,22 @@ export function extractTodoItems(message: string): TodoItem[] {
               text: cleaned,
               completed: false
             });
+            console.log('[PlanParser] Added subtask to task', currentMainTask.step, ':', cleaned);
           }
         }
       }
-      // Also support bullet point subtasks under a main task
-      else if (line.match(/^\s*[-•]\s+/)) {
-        const bulletMatch = line.match(/^\s*[-•]\s+(.+)/);
-        if (bulletMatch && currentMainTask.subtasks) {
-          const text = bulletMatch[1].trim();
-          if (text.length > 3) {
-            currentMainTask.subtasks.push({
-              step: currentMainTask.subtasks.length + 1,
-              text,
-              completed: false
-            });
-          }
+    }
+    // Also support bullet point subtasks under a main task
+    else if (currentMainTask && line.match(/^\s*[-•]\s+/)) {
+      const bulletMatch = line.match(/^\s*[-•]\s+(.+)/);
+      if (bulletMatch && currentMainTask.subtasks) {
+        const text = bulletMatch[1].trim();
+        if (text.length > 3) {
+          currentMainTask.subtasks.push({
+            step: currentMainTask.subtasks.length + 1,
+            text,
+            completed: false
+          });
         }
       }
     }
@@ -250,6 +278,7 @@ export function extractTodoItems(message: string): TodoItem[] {
     }
   }
   
+  console.log('[PlanParser] Extracted', items.length, 'main tasks');
   return items;
 }
 
@@ -425,6 +454,61 @@ After completing a step, include a [DONE:n] tag in your response.
 For subtasks, use [DONE:n.m] format (e.g., [DONE:1.1] for subtask 1.1).`;
 }
 
+/**
+ * Generate context prompt for plan modification mode.
+ * This is used when user sends a new message while a plan is ready.
+ */
+export function getModifyContextPrompt(todos: TodoItem[], userMessage: string): string {
+  // Build current plan as text
+  const planLines: string[] = [];
+  for (const t of todos) {
+    planLines.push(`${t.step}. ${t.text}`);
+    if (t.subtasks) {
+      for (const sub of t.subtasks) {
+        planLines.push(`   ${t.step}.${sub.step}. ${sub.text}`);
+      }
+    }
+  }
+  const currentPlan = planLines.join("\n");
+
+  return `[PLAN MODIFICATION MODE]
+The user wants to modify the existing plan. Read their feedback and adjust accordingly.
+
+## Current Plan
+
+${currentPlan}
+
+## User's Request
+
+${userMessage}
+
+## Your Task
+
+1. Understand what changes the user wants
+2. Update the plan to incorporate their feedback
+3. Output the COMPLETE updated plan (not just the changes)
+
+## Output Format - CRITICAL
+
+You MUST output the complete updated plan in this exact format:
+
+Plan:
+1. Main task description here
+   1.1. Subtask one description here
+   1.2. Subtask two description here
+2. Next main task description here
+
+## Guidelines
+
+- Keep steps that are still relevant
+- Add new steps where needed
+- Remove or modify steps based on user feedback
+- Re-number steps if order changes
+- Maintain the same detailed, actionable style
+
+Now update the plan based on the user's request.`;
+}
+
 // ─── Plan Mode Extension Factory ──────────────────────────────────────────
 
 export interface PlanModeExtensionCallbacks {
@@ -447,7 +531,7 @@ export function createPlanModeExtension(callbacks: PlanModeExtensionCallbacks): 
   const sessionStates = new Map<string, PlanModeState>();
 
   const getState = (sessionId: string): PlanModeState => {
-    return callbacks.getState(sessionId) ?? { enabled: false, executing: false, todos: [] };
+    return callbacks.getState(sessionId) ?? { enabled: false, executing: false, modifying: false, todos: [] };
   };
 
   const setState = (sessionId: string, state: PlanModeState) => {
@@ -466,6 +550,7 @@ export function createPlanModeExtension(callbacks: PlanModeExtensionCallbacks): 
         const newState: PlanModeState = {
           enabled: !current.enabled,
           executing: false,
+          modifying: false,
           todos: [],
         };
 
@@ -510,6 +595,7 @@ export function createPlanModeExtension(callbacks: PlanModeExtensionCallbacks): 
         const newState: PlanModeState = {
           enabled: true,
           executing: false,
+          modifying: false,
           todos: [],
         };
         setState(sessionId, newState);
@@ -562,6 +648,26 @@ You can now proceed with your analysis.`,
       if (!sessionId) return;
 
       const state = getState(sessionId);
+      console.log('[PlanMode] before_agent_start - sessionId:', sessionId, 'state:', JSON.stringify({
+        enabled: state.enabled,
+        executing: state.executing,
+        modifying: state.modifying,
+        todosCount: state.todos.length,
+        modifyMessage: state.modifyMessage?.substring(0, 50),
+      }));
+
+      // Handle modify mode - inject modify context with current plan
+      if (state.modifying && state.todos.length > 0 && state.modifyMessage) {
+        console.log('[PlanMode] Injecting modify context for message:', state.modifyMessage.substring(0, 50));
+        const context = getModifyContextPrompt(state.todos, state.modifyMessage);
+        return {
+          message: {
+            customType: "plan-modify-context",
+            content: context,
+            display: false,
+          },
+        };
+      }
 
       if (state.enabled && !state.executing) {
         return {
@@ -612,25 +718,41 @@ You can now proceed with your analysis.`,
       if (!sessionId) return;
 
       const state = getState(sessionId);
+      console.log('[PlanMode] agent_end - sessionId:', sessionId, 'state:', JSON.stringify({
+        enabled: state.enabled,
+        executing: state.executing,
+        modifying: state.modifying,
+        todosCount: state.todos.length,
+      }));
 
       // Check if execution is complete
       if (state.executing && state.todos.length > 0) {
         if (state.todos.every((t) => t.completed)) {
           // All done - clear state
-          setState(sessionId, { enabled: false, executing: false, todos: [] });
+          setState(sessionId, { enabled: false, executing: false, modifying: false, todos: [] });
           pi.setActiveTools(NORMAL_MODE_TOOLS);
           return;
         }
       }
 
-      // In plan mode - extract todos and notify
-      if (state.enabled && !state.executing) {
+      // In modify mode or plan mode - extract todos and notify
+      const shouldExtract = (state.enabled || state.modifying) && !state.executing;
+      console.log('[PlanMode] agent_end - shouldExtract:', shouldExtract);
+      
+      if (shouldExtract) {
         const lastAssistant = [...event.messages].reverse().find(isAssistantMessage);
+        console.log('[PlanMode] agent_end - found assistant message:', !!lastAssistant);
         if (lastAssistant) {
-          const extracted = extractTodoItems(getTextContent(lastAssistant));
+          const text = getTextContent(lastAssistant);
+          console.log('[PlanMode] agent_end - assistant text length:', text.length, 'preview:', text.substring(0, 100));
+          const extracted = extractTodoItems(text);
+          console.log('[PlanMode] agent_end - extracted todos count:', extracted.length);
           if (extracted.length > 0) {
             const newState: PlanModeState = {
               ...state,
+              enabled: true,  // Stay in plan mode
+              modifying: false,  // Clear modifying flag
+              modifyMessage: undefined,  // Clear modify message
               todos: extracted,
             };
             setState(sessionId, newState);
