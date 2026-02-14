@@ -7,12 +7,16 @@ if (!process.env.DATABASE_URL) {
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { initAgentManager } from "./agent/manager";
+import { ensureBuiltinSkills } from "./agent/builtin-skills/index.js";
 import { sessionRoutes } from "./routes/sessions";
 import { configRoutes } from "./routes/config";
 import { eventRoutes } from "./routes/events";
 import { modelRoutes } from "./routes/models";
 import { skillRoutes } from "./routes/skills";
 import { agentsRoutes, bindingsRoutes } from "./routes/agents.js";
+
+// Ensure built-in skills exist
+ensureBuiltinSkills();
 
 await initAgentManager();
 
