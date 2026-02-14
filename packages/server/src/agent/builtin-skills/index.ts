@@ -3,26 +3,51 @@
  *
  * Ensures built-in skills are created in the global skills directory
  * if they don't already exist.
+ *
+ * Built-in skills are organized in subdirectories:
+ * - builtin-skills/skill-name/SKILL.md
+ * - builtin-skills/skill-name/scripts/
+ * - builtin-skills/skill-name/references/
+ * - builtin-skills/skill-name/assets/
  */
 
 import { join, dirname } from "node:path";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, copyFileSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { GLOBAL_SKILLS_DIR } from "../paths.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Built-in skill names (content loaded from .txt files)
-const BUILTIN_SKILL_NAMES = [
-  "skill-creator",
-];
+/**
+ * Recursively copy a directory
+ */
+function copyDir(src: string, dest: string): void {
+  if (!existsSync(dest)) {
+    mkdirSync(dest, { recursive: true });
+  }
+
+  const entries = readdirSync(src, { withFileTypes: true });
+  
+  for (const entry of entries) {
+    const srcPath = join(src, entry.name);
+    const destPath = join(dest, entry.name);
+    
+    if (entry.isDirectory()) {
+      copyDir(srcPath, destPath);
+    } else {
+      copyFileSync(srcPath, destPath);
+    }
+  }
+}
 
 /**
- * Load skill content from .txt file
+ * Get list of built-in skill directories
  */
-function loadSkillContent(skillName: string): string {
-  const skillFile = join(__dirname, `${skillName}.txt`);
-  return readFileSync(skillFile, "utf-8");
+function getBuiltinSkillDirs(): string[] {
+  const entries = readdirSync(__dirname, { withFileTypes: true });
+  return entries
+    .filter(entry => entry.isDirectory())
+    .map(entry => entry.name);
 }
 
 /**
@@ -35,18 +60,18 @@ export function ensureBuiltinSkills(): void {
     mkdirSync(GLOBAL_SKILLS_DIR, { recursive: true });
   }
 
+  // Get all built-in skill directories
+  const skillDirs = getBuiltinSkillDirs();
+
   // Check and create each built-in skill
-  for (const skillName of BUILTIN_SKILL_NAMES) {
-    const skillDir = join(GLOBAL_SKILLS_DIR, skillName);
-    const skillFile = join(skillDir, "SKILL.md");
+  for (const skillName of skillDirs) {
+    const srcDir = join(__dirname, skillName);
+    const destDir = join(GLOBAL_SKILLS_DIR, skillName);
+    const destFile = join(destDir, "SKILL.md");
 
     // Only create if doesn't exist
-    if (!existsSync(skillFile)) {
-      mkdirSync(skillDir, { recursive: true });
-      
-      const skillContent = loadSkillContent(skillName);
-      writeFileSync(skillFile, skillContent, "utf-8");
-      
+    if (!existsSync(destFile)) {
+      copyDir(srcDir, destDir);
       console.log(`✓ Created built-in skill: ${skillName}`);
     }
   }
