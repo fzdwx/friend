@@ -160,7 +160,7 @@ export async function executeSubagent(
       }
     };
 
-    session.on("event", eventHandler);
+    const unsubscribe = session.subscribe(eventHandler);
 
     // Handle abort signal
     if (signal) {
@@ -202,6 +202,11 @@ export async function executeSubagent(
 
     return result;
   } catch (error) {
+    // Unsubscribe from events
+    if (unsubscribe) {
+      unsubscribe();
+    }
+
     // Ensure cleanup happens even on error
     if (subagentSession) {
       try {
@@ -218,6 +223,11 @@ export async function executeSubagent(
     result.exitCode = 1;
     result.errorMessage = error instanceof Error ? error.message : String(error);
     return result;
+  } finally {
+    // Unsubscribe from events
+    if (unsubscribe) {
+      unsubscribe();
+    }
   }
 }
 
