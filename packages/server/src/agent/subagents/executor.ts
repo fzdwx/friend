@@ -30,6 +30,10 @@ export interface SubagentSessionConfig {
   systemPrompt: string;
   tools?: string[];
   model?: string;
+  metadata?: {
+    subagentDepth?: number;
+    subagentChain?: string[];
+  };
 }
 
 export interface SubagentSession {

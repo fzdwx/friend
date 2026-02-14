@@ -547,8 +547,8 @@ export function createPlanModeExtension(callbacks: PlanModeExtensionCallbacks): 
 
         if (newState.enabled) {
           pi.setActiveTools(PLAN_MODE_TOOLS);
-          ctx.ui.notify("📋 Plan mode enabled. Read-only tools only.");
-          
+          ctx.ui.notify("📋 Plan mode enabled. Read-only tools only. Use planner subagent for complex tasks.");
+
           // If there are args, send them as a user message to trigger AI processing
           if (args && args.trim()) {
             pi.sendUserMessage(args.trim());

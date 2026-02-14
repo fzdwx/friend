@@ -101,6 +101,50 @@ export function createSubagentTool(manager: IAgentManager): ToolDefinition {
     ): Promise<AgentToolResult<SubagentDetails>> {
       const agentScope: AgentScope = params.agentScope ?? "user";
 
+      // ─── Recursion Protection ─────────────────────────────────────────────
+      // Check and track subagent call depth to prevent infinite nesting
+      const currentDepth = ctx.metadata?.subagentDepth || 0;
+      const MAX_DEPTH = 3;
+
+      if (currentDepth >= MAX_DEPTH) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error: Maximum subagent nesting depth (${MAX_DEPTH}) reached. Cannot call more subagents to prevent infinite recursion.`,
+            },
+          ],
+          details: {
+            mode: "single",
+            agentScope,
+            workspaceAgentsDir: null,
+            results: [],
+          },
+        };
+      }
+
+      // Detect recursive calls (e.g., planner → scout → planner)
+      const callChain: string[] = ctx.metadata?.subagentChain || [];
+      const agentName = params.agent;
+
+      if (agentName && callChain.includes(agentName)) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error: Recursive subagent call detected. ${agentName} is already in the call chain: ${callChain.join(' → ')}`,
+            },
+          ],
+          details: {
+            mode: "single",
+            agentScope,
+            workspaceAgentsDir: null,
+            results: [],
+          },
+        };
+      }
+      // ───────────────────────────────────────────────────────────────────────
+
       // Get workspace path from context
       const workspacePath = ctx.workspacePath as string | undefined;
 

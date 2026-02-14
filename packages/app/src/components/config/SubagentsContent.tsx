@@ -36,7 +36,7 @@ interface SubagentFormData {
 }
 
 // 完整的工具列表
-// SDK 提供 7 个核心工具，自定义工具 5 个
+// SDK 提供 7 个核心工具，自定义工具 6 个
 const AVAILABLE_TOOLS = [
   // SDK 核心工具 (createCodingTools 返回 4 个: read, bash, edit, write)
   // SDK 额外工具 (需单独创建: grep, find, ls)
@@ -47,12 +47,13 @@ const AVAILABLE_TOOLS = [
   "grep",
   "find",
   "ls",
-  // 自定义工具
+  // 自定义工具 (包括 subagent 以支持嵌套调用)
   "glob",
   "get_session",
   "memory_search",
   "memory_get",
   "question",
+  "subagent",
 ];
 
 export function SubagentsContent() {

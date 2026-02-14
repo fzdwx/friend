@@ -1100,8 +1100,8 @@ export class AgentManager implements IAgentManager {
       requestedToolNames = [
         // SDK core tools (7 available)
         "read", "bash", "edit", "write", "grep", "find", "ls",
-        // Custom tools (essential ones for subagents)
-        "glob", "get_session", "memory_search", "memory_get", "question",
+        // Custom tools (essential ones for subagents, including subagent for nesting)
+        "glob", "get_session", "memory_search", "memory_get", "question", "subagent",
       ];
     }
 
@@ -1122,7 +1122,7 @@ export class AgentManager implements IAgentManager {
       sdkTools.push(createWriteTool(cwd));
     }
     if (requestedToolNames.includes("grep")) {
-      sdkTools.push(createGrepTool(cwd));
+      sdkTools.push(createGrepTool());
     }
     if (requestedToolNames.includes("find")) {
       sdkTools.push(createFindTool(cwd));
@@ -1143,6 +1143,7 @@ export class AgentManager implements IAgentManager {
       }),
       memory_get: () => createMemoryGetTool(cwd, { agentId: "subagent" }),
       question: () => createQuestionTool(this),
+      subagent: () => createSubagentTool(this),  // Allow nested subagent calls
     };
 
     const customTools = requestedToolNames
