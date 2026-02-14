@@ -216,7 +216,15 @@ export function useGlobalSSE() {
 
           // Plan mode events - only process if matches current session
           case "plan_mode_state_changed":
+            console.log("[SSE] plan_mode_state_changed:", {
+              eventSessionId: event.sessionId,
+              activeSessionId: useSessionStore.getState().activeSessionId,
+              enabled: event.enabled,
+              executing: event.executing,
+              todosCount: event.todos?.length,
+            });
             if (event.sessionId && event.sessionId !== useSessionStore.getState().activeSessionId) {
+              console.log("[SSE] Ignoring plan_mode_state_changed for different session");
               break; // Ignore events for other sessions
             }
             useSessionStore.getState().setPlanModeState(
@@ -227,7 +235,13 @@ export function useGlobalSSE() {
             break;
 
           case "plan_mode_request_choice":
+            console.log("[SSE] plan_mode_request_choice:", {
+              eventSessionId: event.sessionId,
+              activeSessionId: useSessionStore.getState().activeSessionId,
+              todosCount: event.todos?.length,
+            });
             if (event.sessionId && event.sessionId !== useSessionStore.getState().activeSessionId) {
+              console.log("[SSE] Ignoring plan_mode_request_choice for different session");
               break; // Ignore events for other sessions
             }
             useSessionStore.getState().setPlanModeState(

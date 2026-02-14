@@ -520,6 +520,8 @@ export interface PlanModeExtensionCallbacks {
   onPlanReady: (sessionId: string, todos: TodoItem[]) => void;
   /** Called when progress is made during execution */
   onProgress: (sessionId: string, todos: TodoItem[]) => void;
+  /** Called when next task should be executed */
+  onContinue?: (sessionId: string, nextTask: TodoItem) => void;
 }
 
 /**
@@ -738,16 +740,9 @@ You can now proceed with your analysis.`,
         
         // Continue with next task
         const nextTask = state.todos.find((t) => !t.completed);
-        if (nextTask) {
+        if (nextTask && callbacks.onContinue) {
           console.log('[PlanMode] Continuing with next task:', nextTask.step, nextTask.text);
-          // Use setTimeout to avoid blocking
-          setTimeout(async () => {
-            try {
-              await ctx.sessionManager.prompt(`Continue with: ${nextTask.text}`);
-            } catch (err) {
-              console.error('[PlanMode] Failed to continue with next task:', err);
-            }
-          }, 100);
+          callbacks.onContinue(sessionId, nextTask);
           return;
         }
       }

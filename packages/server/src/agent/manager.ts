@@ -187,7 +187,7 @@ export class AgentManager implements IAgentManager {
   }>();
 
   private getPlanModeState(sessionId: string): PlanModeState {
-    return this.planModeStates.get(sessionId) ?? { enabled: false, executing: false, todos: [] };
+    return this.planModeStates.get(sessionId) ?? { enabled: false, executing: false, modifying: false, todos: [] };
   }
 
   private setPlanModeState(sessionId: string, state: PlanModeState): void {
@@ -345,7 +345,9 @@ export class AgentManager implements IAgentManager {
           // Get current plan mode state (using SDK sessionId, internally maps to DB sessionId)
           getState: (sdkSessionId: string) => {
             const dbSessionId = this.resolveDbSessionId(sdkSessionId);
-            return dbSessionId ? this.getPlanModeState(dbSessionId) : { enabled: false, executing: false, todos: [] };
+            const state = dbSessionId ? this.getPlanModeState(dbSessionId) : { enabled: false, executing: false, modifying: false, todos: [] };
+            console.log('[PlanMode] getState - sdkSessionId:', sdkSessionId, 'dbSessionId:', dbSessionId, 'modifying:', state.modifying, 'todosCount:', state.todos.length);
+            return state;
           },
           // Set plan mode state (using SDK sessionId, internally maps to DB sessionId)
           setState: (sdkSessionId: string, state: PlanModeState) => {
@@ -363,6 +365,23 @@ export class AgentManager implements IAgentManager {
           onProgress: (sdkSessionId: string, todos: TodoItem[]) => {
             const dbSessionId = this.resolveDbSessionId(sdkSessionId);
             if (dbSessionId) this.handlePlanProgress(dbSessionId, todos);
+          },
+          // Continue with next task
+          onContinue: async (sdkSessionId: string, nextTask: TodoItem) => {
+            const dbSessionId = this.resolveDbSessionId(sdkSessionId);
+            if (!dbSessionId) return;
+            
+            const managed = this.managedSessions.get(dbSessionId);
+            if (!managed) return;
+            
+            // Use setTimeout to avoid blocking
+            setTimeout(async () => {
+              try {
+                await managed.session.prompt(`Continue with: ${nextTask.text}`);
+              } catch (err) {
+                console.error('[PlanMode] Failed to continue with next task:', err);
+              }
+            }, 100);
           },
         }),
       ],
@@ -1074,12 +1093,35 @@ Your output must be:
     managed.updatedAt = new Date().toISOString();
     prisma.session.update({ where: { id }, data: { updatedAt: new Date() } }).catch(() => {});
 
-    // Check if this should trigger plan mode
+    // Check current plan mode state
     const currentState = this.getPlanModeState(id);
+    console.log('[PlanMode] prompt() - id:', id, 'currentState:', JSON.stringify({
+      enabled: currentState.enabled,
+      executing: currentState.executing,
+      todosCount: currentState.todos.length,
+    }));
+
+    // If plan is ready (enabled, not executing, has todos), treat new message as modification
+    if (currentState.enabled && !currentState.executing && currentState.todos.length > 0) {
+      console.log('[PlanMode] Entering modify mode for message:', message.substring(0, 50));
+      // Set modifying state with the user's message
+      this.setPlanModeState(id, {
+        ...currentState,
+        modifying: true,
+        modifyMessage: message,
+      });
+      // Use prompt to start a new agent turn (followUp only works during streaming)
+      managed.session.prompt(message).catch((err) => {
+        this.broadcast(managed, { type: "error", message: String(err) });
+      });
+      return;
+    }
+
+    // Check if this should trigger plan mode
     if (!currentState.enabled && !currentState.executing) {
       if (shouldTriggerPlanMode(message)) {
         // Enable plan mode
-        this.setPlanModeState(id, { enabled: true, executing: false, todos: [] });
+        this.setPlanModeState(id, { enabled: true, executing: false, modifying: false, todos: [] });
         managed.session.setActiveToolsByName(PLAN_MODE_TOOLS);
       }
     }
@@ -1111,6 +1153,7 @@ Your output must be:
       const newState: PlanModeState = {
         enabled: false,
         executing: true,
+        modifying: false,
         todos,
       };
       this.setPlanModeState(id, newState);
@@ -1123,7 +1166,7 @@ Your output must be:
       const execMessage = firstStep
         ? `Execute the plan. Start with: ${firstStep.text}`
         : "Execute the plan.";
-      
+
       if (managed.session.isStreaming) {
         await managed.session.followUp(execMessage);
       } else {
@@ -1132,12 +1175,18 @@ Your output must be:
 
     } else if (action === "cancel") {
       // Exit plan mode
-      this.setPlanModeState(id, { enabled: false, executing: false, todos: [] });
+      this.setPlanModeState(id, { enabled: false, executing: false, modifying: false, todos: [] });
       managed.session.setActiveToolsByName(NORMAL_MODE_TOOLS);
 
     } else if (action === "modify") {
       // User wants to modify the plan
       if (options?.message) {
+        // Set modifying state
+        this.setPlanModeState(id, {
+          ...currentState,
+          modifying: true,
+          modifyMessage: options.message,
+        });
         // Send the modification as a followUp - agent will refine the plan
         await managed.session.followUp(options.message);
       }

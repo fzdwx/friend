@@ -28,6 +28,14 @@ export function PlanEditor({ todos: initialTodos, onExecute, onCancel, disabled 
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const [expandedTasks, setExpandedTasks] = useState<Set<number>>(new Set());
 
+  // Sync todos when props change (e.g., after plan modification)
+  useEffect(() => {
+    // Only update if the todos are actually different
+    if (JSON.stringify(todos) !== JSON.stringify(initialTodos)) {
+      setTodos(initialTodos);
+    }
+  }, [initialTodos]);
+
   // Toggle subtask expansion
   const toggleExpanded = useCallback((step: number) => {
     setExpandedTasks(prev => {
@@ -98,7 +106,7 @@ export function PlanEditor({ todos: initialTodos, onExecute, onCancel, disabled 
   const totalSteps = todos.reduce((acc, todo) => acc + 1 + (todo.subtasks?.length || 0), 0);
 
   return (
-    <div className="plan-editor bg-secondary/30 border border-border rounded-lg p-4 my-3 max-h-[60vh] flex flex-col">
+    <div className="plan-editor bg-secondary/30 border border-border rounded-lg p-4 my-3  max-h-[400px]  flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-3 pb-2 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-2">
