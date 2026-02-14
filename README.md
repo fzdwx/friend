@@ -442,6 +442,8 @@ GET    /api/sessions/:id/events  # 会话事件流（SSE）
 
 每个目录都有对应的 CLAUDE.md 指向 AGENTS.md，方便 Claude Code 等 AI 工具快速定位上下文。
 
+**当前统计**: 108 源文件, 17131 TS/TSX 行代码, 4 包
+
 ## 📝 开发指南
 
 ### 添加新工具

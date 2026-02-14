@@ -1,11 +1,11 @@
 # PROJECT KNOWLEDGE BASE: Friend
 
 **Generated:** 2026-02-14
-**Commit:** 7c29dbe
+**Commit:** 8de3dcf
 **Branch:** main
 **Tech Stack:** Bun + React + Tauri + Elysia + Prisma
 **Type:** AI Coding Agent Desktop App (Monorepo)
-**Stats:** 506 files, 16338 TS/TSX lines, 4 packages
+**Stats:** 108 source files, 17131 TS/TSX lines, 4 packages
 
 ---
 

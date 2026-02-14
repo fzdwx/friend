@@ -18,7 +18,8 @@
     "copyCode": "复制代码",
     "back": "返回",
     "submit": "提交",
-    "submitting": "提交中..."
+    "submitting": "提交中...",
+    "next": "下一步"
   },
   "sidebar": {
     "title": "Friend",

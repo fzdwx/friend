@@ -22,13 +22,13 @@ memory/
 
 ## WHERE TO LOOK
 
-| Task             | File           |
-| ---------------- | -------------- |
-| 记忆管理入口     | `manager.ts`   |
-| 向量嵌入         | `embedding.ts` |
-| 向量存储         | `storage.ts`   |
-| 文本分块         | `chunking.ts`  |
-| 类型定义         | `types.ts`     |
+| Task         | File           |
+| ------------ | -------------- |
+| 记忆管理入口 | `manager.ts`   |
+| 向量嵌入     | `embedding.ts` |
+| 向量存储     | `storage.ts`   |
+| 文本分块     | `chunking.ts`  |
+| 类型定义     | `types.ts`     |
 
 ---
 
@@ -44,19 +44,19 @@ Agent Query → Embedding → Vector Search → Ranked Results
 
 ### Embedding Providers
 
-| Provider  | Model                    | Dimensions |
-| --------- | ------------------------ | ---------- |
-| OpenAI    | text-embedding-3-small   | 1536       |
-| Gemini    | gemini-embedding-001     | 768        |
-| Voyage    | voyage-4-large           | 1024       |
+| Provider | Model                  | Dimensions |
+| -------- | ---------------------- | ---------- |
+| OpenAI   | text-embedding-3-small | 1536       |
+| Gemini   | gemini-embedding-001   | 768        |
+| Voyage   | voyage-4-large         | 1024       |
 
 ### Search Modes
 
-| Mode     | Description                          | Config Required |
-| -------- | ------------------------------------ | --------------- |
-| BM25     | Keyword-based full-text search       | None            |
-| Vector   | Semantic similarity search           | Embedding API   |
-| Hybrid   | 70% vector + 30% BM25               | Embedding API   |
+| Mode   | Description                    | Config Required |
+| ------ | ------------------------------ | --------------- |
+| BM25   | Keyword-based full-text search | None            |
+| Vector | Semantic similarity search     | Embedding API   |
+| Hybrid | 70% vector + 30% BM25          | Embedding API   |
 
 ---
 
