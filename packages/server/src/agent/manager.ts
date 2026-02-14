@@ -877,6 +877,9 @@ export class AgentManager implements IAgentManager {
     // Get plan mode state for this session
     const planModeState = this.getPlanModeState(id);
 
+    // Get pending question for this session
+    const pendingQuestion = this.pendingQuestions.get(id);
+
     return {
       id: managed.id,
       name: managed.name,
@@ -890,6 +893,10 @@ export class AgentManager implements IAgentManager {
       messages,
       workingPath: managed.workingPath,
       planModeState: planModeState.enabled || planModeState.executing ? planModeState : undefined,
+      pendingQuestion: pendingQuestion ? {
+        questionId: pendingQuestion.questionId,
+        questions: pendingQuestion.questions,
+      } : undefined,
     };
   }
 

@@ -13,6 +13,7 @@ export type {
 } from "@mariozechner/pi-ai";
 
 import type { Message } from "@mariozechner/pi-ai";
+import type { Question } from "./events.js";
 
 // Session types
 export interface SessionInfo {
@@ -32,6 +33,10 @@ export interface SessionDetail extends SessionInfo {
     enabled: boolean;
     executing: boolean;
     todos: Array<{ step: number; text: string; completed: boolean }>;
+  };
+  pendingQuestion?: {
+    questionId: string;
+    questions: Question[];
   };
 }
 

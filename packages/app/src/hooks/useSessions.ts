@@ -56,6 +56,12 @@ export function useSessions() {
         } else {
           setPlanModeState(false, false, []);
         }
+        // Restore pending question if exists
+        if (res.data.pendingQuestion) {
+          useSessionStore.getState().setPendingQuestion(res.data.pendingQuestion);
+        } else {
+          useSessionStore.getState().clearPendingQuestion();
+        }
       }
     },
     [setActiveSession, setMessages, clearExecutions, setPlanModeState],
