@@ -446,6 +446,8 @@ export class AgentManager implements IAgentManager {
             }, 100);
           },
         }),
+        // Custom slash commands extension
+        createCommandsExtension(this),
       ],
     });
     await resourceLoader.reload();

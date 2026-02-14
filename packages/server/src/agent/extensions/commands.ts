@@ -40,13 +40,10 @@ export function createCommandsExtension(manager: IAgentManager): (pi: ExtensionA
       description: "Show session statistics (message count, tokens, cost)",
       handler: async (args, ctx) => {
         const usage = ctx.getContextUsage();
-        const stats = ctx.sessionManager.getSessionStats?.();
         
-        if (usage && stats) {
+        if (usage) {
           const message = `📊 Session Stats:\n` +
-            `Messages: ${stats.totalMessages || 'N/A'}\n` +
-            `Tokens: ${usage.tokens.toLocaleString()} / ${usage.contextWindow.toLocaleString()} (${usage.percent.toFixed(1)}%)\n` +
-            `Cost: $${stats.cost?.toFixed(4) || 'N/A'}`;
+            `Tokens: ${usage.tokens.toLocaleString()} / ${usage.contextWindow.toLocaleString()} (${usage.percent.toFixed(1)}%)`;
           ctx.ui.notify(message);
         } else {
           ctx.ui.notify("📊 Statistics not available for this session.");
