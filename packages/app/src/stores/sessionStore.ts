@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { SessionInfo, Message, AssistantMessage, ToolCall, ModelInfo, TodoItem } from "@friend/shared";
+import type { SessionInfo, Message, AssistantMessage, ToolCall, ModelInfo, TodoItem, Question } from "@friend/shared";
 import { api } from "@/lib/api.js";
 
 export type StreamingPhase =
@@ -53,6 +53,12 @@ interface SessionState {
   planModeTodos: TodoItem[];
   planModeProgress: { completed: number; total: number } | null;
 
+  // Question tool state
+  pendingQuestion: {
+    questionId: string;
+    questions: Question[];
+  } | null;
+
   // Actions
   setActiveTurnIndex: (index: number | null) => void;
   setSessions: (sessions: SessionInfo[]) => void;
@@ -90,6 +96,13 @@ interface SessionState {
   setPlanModeState: (enabled: boolean, executing: boolean, todos: TodoItem[]) => void;
   setPlanModeProgress: (completed: number, total: number) => void;
   clearPlanMode: () => void;
+
+  // Question tool actions
+  setPendingQuestion: (question: {
+    questionId: string;
+    questions: Question[];
+  } | null) => void;
+  clearPendingQuestion: () => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -114,6 +127,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   planModeExecuting: false,
   planModeTodos: [],
   planModeProgress: null,
+  pendingQuestion: null,
 
   setActiveTurnIndex: (index) => set({ activeTurnIndex: index }),
   setSessions: (sessions) => set({ sessions }),
@@ -262,4 +276,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       planModeTodos: [],
       planModeProgress: null,
     }),
+
+  // Question tool actions
+  setPendingQuestion: (question) => set({ pendingQuestion: question }),
+  clearPendingQuestion: () => set({ pendingQuestion: null }),
 }));

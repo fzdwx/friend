@@ -39,6 +39,7 @@ import {
   createCreateSessionTool,
   createMemorySearchTool,
   createMemoryGetTool,
+  createQuestionTool,
 } from "./tools";
 import type { IAgentManager } from "./tools";
 import { GLOBAL_SKILLS_DIR, SkillWatcher, ensureSkillsDir } from "./skills.js";
@@ -176,6 +177,14 @@ export class AgentManager implements IAgentManager {
   private planModeStates = new Map<string, PlanModeState>();
   // Map SDK sessionId (from SessionManager) to DB sessionId
   private sdkToDbSessionId = new Map<string, string>();
+
+  // ─── Question Tool Management ──────────────────────────────────────────
+
+  private pendingQuestions = new Map<string, {
+    resolve: (value: { questionId: string; answers: any[]; cancelled: boolean }) => void;
+    questionId: string;
+    questions: any[];
+  }>();
 
   private getPlanModeState(sessionId: string): PlanModeState {
     return this.planModeStates.get(sessionId) ?? { enabled: false, executing: false, todos: [] };
@@ -388,6 +397,8 @@ export class AgentManager implements IAgentManager {
           getVoyageApiKey: () => this.authStorage.getApiKey("voyage"),
         }),
         createMemoryGetTool(agentWorkspace, { agentId }),
+        // Question tool for asking user questions
+        createQuestionTool(this),
       ],
     });
 
@@ -1133,6 +1144,82 @@ Your output must be:
     const managed = this.managedSessions.get(id);
     if (!managed) return null;
     return this.getPlanModeState(id);
+  }
+
+  // ─── Question Tool Methods ────────────────────────────────────────────
+
+  /**
+   * Ask questions and wait for user responses.
+   * This is called by the questionnaire tool.
+   */
+  async askQuestions(
+    sessionId: string,
+    questionId: string,
+    questions: any[],
+  ): Promise<{ questionId: string; answers: any[]; cancelled: boolean }> {
+    // sessionId might be SDK sessionId, resolve to DB sessionId
+    const dbSessionId = this.resolveDbSessionId(sessionId) ?? sessionId;
+    
+    const managed = this.managedSessions.get(dbSessionId);
+    if (!managed) {
+      throw new Error(`Session ${dbSessionId} not found`);
+    }
+
+    // Create promise that will be resolved when user answers
+    return new Promise((resolve) => {
+      // Store pending questionnaire using DB sessionId
+      this.pendingQuestions.set(dbSessionId, {
+        resolve,
+        questionId,
+        questions,
+      });
+
+      // Broadcast question request to frontend
+      this.broadcast(managed, {
+        type: "question_request",
+        questionId,
+        questions,
+      });
+    });
+  }
+
+  /**
+   * Resolve a pending questionnaire with user's answers.
+   * This is called by the /sessions/:id/answer-question API endpoint.
+   */
+  resolveQuestionnaire(
+    sessionId: string,
+    answers: any[],
+    cancelled: boolean,
+  ): boolean {
+    const pending = this.pendingQuestions.get(sessionId);
+    if (!pending) {
+      return false;
+    }
+
+    // Remove pending questionnaire
+    this.pendingQuestions.delete(sessionId);
+
+    // Resolve the promise
+    pending.resolve({ 
+      questionId: pending.questionId, 
+      answers, 
+      cancelled 
+    });
+
+    return true;
+  }
+
+  /**
+   * Get pending questionnaire for a session (if any).
+   */
+  getPendingQuestion(sessionId: string): { questionId: string; questions: any[] } | null {
+    const pending = this.pendingQuestions.get(sessionId);
+    if (!pending) return null;
+    return {
+      questionId: pending.questionId,
+      questions: pending.questions,
+    };
   }
 
   async steer(id: string, message: string): Promise<void> {

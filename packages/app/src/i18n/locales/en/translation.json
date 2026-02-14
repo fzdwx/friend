@@ -16,7 +16,9 @@
     "import": "Import",
     "copied": "Copied!",
     "copyCode": "Copy code",
-    "back": "Back"
+    "back": "Back",
+    "submit": "Submit",
+    "submitting": "Submitting..."
   },
   "sidebar": {
     "title": "Friend",
@@ -238,5 +240,11 @@
     "disconnected": "Disconnected",
     "thinking": "thinking",
     "tools": "{{count}} tools"
+  },
+  "question": {
+    "title": "Question",
+    "typeSomething": "Type something...",
+    "typeYourAnswer": "Type your answer here...",
+    "backToOptions": "← Back to options"
   }
 }

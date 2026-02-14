@@ -16,7 +16,9 @@
     "import": "导入",
     "copied": "已复制！",
     "copyCode": "复制代码",
-    "back": "返回"
+    "back": "返回",
+    "submit": "提交",
+    "submitting": "提交中..."
   },
   "sidebar": {
     "title": "Friend",
@@ -238,5 +240,11 @@
     "disconnected": "已断开",
     "thinking": "思考中",
     "tools": "{{count}} 个工具"
+  },
+  "question": {
+    "title": "问题",
+    "typeSomething": "自定义输入...",
+    "typeYourAnswer": "在这里输入您的答案...",
+    "backToOptions": "← 返回选项列表"
   }
 }

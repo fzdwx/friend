@@ -254,6 +254,16 @@ export function useGlobalSSE() {
             useSessionStore.getState().clearPlanMode();
             break;
 
+          case "question_request":
+            if (event.sessionId && event.sessionId !== useSessionStore.getState().activeSessionId) {
+              break; // Ignore events for other sessions
+            }
+            useSessionStore.getState().setPendingQuestion({
+              questionId: event.questionId,
+              questions: event.questions,
+            });
+            break;
+
           case "error":
             console.error("SSE error:", event.message);
             setStreaming(false);

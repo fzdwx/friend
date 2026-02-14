@@ -23,3 +23,6 @@ export { createCreateSessionTool, CreateSessionParams } from "./session-create";
 
 // Memory Tools
 export { createMemorySearchTool, createMemoryGetTool, MemorySearchParams, MemoryGetParams } from "./memory.js";
+
+// Question Tool
+export { createQuestionTool } from "./question.js";

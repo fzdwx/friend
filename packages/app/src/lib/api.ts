@@ -112,6 +112,20 @@ export const api = {
   getPlanModeInfo: (id: string) =>
     request<{ enabled: boolean; executing: boolean; todos: any[] }>(`/sessions/${id}/plan`),
 
+  // Question tool
+  answerQuestion: (
+    sessionId: string,
+    answers: Array<{ questionId: string; answers: string[]; wasCustom?: boolean }>,
+    cancelled?: boolean,
+  ) =>
+    request<void>(`/sessions/${sessionId}/answer-question`, {
+      method: "POST",
+      body: JSON.stringify({
+        answers,
+        cancelled: cancelled ?? false,
+      }),
+    }),
+
   // Models
   getModels: () => request<ModelInfo[]>("/models"),
   setModel: (sessionId: string, provider: string, modelId: string) =>

@@ -79,6 +79,56 @@ export interface PlanModeCompleteEvent {
   todos: TodoItem[];
 }
 
+// ─── Question Tool Events ─────────────────────────────────────────────────
+
+/** Question option with optional description */
+export interface QuestionOption {
+  label: string;
+  description?: string;
+  value?: string;  // Optional: value to return if different from label
+}
+
+/** Single question definition */
+export interface Question {
+  /** Unique ID for this question */
+  id: string;
+  /** Short label for display (e.g., "Framework") */
+  label?: string;
+  /** The question text */
+  question: string;
+  /** Available options */
+  options: QuestionOption[];
+  /** Allow custom text input (default: true) */
+  allowOther?: boolean;
+  /** Allow multiple selections (default: false) */
+  multiSelect?: boolean;
+}
+
+/** User's answer to a single question */
+export interface QuestionAnswer {
+  questionId: string;
+  /** Selected option values/labels or custom text */
+  answers: string[];
+  /** Whether any answer was custom text */
+  wasCustom?: boolean;
+}
+
+/** Questionnaire result */
+export interface QuestionnaireResult {
+  questionId: string;
+  answers: QuestionAnswer[];
+  cancelled: boolean;
+}
+
+/** Agent is asking questions, waiting for user response */
+export interface QuestionRequestEvent {
+  type: "question_request";
+  /** Unique ID for this questionnaire */
+  questionId: string;
+  /** Questions to ask */
+  questions: Question[];
+}
+
 export type SSEEvent =
   | AgentSessionEvent
   | ErrorEvent
@@ -89,7 +139,8 @@ export type SSEEvent =
   | PlanModeStateChangedEvent
   | PlanModeRequestChoiceEvent
   | PlanModeProgressEvent
-  | PlanModeCompleteEvent;
+  | PlanModeCompleteEvent
+  | QuestionRequestEvent;
 
 /** Wire format: every event carries a sessionId for multiplexing */
 export type GlobalSSEEvent = SSEEvent & { sessionId: string };

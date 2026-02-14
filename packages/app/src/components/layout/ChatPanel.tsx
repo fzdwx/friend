@@ -4,9 +4,11 @@ import { MessageList } from "@/components/chat/MessageList";
 import { InputArea } from "@/components/chat/InputArea";
 import { StreamingTurn } from "@/components/activity/StreamingTurn";
 import { PlanEditor, PlanProgress } from "@/components/plan/PlanEditor";
+import { QuestionnaireCard } from "@/components/tools/QuestionnaireCard";
 import { MessageSquarePlus, Zap } from "lucide-react";
 import { api } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import type { QuestionAnswer } from "@friend/shared";
 
 function PendingMessages() {
   const { t } = useTranslation();
@@ -115,6 +117,20 @@ function PlanModePanel() {
 export function ChatPanel() {
   const { t } = useTranslation();
   const { sessionId, messages, isStreaming, sendMessage, steer, followUp, abort } = useSession();
+  const pendingQuestion = useSessionStore((s) => s.pendingQuestion);
+  const clearPendingQuestion = useSessionStore((s) => s.clearPendingQuestion);
+
+  const handleQuestionAnswer = async (answers: QuestionAnswer[]) => {
+    if (!sessionId) return;
+    await api.answerQuestion(sessionId, answers, false);
+    clearPendingQuestion();
+  };
+
+  const handleQuestionCancel = async () => {
+    if (!sessionId) return;
+    await api.answerQuestion(sessionId, [], true);
+    clearPendingQuestion();
+  };
 
   if (!sessionId) {
     return (
@@ -133,6 +149,19 @@ export function ChatPanel() {
           <StreamingTurn />
         </div>
       )}
+      
+      {/* Questionnaire in message list */}
+      {pendingQuestion && (
+        <div className="px-4 pb-2">
+          <QuestionnaireCard
+            questionId={pendingQuestion.questionId}
+            questions={pendingQuestion.questions}
+            onAnswer={handleQuestionAnswer}
+            onCancel={handleQuestionCancel}
+          />
+        </div>
+      )}
+      
       <PlanModePanel />
       <PendingMessages />
       <InputArea

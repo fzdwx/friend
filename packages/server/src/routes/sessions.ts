@@ -170,4 +170,32 @@ export const sessionRoutes = new Elysia({ prefix: "/api/sessions" })
     const plan = getAgentManager().getPlanModeInfo(id);
     if (!plan) return { ok: false, error: "Session not found" };
     return { ok: true, data: plan };
-  });
+  })
+
+  // Question tool - answer questionnaire
+  .post(
+    "/:id/answer-question",
+    async ({ params: { id }, body }) => {
+      try {
+        const ok = getAgentManager().resolveQuestionnaire(
+          id,
+          body.answers ?? [],
+          body.cancelled ?? false,
+        );
+        if (!ok) return { ok: false, error: "No pending questionnaire for this session" };
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: String(e) };
+      }
+    },
+    {
+      body: t.Object({
+        answers: t.Optional(t.Array(t.Object({
+          questionId: t.String(),
+          answers: t.Array(t.String()),
+          wasCustom: t.Optional(t.Boolean()),
+        }))),
+        cancelled: t.Optional(t.Boolean()),
+      }),
+    },
+  );
