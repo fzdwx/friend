@@ -73,7 +73,7 @@ export function CommandPalette({ commands, query, onSelect, onClose }: CommandPa
 
   if (filteredCommands.length === 0) {
     return (
-      <div className="absolute bottom-full left-0 right-0 mb-1 p-2 bg-popover border border-border rounded-lg shadow-lg">
+      <div className="absolute bottom-full left-0 right-0 mb-1 p-2 bg-popover border border-border rounded-lg shadow-lg z-50">
         <div className="text-sm text-muted-foreground text-center py-2">
           {t("commands.noResults")}
         </div>
@@ -82,7 +82,7 @@ export function CommandPalette({ commands, query, onSelect, onClose }: CommandPa
   }
 
   return (
-    <div className="absolute bottom-full left-0 right-0 mb-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
+    <div className="absolute bottom-full left-0 right-0 mb-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden z-50">
       <div className="px-2 py-1.5 border-b border-border bg-muted/30">
         <span className="text-xs text-muted-foreground">{t("commands.title")}</span>
       </div>
