@@ -63,6 +63,9 @@ interface SessionState {
   availableCommands: SlashCommandInfo[];
   commandResult: { command: string; success: boolean; message?: string } | null;
 
+  // Notifications
+  notifications: Array<{ id: number; message: string; type: "info" | "warning" | "error" }>;
+
   // Actions
   setActiveTurnIndex: (index: number | null) => void;
   setSessions: (sessions: SessionInfo[]) => void;
@@ -111,6 +114,10 @@ interface SessionState {
   // Slash commands actions
   loadCommands: (sessionId: string) => Promise<void>;
   setCommandResult: (result: { command: string; success: boolean; message?: string } | null) => void;
+
+  // Notification actions
+  addNotification: (message: string, type?: "info" | "warning" | "error") => void;
+  removeNotification: (id: number) => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -138,6 +145,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   pendingQuestion: null,
   availableCommands: [],
   commandResult: null,
+  notifications: [],
 
   setActiveTurnIndex: (index) => set({ activeTurnIndex: index }),
   setSessions: (sessions) => set({ sessions }),
@@ -299,4 +307,14 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     }
   },
   setCommandResult: (result) => set({ commandResult: result }),
+
+  // Notification actions
+  addNotification: (message, type = "info") =>
+    set((s) => ({
+      notifications: [...s.notifications, { id: Date.now(), message, type }],
+    })),
+  removeNotification: (id) =>
+    set((s) => ({
+      notifications: s.notifications.filter((n) => n.id !== id),
+    })),
 }));

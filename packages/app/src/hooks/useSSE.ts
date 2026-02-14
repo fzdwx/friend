@@ -289,6 +289,16 @@ export function useGlobalSSE() {
             });
             break;
 
+          case "notification":
+            if (event.sessionId && event.sessionId !== useSessionStore.getState().activeSessionId) {
+              break; // Ignore events for other sessions
+            }
+            useSessionStore.getState().addNotification(
+              event.message,
+              event.notificationType,
+            );
+            break;
+
           case "error":
             console.error("SSE error:", event.message);
             setStreaming(false);

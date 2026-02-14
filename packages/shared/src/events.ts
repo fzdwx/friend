@@ -162,6 +162,14 @@ export interface CommandResultEvent {
   message?: string;
 }
 
+/** Notification event from ctx.ui.notify() */
+export interface NotificationEvent {
+  type: "notification";
+  message: string;
+  /** Notification type: info, warning, or error */
+  notificationType?: "info" | "warning" | "error";
+}
+
 export type SSEEvent =
   | AgentSessionEvent
   | ErrorEvent
@@ -174,7 +182,8 @@ export type SSEEvent =
   | PlanModeProgressEvent
   | PlanModeCompleteEvent
   | QuestionRequestEvent
-  | CommandResultEvent;
+  | CommandResultEvent
+  | NotificationEvent;
 
 /** Wire format: every event carries a sessionId for multiplexing */
 export type GlobalSSEEvent = SSEEvent & { sessionId: string };

@@ -498,13 +498,55 @@ export class AgentManager implements IAgentManager {
     });
 
     const { session, extensionsResult } = result;
-    
+
     // Register SDK sessionId -> DB sessionId mapping (if DB sessionId provided)
     if (dbSessionId) {
       const sdkSessionId = session.sessionManager.getSessionId();
       this.registerSdkSessionId(sdkSessionId, dbSessionId);
     }
-    
+
+    // Bind UI context for Web app - forwards notify() calls to frontend
+    session.bindExtensions({
+      uiContext: {
+        notify: (message: string, type?: "info" | "warning" | "error") => {
+          const sdkSessionId = sessionManager.getSessionId();
+          const resolvedDbSessionId = this.resolveDbSessionId(sdkSessionId) ?? dbSessionId;
+          if (resolvedDbSessionId) {
+            const managed = this.managedSessions.get(resolvedDbSessionId);
+            if (managed) {
+              this.broadcast(managed, {
+                type: "notification",
+                message,
+                notificationType: type ?? "info",
+              });
+            }
+          }
+        },
+        // Stub implementations for other UI methods (not used in Web)
+        select: async () => undefined,
+        confirm: async () => false,
+        input: async () => undefined,
+        setStatus: () => {},
+        setWorkingMessage: () => {},
+        setWidget: () => {},
+        setFooter: () => {},
+        setHeader: () => {},
+        setTitle: () => {},
+        getToolsExpanded: () => false,
+        setToolsExpanded: () => {},
+        custom: async () => undefined as any,
+        pasteToEditor: () => {},
+        setEditorText: () => {},
+        getEditorText: () => "",
+        editor: async () => undefined,
+        setEditorComponent: () => {},
+        get theme() { return {} as any; },
+        getAllThemes: () => [],
+        getTheme: () => undefined,
+        setTheme: () => ({ success: false }),
+      },
+    });
+
     // Debug: log extension errors if any
     if (extensionsResult.errors.length > 0) {
       console.error('[PlanMode] Extension errors:', extensionsResult.errors);

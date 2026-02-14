@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { ChatPanel } from "@/components/layout/ChatPanel";
 import { ActivityPanel } from "@/components/layout/ActivityPanel";
 import { SettingsModal } from "@/components/config/SettingsModal";
+import { ToastContainer } from "@/components/ui/Toast";
 import { useGlobalSSE } from "@/hooks/useSSE";
 import { useApi } from "@/hooks/useApi";
 import { useConfigStore } from "@/stores/configStore";
@@ -46,6 +47,7 @@ export function App() {
         activity={<ActivityPanel />}
       />
       {isSettingsOpen && <SettingsModal />}
+      <ToastContainer />
     </>
   );
 }
