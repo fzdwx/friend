@@ -4,51 +4,20 @@
  * Ensures built-in skills are created in the global skills directory
  * if they don't already exist.
  *
- * Built-in skills are organized in subdirectories:
- * - builtin-skills/skill-name/SKILL.md
- * - builtin-skills/skill-name/scripts/
- * - builtin-skills/skill-name/references/
- * - builtin-skills/skill-name/assets/
+ * Uses import to inline skill content (works after bundling, same pattern as defaults/)
  */
 
-import { join, dirname } from "node:path";
-import { existsSync, mkdirSync, readdirSync, copyFileSync, statSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { GLOBAL_SKILLS_DIR } from "../paths.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+// Import builtin skill content (inlined by Bun at build time)
+import skillCreatorMd from "./skill-creator.txt";
 
-/**
- * Recursively copy a directory
- */
-function copyDir(src: string, dest: string): void {
-  if (!existsSync(dest)) {
-    mkdirSync(dest, { recursive: true });
-  }
-
-  const entries = readdirSync(src, { withFileTypes: true });
-  
-  for (const entry of entries) {
-    const srcPath = join(src, entry.name);
-    const destPath = join(dest, entry.name);
-    
-    if (entry.isDirectory()) {
-      copyDir(srcPath, destPath);
-    } else {
-      copyFileSync(srcPath, destPath);
-    }
-  }
-}
-
-/**
- * Get list of built-in skill directories
- */
-function getBuiltinSkillDirs(): string[] {
-  const entries = readdirSync(__dirname, { withFileTypes: true });
-  return entries
-    .filter(entry => entry.isDirectory())
-    .map(entry => entry.name);
-}
+// Built-in skill definitions
+const BUILTIN_SKILLS = {
+  "skill-creator": skillCreatorMd,
+} as const;
 
 /**
  * Ensure all built-in skills exist in the global skills directory.
@@ -60,18 +29,15 @@ export function ensureBuiltinSkills(): void {
     mkdirSync(GLOBAL_SKILLS_DIR, { recursive: true });
   }
 
-  // Get all built-in skill directories
-  const skillDirs = getBuiltinSkillDirs();
-
   // Check and create each built-in skill
-  for (const skillName of skillDirs) {
-    const srcDir = join(__dirname, skillName);
-    const destDir = join(GLOBAL_SKILLS_DIR, skillName);
-    const destFile = join(destDir, "SKILL.md");
+  for (const [skillName, skillContent] of Object.entries(BUILTIN_SKILLS)) {
+    const skillDir = join(GLOBAL_SKILLS_DIR, skillName);
+    const skillFile = join(skillDir, "SKILL.md");
 
     // Only create if doesn't exist
-    if (!existsSync(destFile)) {
-      copyDir(srcDir, destDir);
+    if (!existsSync(skillFile)) {
+      mkdirSync(skillDir, { recursive: true });
+      writeFileSync(skillFile, skillContent, "utf-8");
       console.log(`✓ Created built-in skill: ${skillName}`);
     }
   }
