@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { extractTodoItems } from "./plan-mode.js";
+import { extractTodoItems, isSafeCommand } from "./plan-mode.js";
 
 describe("extractTodoItems", () => {
   test("4.1 - 标准格式的 plan", () => {
@@ -270,5 +270,166 @@ Plan:
     // 验证所有主任务都有子任务
     const allHaveSubtasks = items.every(item => item.subtasks && item.subtasks.length > 0);
     expect(allHaveSubtasks).toBe(true);
+  });
+
+  test("markdown header: ## Plan", () => {
+    const message = `Here is my analysis:
+
+## Plan
+1. Create config file at src/config.ts
+2. Install dependencies
+3. Run tests`;
+
+    const items = extractTodoItems(message);
+
+    expect(items.length).toBe(3);
+    expect(items[0].text).toBe("Create config file at src/config.ts");
+    expect(items[1].text).toBe("Install dependencies");
+  });
+
+  test("markdown header: ### Plan:", () => {
+    const message = `### Plan:
+1. Update the API endpoint
+2. Add error handling`;
+
+    const items = extractTodoItems(message);
+
+    expect(items.length).toBe(2);
+    expect(items[0].text).toBe("Update the API endpoint");
+  });
+
+  test("markdown header: ## Implementation Plan", () => {
+    const message = `## Implementation Plan
+1. Refactor auth module
+2. Add unit tests`;
+
+    const items = extractTodoItems(message);
+
+    expect(items.length).toBe(2);
+    expect(items[0].text).toBe("Refactor auth module");
+  });
+
+  test("steps starting with backtick are preserved", () => {
+    const message = `Plan:
+1. Update \`package.json\` with new dependencies
+2. Modify \`/src/config.ts\` to add settings`;
+
+    const items = extractTodoItems(message);
+
+    expect(items.length).toBe(2);
+    expect(items[0].text).toContain("package.json");
+    expect(items[1].text).toContain("/src/config.ts");
+  });
+
+  test("steps starting with slash path are preserved", () => {
+    const message = `Plan:
+1. /src/utils/helpers.ts needs refactoring
+2. Create new module`;
+
+    const items = extractTodoItems(message);
+
+    expect(items.length).toBe(2);
+    expect(items[0].text).toContain("/src/utils/helpers.ts");
+  });
+
+  test("markdown headers within plan don't terminate parsing", () => {
+    const message = `Plan:
+1. First task
+
+### Phase 1
+
+2. Second task
+3. Third task
+
+### Phase 2
+
+4. Fourth task`;
+
+    const items = extractTodoItems(message);
+
+    expect(items.length).toBe(4);
+    expect(items[0].text).toBe("First task");
+    expect(items[3].text).toBe("Fourth task");
+  });
+
+  test("verb prefixes are preserved in step text", () => {
+    const message = `Plan:
+1. Create API endpoint at src/api.ts
+2. Install the required dependencies
+3. Run the test suite
+4. Update configuration file`;
+
+    const items = extractTodoItems(message);
+
+    expect(items.length).toBe(4);
+    expect(items[0].text).toBe("Create API endpoint at src/api.ts");
+    expect(items[1].text).toContain("Install");
+    expect(items[2].text).toContain("Run");
+    expect(items[3].text).toContain("Update");
+  });
+});
+
+describe("isSafeCommand", () => {
+  test("allows simple read-only commands", () => {
+    expect(isSafeCommand("cat foo.txt")).toBe(true);
+    expect(isSafeCommand("ls -la")).toBe(true);
+    expect(isSafeCommand("grep -r 'pattern' .")).toBe(true);
+    expect(isSafeCommand("git status")).toBe(true);
+    expect(isSafeCommand("git log --oneline")).toBe(true);
+  });
+
+  test("blocks destructive commands", () => {
+    expect(isSafeCommand("rm -rf /")).toBe(false);
+    expect(isSafeCommand("git push origin main")).toBe(false);
+    expect(isSafeCommand("npm install express")).toBe(false);
+  });
+
+  test("allows piped read-only commands", () => {
+    expect(isSafeCommand("cat foo.txt | grep pattern")).toBe(true);
+    expect(isSafeCommand("ls -la | sort")).toBe(true);
+  });
+
+  test("handles && correctly", () => {
+    expect(isSafeCommand("cd /project && ls -la")).toBe(true);
+    expect(isSafeCommand("cd /project && cat foo.txt")).toBe(true);
+    expect(isSafeCommand("cd /project && rm -rf .")).toBe(false);
+  });
+
+  test("handles || correctly (not confused with pipe)", () => {
+    expect(isSafeCommand("cat foo.txt || echo fallback")).toBe(true);
+    expect(isSafeCommand("ls -la || echo 'not found'")).toBe(true);
+  });
+
+  test("blocks $() command substitution", () => {
+    expect(isSafeCommand("echo $(rm -rf /)")).toBe(false);
+    expect(isSafeCommand("cat $(whoami)")).toBe(false);
+  });
+
+  test("blocks backtick command substitution", () => {
+    expect(isSafeCommand("echo `rm -rf /`")).toBe(false);
+    expect(isSafeCommand("cat `whoami`")).toBe(false);
+  });
+
+  test("allows cd command", () => {
+    expect(isSafeCommand("cd /home/user/project")).toBe(true);
+  });
+
+  test("allows version check commands", () => {
+    expect(isSafeCommand("bun --version")).toBe(true);
+    expect(isSafeCommand("deno --version")).toBe(true);
+    expect(isSafeCommand("cargo --version")).toBe(true);
+    expect(isSafeCommand("go version")).toBe(true);
+    expect(isSafeCommand("rustc --version")).toBe(true);
+  });
+
+  test("allows pnpm read-only commands", () => {
+    expect(isSafeCommand("pnpm list")).toBe(true);
+    expect(isSafeCommand("pnpm why react")).toBe(true);
+    expect(isSafeCommand("pnpm audit")).toBe(true);
+  });
+
+  test("allows /dev/null redirection", () => {
+    expect(isSafeCommand("cat foo.txt 2>/dev/null")).toBe(true);
+    expect(isSafeCommand("ls -la 2> /dev/null")).toBe(true);
   });
 });

@@ -78,6 +78,8 @@ const DESTRUCTIVE_PATTERNS = [
   /\bsystemctl\s+(start|stop|restart|enable|disable)/i,
   /\bservice\s+\S+\s+(start|stop|restart)/i,
   /\b(vim?|nano|emacs|code|subl)\b/i,
+  /\$\(/,        // $(...) command substitution
+  /`[^`]*`/,     // backtick command substitution
 ];
 
 // Safe read-only commands allowed in plan mode
@@ -134,6 +136,13 @@ const SAFE_PATTERNS = [
   /^\s*fd\b/,
   /^\s*bat\b/,
   /^\s*exa\b/,
+  /^\s*cd\b/,
+  /^\s*bun\s+--version/i,
+  /^\s*deno\s+--version/i,
+  /^\s*cargo\s+--version/i,
+  /^\s*go\s+(version|doc|vet)\b/i,
+  /^\s*rustc\s+--version/i,
+  /^\s*pnpm\s+(list|ls|view|info|why|audit)/i,
 ];
 
 // ─── Utility Functions ────────────────────────────────────────────────────
@@ -141,19 +150,18 @@ const SAFE_PATTERNS = [
 export function isSafeCommand(command: string): boolean {
   // Allow redirection to /dev/null (for silencing output in plan mode research)
   const commandWithoutDevNull = command.replace(/\s*2?>\s*\/dev\/null/gi, '');
-  
-  // For piped commands, check each part
-  const pipedParts = commandWithoutDevNull.split('|').map(p => p.trim());
-  
-  for (const part of pipedParts) {
-    const isDestructive = DESTRUCTIVE_PATTERNS.some((p) => p.test(part));
-    if (isDestructive) return false;
-    
-    // At least one part must match a safe pattern
-    const isSafe = SAFE_PATTERNS.some((p) => p.test(part));
-    if (!isSafe) return false;
+
+  // Split by && and || first (logical operators), then by | (pipe)
+  const logicalParts = commandWithoutDevNull.split(/\s*(?:&&|\|\|)\s*/);
+
+  for (const logicalPart of logicalParts) {
+    const pipedParts = logicalPart.split('|').map(p => p.trim()).filter(p => p.length > 0);
+    for (const part of pipedParts) {
+      if (DESTRUCTIVE_PATTERNS.some((p) => p.test(part))) return false;
+      if (!SAFE_PATTERNS.some((p) => p.test(part))) return false;
+    }
   }
-  
+
   return true;
 }
 
@@ -161,10 +169,6 @@ function cleanStepText(text: string): string {
   let cleaned = text
     .replace(/\*{1,2}([^*]+)\*{1,2}/g, "$1") // Remove bold/italic
     .replace(/`([^`]+)`/g, "$1") // Remove code
-    .replace(
-      /^(Use|Run|Execute|Create|Write|Read|Check|Verify|Update|Modify|Add|Remove|Delete|Install)\s+(the\s+)?/i,
-      "",
-    )
     .replace(/\s+/g, " ")
     .trim();
 
@@ -180,8 +184,8 @@ function cleanStepText(text: string): string {
 export function extractTodoItems(message: string): TodoItem[] {
   const items: TodoItem[] = [];
   
-  // Enhanced Plan header matching - support \r\n, extra spaces, and various formats
-  const headerMatch = message.match(/\*{0,2}Plan:\*{0,2}\s*\r?\n/i);
+  // Enhanced Plan header matching - support ## Plan, ### Plan:, ## Implementation Plan:, etc.
+  const headerMatch = message.match(/^[ \t]*(?:#{1,4}\s+)?\*{0,2}(?:Implementation\s+)?Plan:?\*{0,2}\s*\r?\n/im);
   if (!headerMatch) {
     console.log('[PlanParser] No Plan: header found in message');
     return items;
@@ -207,11 +211,14 @@ export function extractTodoItems(message: string): TodoItem[] {
     if (!trimmedLine || trimmedLine === '---') continue;
     
     // Stop parsing if we hit markdown content that's not part of the plan
-    // (tables, headers, or content sections like "**Why...?**")
-    if (trimmedLine.startsWith('|') || 
-        trimmedLine.startsWith('#') ||
+    // (tables or bold-only lines like "**Why...?**")
+    if (trimmedLine.startsWith('|') ||
         (trimmedLine.startsWith('**') && trimmedLine.endsWith('**'))) {
       break;
+    }
+    // Skip markdown headers within the plan (e.g., "### Phase 1")
+    if (trimmedLine.startsWith('#')) {
+      continue;
     }
     
     // Check for main task: "1. Task" or "1) Task" (not "1.1" or "1.2")
@@ -226,7 +233,7 @@ export function extractTodoItems(message: string): TodoItem[] {
       
       console.log('[PlanParser] Line', i, '- Main task match:', mainMatch[1], 'text:', text.substring(0, 50));
       
-      if (text.length > 3 && !text.startsWith("`") && !text.startsWith("/") && !text.startsWith("-")) {
+      if (text.length > 3 && !text.startsWith("-")) {
         const cleaned = cleanStepText(text);
         if (cleaned.length > 3) {
           mainTaskIndex++;
@@ -366,100 +373,69 @@ export function getTextContent(message: AssistantMessage): string {
 // ─── Plan Mode Prompts ────────────────────────────────────────────────────
 
 export const PLAN_MODE_CONTEXT_PROMPT = `[PLAN MODE ACTIVE]
-You are in plan mode - a read-only exploration mode for detailed analysis and planning.
+You are in plan mode — read-only exploration for analysis and planning.
 
 ## Restrictions
-- You can only use: read, bash (read-only), grep, glob, ls
-- You CANNOT use: edit, write (file modifications are disabled)
+- Available tools: read, bash (read-only), grep, glob, ls
+- Disabled tools: edit, write
 - Bash is restricted to read-only commands
 
-## Planning Process
+## Instructions
+1. Explore the codebase to understand relevant patterns and dependencies
+2. Design an implementation broken into clear, actionable steps
+3. Output the plan in the format below
 
-Follow this process to create a thorough implementation plan:
+## Output Format — CRITICAL
 
-### Phase 1: Understand the Task
-1. Read the user's request carefully
-2. Identify the core requirements and constraints
-3. Consider edge cases and error scenarios
-
-### Phase 2: Explore the Codebase
-1. Find relevant existing code patterns to follow
-2. Identify files that need to be created or modified
-3. Check dependencies and imports needed
-4. Look for similar implementations to reference
-
-### Phase 3: Design the Solution
-1. Break down into logical steps
-2. Consider the order of operations
-3. Identify potential issues and solutions
-4. Plan for testing and verification
-
-### Phase 4: Output the Plan
-Create a detailed, actionable plan with specific file paths, function names, and implementation details.
-
-## Output Format - CRITICAL
-
-You MUST follow this exact format. Each item MUST be on its own line.
+You MUST end your response with a plan in this exact structure:
 
 Plan:
-1. Main task description here
-   1.1. Subtask one description here
-   1.2. Subtask two description here
-2. Next main task description here
-   2.1. First subtask
-   2.2. Second subtask
-3. Third main task
-   3.1. Subtask
+1. Action verb + what to do + where (file path)
+   1.1. Specific subtask
+   1.2. Specific subtask
+2. Next step description
+3. Simple step (subtasks optional)
 
-## Format Rules
-
-- Each main task starts with a number and period: "1. ", "2. ", etc.
-- Each subtask is indented with 3 spaces and uses format: "1.1. ", "1.2. ", etc.
-- EVERY item MUST be on its own separate line
-- Do NOT put multiple items on the same line
-- Use specific file paths, function names, and implementation details
-
-## Example Output
-
-Plan:
-1. Create question tool at packages/server/src/agent/tools/question.ts
-   1.1. Import Type from @sinclair/typebox
-   1.2. Define QuestionParams schema with question and options fields
-   1.3. Implement execute function using ctx.ui.custom
-2. Register tool in packages/server/src/agent/tools/index.ts
-   2.1. Export createQuestionTool function
-   2.2. Follow pattern from other tools in the file
-3. Add tool to manager.ts customTools array
-   3.1. Import createQuestionTool from ./tools/question.js
-   3.2. Add to customTools in createSession function
-4. Test the tool with a sample question
-
-Now thoroughly analyze the codebase and create your detailed implementation plan.`;
+Rules:
+- Start with "Plan:" on its own line, followed by numbered steps
+- Each step: actionable verb + specific file paths/function names
+- Subtasks (optional): indented, format "1.1.", "1.2."
+- Use the same language as the user
+- Do NOT include commentary after the plan — end with the last step`;
 
 export function getExecutionContextPrompt(todos: TodoItem[]): string {
   const remaining = todos.filter((t) => !t.completed);
   if (remaining.length === 0) return "";
 
-  // Build todo list with subtasks
-  const lines: string[] = [];
-  for (const t of remaining) {
-    lines.push(`${t.step}. ${t.text}`);
+  const currentStep = remaining[0];
+  const currentLines: string[] = [`${currentStep.step}. ${currentStep.text}`];
+  if (currentStep.subtasks) {
+    for (const sub of currentStep.subtasks.filter(s => !s.completed)) {
+      currentLines.push(`   ${currentStep.step}.${sub.step}. ${sub.text}`);
+    }
+  }
+
+  const remainingLines: string[] = [];
+  for (const t of remaining.slice(1)) {
+    remainingLines.push(`${t.step}. ${t.text}`);
     if (t.subtasks) {
       for (const sub of t.subtasks.filter(s => !s.completed)) {
-        lines.push(`   ${t.step}.${sub.step}. ${sub.text}`);
+        remainingLines.push(`   ${t.step}.${sub.step}. ${sub.text}`);
       }
     }
   }
-  const todoList = lines.join("\n");
 
-  return `[EXECUTING PLAN - Full tool access enabled]
+  const remainingSection = remainingLines.length > 0
+    ? `\n\nRemaining steps:\n${remainingLines.join("\n")}`
+    : "";
 
-Remaining steps:
-${todoList}
+  return `[EXECUTING PLAN — Full tool access enabled]
 
-Execute each step in order.
-After completing a step, include a [DONE:n] tag in your response.
-For subtasks, use [DONE:n.m] format (e.g., [DONE:1.1] for subtask 1.1).`;
+Current step:
+${currentLines.join("\n")}
+${remainingSection}
+
+Focus on the current step. After completing it, include [DONE:${currentStep.step}] in your response (or [DONE:n.m] for subtasks). Then stop and wait — the next step will be given to you.`;
 }
 
 /**
@@ -513,8 +489,7 @@ Plan:
 - Remove or modify steps based on user feedback
 - Re-number steps if order changes
 - Maintain the same detailed, actionable style
-
-Now update the plan based on the user's request.`;
+- End your response with the last step — do NOT add commentary, tables, or explanations after the plan`;
 }
 
 // ─── Plan Mode Extension Factory ──────────────────────────────────────────
@@ -585,43 +560,10 @@ export function createPlanModeExtension(callbacks: PlanModeExtensionCallbacks): 
     pi.registerTool({
       name: "enter_plan_mode",
       label: "Enter Plan Mode",
-      description: `Enter plan mode for complex tasks that require careful analysis and planning. In plan mode, you will only have read-only tools (read, bash, grep, glob, ls) to explore and analyze the codebase before executing.
+      description: `Enter plan mode for complex tasks requiring analysis before implementation. In plan mode, write tools are disabled — you explore with read-only tools, then output a numbered plan for user review.
 
-## When to Use This Tool
-
-Enter plan mode when the task has these characteristics:
-
-**Complexity Indicators:**
-- Involves multiple files or components that need coordinated changes
-- Requires understanding existing patterns before implementing
-- Has dependencies between steps (order matters)
-- Needs architectural decisions (not just simple edits)
-- User explicitly asks for a plan or step-by-step approach
-
-**Examples of Tasks Requiring Planning:**
-- "Refactor this module to use a new pattern"
-- "Implement a new feature that spans multiple files"
-- "Migrate from X to Y"
-- "Add a system for..."
-- "Design the architecture for..."
-- Tasks involving design decisions
-
-**When NOT to Use:**
-- Simple file edits (single file, clear change)
-- Quick fixes or typo corrections
-- Adding a single function
-- Running tests or commands
-- Short requests (< 3 sentences)
-
-## How It Works
-
-1. You call this tool with reason and task description
-2. Your write tools get disabled, read tools stay active
-3. You explore the codebase and create a detailed plan
-4. User reviews and approves the plan
-5. You execute the plan step by step
-
-Be proactive - if you feel a task is complex enough to benefit from planning, use this tool.`,
+Use when: multi-file changes, architectural decisions, refactoring, or unclear requirements.
+Don't use when: single-file edits, quick fixes, or straightforward changes.`,
       parameters: Type.Object({
         reason: Type.String({ description: "Brief explanation of why plan mode is needed (e.g., 'Task involves multiple interconnected components' or 'Need to understand existing patterns before implementing')" }),
         task_description: Type.String({ description: "Description of the task you need to plan for" }),

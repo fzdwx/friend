@@ -9,3 +9,4 @@ packages/db/prisma/dev.db
 packages/db/prisma/dev.db-journal
 .idea/
 .sisyphus/
+.plans/
