@@ -1,11 +1,11 @@
 # PROJECT KNOWLEDGE BASE: Friend
 
 **Generated:** 2026-02-14
-**Commit:** 43fb779
+**Commit:** 7c29dbe
 **Branch:** main
 **Tech Stack:** Bun + React + Tauri + Elysia + Prisma
 **Type:** AI Coding Agent Desktop App (Monorepo)
-**Stats:** 6293 files, 14577 TS lines, 4 packages
+**Stats:** 506 files, 16338 TS/TSX lines, 4 packages
 
 ---
 
@@ -32,31 +32,34 @@ Friend 是一个 AI 编程助手桌面应用，使用 Tauri + React 构建前端
 
 ## WHERE TO LOOK
 
-| Task                    | Location                          |
-|-------------------------|-----------------------------------|
-| 启动开发环境            | `just dev`                        |
-| API 路由                | `packages/server/src/routes/`     |
-| Agent 核心逻辑          | `packages/server/src/agent/`      |
-| React 组件              | `packages/app/src/components/`    |
-| 状态管理                | `packages/app/src/stores/`        |
-| 共享类型                | `packages/shared/src/`            |
-| 数据库 Schema           | `packages/db/prisma/schema.prisma`|
+| Task           | Location                           |
+| -------------- | ---------------------------------- |
+| 启动开发环境   | `just dev`                         |
+| API 路由       | `packages/server/src/routes/`      |
+| Agent 核心逻辑 | `packages/server/src/agent/`       |
+| React 组件     | `packages/app/src/components/`     |
+| 状态管理       | `packages/app/src/stores/`         |
+| 共享类型       | `packages/shared/src/`             |
+| 数据库 Schema  | `packages/db/prisma/schema.prisma` |
 
 ---
 
 ## CONVENTIONS
 
 ### 模块系统
+
 - **ESM only** (`"type": "module"` in all packages)
 - 本地导入使用 `.js` 扩展名: `import { x } from "./file.js"`
 - Workspace 依赖: `@friend/shared`, `@friend/db`
 
 ### 命名
+
 - **PascalCase**: 组件、类型、接口 (`Sidebar.tsx`, `SessionInfo`)
 - **camelCase**: 函数、变量、hooks (`useSSE.ts`, `loadSessions`)
 - **kebab-case**: 目录名 (`components/chat/`)
 
 ### 导入顺序
+
 ```typescript
 // 1. 外部包
 import { Elysia } from "elysia";
@@ -70,6 +73,7 @@ import { useSessionStore } from "@/stores/sessionStore";
 ```
 
 ### API 响应格式
+
 ```typescript
 interface ApiResponse<T> {
   ok: boolean;
@@ -122,9 +126,11 @@ just db-push      # 推送 schema
 ## PATTERNS
 
 ### Tool Renderer Registry (Deep Module - Depth 11)
+
 **Location**: `packages/app/src/components/tools/registry/renderers/`
 
 **Pattern**: Self-registration via side-effect imports
+
 ```typescript
 // Each renderer module:
 import { registerToolRenderer } from "./registry.js";
@@ -142,6 +148,7 @@ import "./read.js";
 ```
 
 **Convention**:
+
 - Side-effect imports only (no exports)
 - Consistent icon sizing: `w-3.5 h-3.5`
 - Truncation at 2000-3000 chars with `... (truncated)`

@@ -17,6 +17,7 @@
 import type { ExtensionAPI, ExtensionContext, ToolCallEvent, AgentEndEvent, TurnEndEvent, SessionStartEvent, BeforeAgentStartEvent } from "@mariozechner/pi-coding-agent";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, TextContent } from "@mariozechner/pi-ai";
+import { Type } from "@sinclair/typebox";
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -136,9 +137,22 @@ const SAFE_PATTERNS = [
 // ─── Utility Functions ────────────────────────────────────────────────────
 
 export function isSafeCommand(command: string): boolean {
-  const isDestructive = DESTRUCTIVE_PATTERNS.some((p) => p.test(command));
-  const isSafe = SAFE_PATTERNS.some((p) => p.test(command));
-  return !isDestructive && isSafe;
+  // Allow redirection to /dev/null (for silencing output in plan mode research)
+  const commandWithoutDevNull = command.replace(/\s*2?>\s*\/dev\/null/gi, '');
+  
+  // For piped commands, check each part
+  const pipedParts = commandWithoutDevNull.split('|').map(p => p.trim());
+  
+  for (const part of pipedParts) {
+    const isDestructive = DESTRUCTIVE_PATTERNS.some((p) => p.test(part));
+    if (isDestructive) return false;
+    
+    // At least one part must match a safe pattern
+    const isSafe = SAFE_PATTERNS.some((p) => p.test(part));
+    if (!isSafe) return false;
+  }
+  
+  return true;
 }
 
 function cleanStepText(text: string): string {
@@ -346,52 +360,42 @@ Follow this process to create a thorough implementation plan:
 ### Phase 4: Output the Plan
 Create a detailed, actionable plan with specific file paths, function names, and implementation details.
 
-## Output Format
+## Output Format - CRITICAL
 
-Output ONLY the plan. No other content. Be specific and detailed.
-
-Plan:
-1. [Main task with specific file path]
-   1.1. [Specific implementation detail - what to create/modify]
-   1.2. [Code pattern to follow, specific imports needed]
-2. [Next main task]
-   2.1. [Specific function/variable names to use]
-   2.2. [Expected output/behavior]
-...
-
-## Plan Quality Requirements
-
-Each step MUST include:
-- Exact file path (e.g., "Create packages/server/src/tools/browser.ts")
-- Specific code changes (e.g., "Add function screenshot() that returns base64")
-- Dependencies (e.g., "Import chromium from 'playwright'")
-- Reference patterns (e.g., "Follow the pattern from read.ts")
-
-Avoid vague steps like:
-- "Create the file" (without specifying what goes in it)
-- "Implement the function" (without describing what it does)
-- "Add dependencies" (without listing them)
-
-## Example Plan
+You MUST follow this exact format. Each item MUST be on its own line.
 
 Plan:
-1. Install playwright dependency in packages/server/package.json
-   1.1. Add "playwright": "^1.42.0" to dependencies object
-   1.2. This enables browser automation capabilities
-2. Create browser tool at packages/server/src/agent/tools/browser.ts
-   2.1. Import: chromium from 'playwright', Type from '@sinclair/typebox'
-   2.2. Define BrowserParams schema: action (screenshot|navigate|click|evaluate), url?, selector?, script?
-   2.3. Create createBrowserTool() following pattern from read.ts (lines 15-30)
-   2.4. Implement screenshot action: launch browser, navigate, screenshot, return base64
-   2.5. Handle errors: browser not installed, timeout, invalid URL
-3. Register tool in packages/server/src/agent/manager.ts
-   3.1. Add import: import { createBrowserTool } from "./tools/browser.js"
-   3.2. In createSession(), add createBrowserTool() to customTools array after readTool
-4. Create frontend renderer at packages/app/src/components/tools/renderers/browser.tsx
-   4.1. Display base64 images with <img src="data:image/png;base64,..." />
-   4.2. Show error messages in red text
-   4.3. Register in renderers/index.ts
-5. Test with curl request to verify screenshot works
+1. Main task description here
+   1.1. Subtask one description here
+   1.2. Subtask two description here
+2. Next main task description here
+   2.1. First subtask
+   2.2. Second subtask
+3. Third main task
+   3.1. Subtask
+
+## Format Rules
+
+- Each main task starts with a number and period: "1. ", "2. ", etc.
+- Each subtask is indented with 3 spaces and uses format: "1.1. ", "1.2. ", etc.
+- EVERY item MUST be on its own separate line
+- Do NOT put multiple items on the same line
+- Use specific file paths, function names, and implementation details
+
+## Example Output
+
+Plan:
+1. Create question tool at packages/server/src/agent/tools/question.ts
+   1.1. Import Type from @sinclair/typebox
+   1.2. Define QuestionParams schema with question and options fields
+   1.3. Implement execute function using ctx.ui.custom
+2. Register tool in packages/server/src/agent/tools/index.ts
+   2.1. Export createQuestionTool function
+   2.2. Follow pattern from other tools in the file
+3. Add tool to manager.ts customTools array
+   3.1. Import createQuestionTool from ./tools/question.js
+   3.2. Add to customTools in createSession function
+4. Test the tool with a sample question
 
 Now thoroughly analyze the codebase and create your detailed implementation plan.`;
 
@@ -479,6 +483,57 @@ export function createPlanModeExtension(callbacks: PlanModeExtensionCallbacks): 
           pi.setActiveTools(NORMAL_MODE_TOOLS);
           ctx.ui.notify("Plan mode disabled. Full access restored.");
         }
+      },
+    });
+
+    // Register tool for agent to proactively enter plan mode
+    pi.registerTool({
+      name: "enter_plan_mode",
+      label: "Enter Plan Mode",
+      description: "Enter plan mode for complex tasks that require careful analysis and planning. Use this when you encounter a task that is too complex to execute directly and needs to be broken down into steps first. In plan mode, you will only have read-only tools available to analyze the codebase.",
+      parameters: Type.Object({
+        reason: Type.String({ description: "Brief explanation of why plan mode is needed (e.g., 'Task involves multiple interconnected components' or 'Need to understand existing patterns before implementing')" }),
+        task_description: Type.String({ description: "Description of the task you need to plan for" }),
+      }),
+      execute: async (toolCallId, params, signal, onUpdate, ctx) => {
+        const sessionId = ctx.sessionManager.getSessionId();
+        const current = getState(sessionId);
+
+        if (current.enabled) {
+          return {
+            content: [{ type: "text" as const, text: "Already in plan mode. Continue with your analysis and create a plan." }],
+            details: { enabled: true },
+          };
+        }
+
+        // Enable plan mode
+        const newState: PlanModeState = {
+          enabled: true,
+          executing: false,
+          todos: [],
+        };
+        setState(sessionId, newState);
+        pi.setActiveTools(PLAN_MODE_TOOLS);
+        ctx.ui.notify("📋 Plan mode enabled via tool call.");
+
+        // Return message telling agent to start planning
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Plan mode enabled. You now have read-only access to analyze the codebase.
+
+Task: ${params.task_description}
+Reason for planning: ${params.reason}
+
+Instructions:
+1. Use read-only tools to explore the codebase
+2. Create a detailed implementation plan
+3. Output the plan in the specified format
+
+You can now proceed with your analysis.`,
+          }],
+          details: { enabled: true, task: params.task_description },
+        };
       },
     });
 

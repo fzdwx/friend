@@ -17,6 +17,7 @@
 ## ✨ 特性
 
 ### 🤖 AI 能力
+
 - **多模型支持** - 原生支持 OpenAI、Anthropic，可配置任意 OpenAI-compatible 端点
 - **流式对话** - 基于 SSE 的实时流式传输，零延迟看到 AI 思考和回复
 - **思维链可视化** - 独立 Activity 面板展示 AI 思考过程和工具调用
@@ -25,6 +26,7 @@
 - **自定义工具** - 扩展 AI 能力，提供 14 个内置工具
 
 ### 🎨 主题系统
+
 - **15 组内置主题** - 5 组亮色 + 10 组暗色精心设计的配色方案
 - **oklch 颜色空间** - 现代感知均匀颜色，色彩转换更自然
 - **AI 生成主题** - 基于色相和饱和度自动生成和谐配色
@@ -35,23 +37,24 @@
 
 内置 14 个 Agent 工具：
 
-| 类别     | 工具                      | 功能                       |
-| -------- | ------------------------- | -------------------------- |
-| **文件**   | `grep`                    | 搜索文件内容（ripgrep）    |
-|          | `glob`                    | 按模式查找文件             |
-| **会话**   | `create_session`          | 创建新会话                 |
-|          | `get_session`             | 获取会话详情               |
-|          | `rename_session`          | 重命名会话                 |
-| **记忆**   | `memory_search`           | 语义搜索 Agent 记忆        |
-|          | `memory_get`              | 读取记忆文件片段           |
-| **主题**   | `get_themes`              | 查询可用主题               |
-|          | `generate_theme`          | AI 生成自定义主题          |
-|          | `set_theme`               | 切换主题                   |
-| **Provider** | `add_custom_provider`  | 添加 AI 模型提供商         |
-|          | `list_custom_providers`   | 列出已配置提供商           |
-|          | `update_custom_provider`  | 更新提供商配置             |
+| 类别         | 工具                     | 功能                    |
+| ------------ | ------------------------ | ----------------------- |
+| **文件**     | `grep`                   | 搜索文件内容（ripgrep） |
+|              | `glob`                   | 按模式查找文件          |
+| **会话**     | `create_session`         | 创建新会话              |
+|              | `get_session`            | 获取会话详情            |
+|              | `rename_session`         | 重命名会话              |
+| **记忆**     | `memory_search`          | 语义搜索 Agent 记忆     |
+|              | `memory_get`             | 读取记忆文件片段        |
+| **主题**     | `get_themes`             | 查询可用主题            |
+|              | `generate_theme`         | AI 生成自定义主题       |
+|              | `set_theme`              | 切换主题                |
+| **Provider** | `add_custom_provider`    | 添加 AI 模型提供商      |
+|              | `list_custom_providers`  | 列出已配置提供商        |
+|              | `update_custom_provider` | 更新提供商配置          |
 
 ### 🖥️ 桌面应用
+
 - **跨平台** - Windows、macOS、Linux 原生应用
 - **独立窗口** - 1280x800 默认窗口，可自定义
 - **系统集成** - 原生菜单、通知、文件访问
@@ -188,30 +191,30 @@ Friend 实现了完整的 Agent 记忆机制，让 Agent 拥有持久化的上�
 
 ### 记忆类型
 
-| 文件 | 用途 |
-|------|------|
-| `MEMORY.md` | 长期记忆 - 重要的偏好、决策、教训 |
-| `memory/YYYY-MM-DD.md` | 每日日志 - 当天的上下文和事件 |
+| 文件                   | 用途                              |
+| ---------------------- | --------------------------------- |
+| `MEMORY.md`            | 长期记忆 - 重要的偏好、决策、教训 |
+| `memory/YYYY-MM-DD.md` | 每日日志 - 当天的上下文和事件     |
 
 ### 搜索能力
 
 Memory 系统支持两种搜索模式：
 
-| 模式 | 说明 | 配置要求 |
-|------|------|----------|
-| **BM25 关键词搜索** | 基于词频的全文搜索 | 无需配置，开箱即用 |
-| **向量语义搜索** | 基于嵌入向量的语义相似度 | 需配置 Embedding API |
-| **混合搜索** | 70% 向量 + 30% 关键词 | 需配置 Embedding API |
+| 模式                | 说明                     | 配置要求             |
+| ------------------- | ------------------------ | -------------------- |
+| **BM25 关键词搜索** | 基于词频的全文搜索       | 无需配置，开箱即用   |
+| **向量语义搜索**    | 基于嵌入向量的语义相似度 | 需配置 Embedding API |
+| **混合搜索**        | 70% 向量 + 30% 关键词    | 需配置 Embedding API |
 
 ### Embedding Providers
 
 支持多种 Embedding 服务：
 
-| Provider | 模型 | 维度 |
-|----------|------|------|
-| OpenAI | text-embedding-3-small | 1536 |
-| Gemini | gemini-embedding-001 | 768 |
-| Voyage | voyage-4-large | 1024 |
+| Provider | 模型                   | 维度 |
+| -------- | ---------------------- | ---- |
+| OpenAI   | text-embedding-3-small | 1536 |
+| Gemini   | gemini-embedding-001   | 768  |
+| Voyage   | voyage-4-large         | 1024 |
 
 ### Memory 工具
 
@@ -247,6 +250,7 @@ memory_get(path="memory/2026-02-13.md", from=50, lines=20)
 ## 🛠️ 技术栈
 
 ### 后端
+
 - **Runtime**: [Bun](https://bun.sh) - 高性能 JavaScript 运行时
 - **Framework**: [Elysia](https://elysiajs.com) - 极速 TypeScript 框架
 - **AI SDK**: [@mariozechner/pi-coding-agent](https://github.com/badlogic/pi-mono)
@@ -254,6 +258,7 @@ memory_get(path="memory/2026-02-13.md", from=50, lines=20)
 - **Stream**: Server-Sent Events (SSE)
 
 ### 前端
+
 - **Framework**: React 19
 - **Build Tool**: Vite 6
 - **Desktop**: [Tauri v2](https://tauri.app)
@@ -263,6 +268,7 @@ memory_get(path="memory/2026-02-13.md", from=50, lines=20)
 - **Color System**: oklch - 感知均匀颜色空间
 
 ### 代码质量
+
 - **Formatter**: [oxfmt](https://github.com/oxc-project/oxc)
 - **Linter**: [oxlint](https://github.com/oxc-project/oxc)
 - **Type Check**: TypeScript 5.8
@@ -312,9 +318,9 @@ just clean            # 清理构建产物
 1. **内置模型** - 自动识别系统中已配置 API Key 的模型（OpenAI、Anthropic 等）
 
 2. **自定义 Provider** - 支持添加任意 OpenAI-compatible API：
-    - 配置 API Key、Base URL
-    - 定义多个模型及其参数
-    - 指定 API 协议（openai-completions、anthropic-messages 等）
+   - 配置 API Key、Base URL
+   - 定义多个模型及其参数
+   - 指定 API 协议（openai-completions、anthropic-messages 等）
 
 ### API Key 配置
 
@@ -332,6 +338,7 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 #### 内置主题（15 组）
 
 **亮色主题**（5 组）：
+
 - Default Light - 简约白
 - Gruvbox Light - 柔和米黄
 - Solarized Light - 经典浅色
@@ -339,6 +346,7 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 - Rose Pine Dawn - 玫瑰晨曦
 
 **暗色主题**（10 组）：
+
 - Default Dark - 简约黑
 - Dracula - 德古拉紫
 - Nord - 北极光蓝
@@ -353,6 +361,7 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 #### AI 生成主题
 
 通过自然语言对话让 AI 为你创建主题：
+
 ```
 你: 创建一个蓝色的暗色主题
 AI: (调用 generate_theme 工具) 已生成主题并激活
@@ -368,6 +377,7 @@ AI: (调用 generate_theme 工具) 已生成主题并激活
 ## 🔌 API 端点
 
 ### 会话管理
+
 ```
 GET    /api/sessions          # 列出所有会话
 POST   /api/sessions          # 创建会话
@@ -380,11 +390,13 @@ POST   /api/sessions/:id/abort    # 中断生成
 ```
 
 ### 模型管理
+
 ```
 GET    /api/models            # 获取可用模型列表
 ```
 
 ### 配置管理
+
 ```
 GET    /api/config            # 获取配置
 PATCH  /api/config            # 更新配置
@@ -394,12 +406,14 @@ DELETE /api/config/providers/:name  # 删除 Provider
 ```
 
 ### 事件流
+
 ```
 GET    /api/events            # 全局事件流（SSE）
 GET    /api/sessions/:id/events  # 会话事件流（SSE）
 ```
 
 **事件类型**：
+
 - `agent_start/end` - Agent 会话开始/结束
 - `message_start/update/end` - 消息流式传输
 - `text_delta` - 文本增量
@@ -407,6 +421,26 @@ GET    /api/sessions/:id/events  # 会话事件流（SSE）
 - `tool_call_start/end` - 工具调用
 - `tool_execution_start/update/end` - 工具执行
 - `error` - 错误事件
+
+## 📚 项目知识库
+
+项目包含分层的 AGENTS.md 知识库，为 AI 编码助手提供上下文：
+
+```
+./AGENTS.md                           # 根目录 - 项目概览、约定、命令
+├── packages/
+│   ├── shared/AGENTS.md              # 类型定义包
+│   ├── server/AGENTS.md              # 后端 API 包
+│   │   ├── src/agent/tools/AGENTS.md # Agent 工具工厂模式
+│   │   └── src/agent/memory/AGENTS.md # Memory 系统
+│   ├── app/AGENTS.md                 # 前端 React 包
+│   │   ├── src/stores/AGENTS.md      # Zustand 状态管理
+│   │   ├── src/components/config/AGENTS.md    # 配置组件
+│   │   └── src/components/tools/registry/renderers/AGENTS.md  # 工具渲染器
+│   └── db/AGENTS.md                  # 数据库包
+```
+
+每个目录都有对应的 CLAUDE.md 指向 AGENTS.md，方便 Claude Code 等 AI 工具快速定位上下文。
 
 ## 📝 开发指南
 
@@ -446,19 +480,21 @@ export function createMyTool(manager: IAgentManager): ToolDefinition {
 - **ESM only** - 所有包使用 `"type": "module"`
 - **文件扩展名** - 本地导入使用 `.js` 扩展名
 - **命名规范**:
-    - PascalCase: 组件、类型、接口
-    - camelCase: 函数、变量、hooks
-    - kebab-case: 目录名
+  - PascalCase: 组件、类型、接口
+  - camelCase: 函数、变量、hooks
+  - kebab-case: 目录名
 
 ### 主题开发
 
 **颜色格式**：使用 oklch
+
 ```typescript
 const color: ColorDefinition = { l: 0.5, c: 0.1, h: 250 };
 // l: 亮度 (0-1), c: 色度 (0-0.25), h: 色相 (0-360)
 ```
 
 **颜色变量**：通过 CSS 变量动态应用
+
 ```typescript
 applyThemeToDOM(themeConfig); // 应用到 :root
 ```
