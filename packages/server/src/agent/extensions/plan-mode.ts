@@ -723,14 +723,31 @@ You can now proceed with your analysis.`,
         executing: state.executing,
         modifying: state.modifying,
         todosCount: state.todos.length,
+        completedCount: state.todos.filter(t => t.completed).length,
       }));
 
       // Check if execution is complete
       if (state.executing && state.todos.length > 0) {
         if (state.todos.every((t) => t.completed)) {
           // All done - clear state
+          console.log('[PlanMode] All tasks completed, clearing state');
           setState(sessionId, { enabled: false, executing: false, modifying: false, todos: [] });
           pi.setActiveTools(NORMAL_MODE_TOOLS);
+          return;
+        }
+        
+        // Continue with next task
+        const nextTask = state.todos.find((t) => !t.completed);
+        if (nextTask) {
+          console.log('[PlanMode] Continuing with next task:', nextTask.step, nextTask.text);
+          // Use setTimeout to avoid blocking
+          setTimeout(async () => {
+            try {
+              await ctx.sessionManager.prompt(`Continue with: ${nextTask.text}`);
+            } catch (err) {
+              console.error('[PlanMode] Failed to continue with next task:', err);
+            }
+          }, 100);
           return;
         }
       }
