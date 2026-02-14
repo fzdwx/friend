@@ -640,17 +640,9 @@ You can now proceed with your analysis.`,
       if (!sessionId) return;
 
       const state = getState(sessionId);
-      console.log('[PlanMode] before_agent_start - sessionId:', sessionId, 'state:', JSON.stringify({
-        enabled: state.enabled,
-        executing: state.executing,
-        modifying: state.modifying,
-        todosCount: state.todos.length,
-        modifyMessage: state.modifyMessage?.substring(0, 50),
-      }));
 
       // Handle modify mode - inject modify context with current plan
       if (state.modifying && state.todos.length > 0 && state.modifyMessage) {
-        console.log('[PlanMode] Injecting modify context for message:', state.modifyMessage.substring(0, 50));
         const context = getModifyContextPrompt(state.todos, state.modifyMessage);
         return {
           message: {
@@ -710,19 +702,10 @@ You can now proceed with your analysis.`,
       if (!sessionId) return;
 
       const state = getState(sessionId);
-      console.log('[PlanMode] agent_end - sessionId:', sessionId, 'state:', JSON.stringify({
-        enabled: state.enabled,
-        executing: state.executing,
-        modifying: state.modifying,
-        todosCount: state.todos.length,
-        completedCount: state.todos.filter(t => t.completed).length,
-      }));
-
       // Check if execution is complete
       if (state.executing && state.todos.length > 0) {
         if (state.todos.every((t) => t.completed)) {
           // All done - clear state
-          console.log('[PlanMode] All tasks completed, clearing state');
           setState(sessionId, { enabled: false, executing: false, modifying: false, todos: [] });
           pi.setActiveTools(NORMAL_MODE_TOOLS);
           return;
@@ -731,7 +714,6 @@ You can now proceed with your analysis.`,
         // Continue with next task
         const nextTask = state.todos.find((t) => !t.completed);
         if (nextTask && callbacks.onContinue) {
-          console.log('[PlanMode] Continuing with next task:', nextTask.step, nextTask.text);
           callbacks.onContinue(sessionId, nextTask);
           return;
         }
@@ -744,7 +726,6 @@ You can now proceed with your analysis.`,
         if (lastAssistant) {
           const text = getTextContent(lastAssistant);
           const extracted = extractTodoItems(text);
-          console.log('[PlanMode] agent_end - extracted todos count:', extracted.length);
           if (extracted.length > 0) {
             // Auto-enable plan mode if not already enabled
             const wasAlreadyEnabled = state.enabled || state.modifying;
@@ -760,7 +741,6 @@ You can now proceed with your analysis.`,
             
             // Only notify if this is a new plan (not already in plan mode)
             if (!wasAlreadyEnabled) {
-              console.log('[PlanMode] Auto-enabled plan mode, found Plan: format');
               pi.setActiveTools(PLAN_MODE_TOOLS);
             }
             callbacks.onPlanReady(sessionId, extracted);

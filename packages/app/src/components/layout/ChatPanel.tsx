@@ -54,9 +54,6 @@ function PlanModePanel() {
   const planModeProgress = useSessionStore((s) => s.planModeProgress);
   const isStreaming = useSessionStore((s) => s.isStreaming);
 
-  // Debug log
-  console.log('[PlanModePanel] render:', { planModeEnabled, planModeExecuting, todosCount: planModeTodos.length });
-
   const handleExecute = async (todos?: any[]) => {
     if (!sessionId) return;
     await api.planAction(sessionId, "execute", { todos });

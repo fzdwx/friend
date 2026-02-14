@@ -407,9 +407,7 @@ export class AgentManager implements IAgentManager {
           // Get current plan mode state (using SDK sessionId, internally maps to DB sessionId)
           getState: (sdkSessionId: string) => {
             const dbSessionId = this.resolveDbSessionId(sdkSessionId);
-            const state = dbSessionId ? this.getPlanModeState(dbSessionId) : { enabled: false, executing: false, modifying: false, todos: [] };
-            console.log('[PlanMode] getState - sdkSessionId:', sdkSessionId, 'dbSessionId:', dbSessionId, 'modifying:', state.modifying, 'todosCount:', state.todos.length);
-            return state;
+            return dbSessionId ? this.getPlanModeState(dbSessionId) : { enabled: false, executing: false, modifying: false, todos: [] };
           },
           // Set plan mode state (using SDK sessionId, internally maps to DB sessionId)
           setState: (sdkSessionId: string, state: PlanModeState) => {
@@ -1248,15 +1246,9 @@ Your output must be:
 
     // Check current plan mode state
     const currentState = this.getPlanModeState(id);
-    console.log('[PlanMode] prompt() - id:', id, 'currentState:', JSON.stringify({
-      enabled: currentState.enabled,
-      executing: currentState.executing,
-      todosCount: currentState.todos.length,
-    }));
 
     // If plan is ready (enabled, not executing, has todos), treat new message as modification
     if (currentState.enabled && !currentState.executing && currentState.todos.length > 0) {
-      console.log('[PlanMode] Entering modify mode for message:', message.substring(0, 50));
       // Set modifying state with the user's message
       this.setPlanModeState(id, {
         ...currentState,
