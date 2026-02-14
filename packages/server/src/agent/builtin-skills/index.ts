@@ -4,19 +4,30 @@
  * Ensures built-in skills are created in the global skills directory
  * if they don't already exist.
  *
- * Uses import to inline skill content (works after bundling, same pattern as defaults/)
+ * Each skill is a directory with SKILL.md and optional resources:
+ * - builtin-skills/skill-name/SKILL.md.txt (required)
+ * - builtin-skills/skill-name/scripts/*.txt (optional)
+ * - builtin-skills/skill-name/references/*.txt (optional)
+ * - builtin-skills/skill-name/assets/* (optional)
+ *
+ * Uses import to inline content (works after bundling).
  */
 
 import { join } from "node:path";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { GLOBAL_SKILLS_DIR } from "../paths.js";
 
-// Import builtin skill content (inlined by Bun at build time)
-import skillCreatorMd from "./skill-creator.txt";
+// Import skill content (inlined by Bun at build time)
+import skillCreatorMd from "./skill-creator/SKILL.md.txt";
 
-// Built-in skill definitions
+// Built-in skill definitions with their resources
 const BUILTIN_SKILLS = {
-  "skill-creator": skillCreatorMd,
+  "skill-creator": {
+    "SKILL.md": skillCreatorMd,
+    // Add more files as needed:
+    // "scripts/rotate.py": rotatePy,
+    // "references/schema.md": schemaMd,
+  },
 } as const;
 
 /**
@@ -30,14 +41,28 @@ export function ensureBuiltinSkills(): void {
   }
 
   // Check and create each built-in skill
-  for (const [skillName, skillContent] of Object.entries(BUILTIN_SKILLS)) {
+  for (const [skillName, files] of Object.entries(BUILTIN_SKILLS)) {
     const skillDir = join(GLOBAL_SKILLS_DIR, skillName);
     const skillFile = join(skillDir, "SKILL.md");
 
     // Only create if doesn't exist
     if (!existsSync(skillFile)) {
+      // Create skill directory
       mkdirSync(skillDir, { recursive: true });
-      writeFileSync(skillFile, skillContent, "utf-8");
+
+      // Write all files
+      for (const [filePath, content] of Object.entries(files)) {
+        const fullPath = join(skillDir, filePath);
+        const parentDir = join(fullPath, "..");
+
+        // Ensure parent directory exists
+        if (!existsSync(parentDir)) {
+          mkdirSync(parentDir, { recursive: true });
+        }
+
+        writeFileSync(fullPath, content, "utf-8");
+      }
+
       console.log(`✓ Created built-in skill: ${skillName}`);
     }
   }
