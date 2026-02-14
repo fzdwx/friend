@@ -124,16 +124,22 @@ function PlanModePanel() {
 function CommandResultNotification() {
   const commandResult = useSessionStore((s) => s.commandResult);
   const setCommandResult = useSessionStore((s) => s.setCommandResult);
+  const setMessages = useSessionStore((s) => s.setMessages);
 
   // Auto-hide after 3 seconds
   useEffect(() => {
     if (commandResult) {
+      // Handle /clear command - actually clear messages
+      if (commandResult.command === "clear" && commandResult.success) {
+        setMessages([]);
+      }
+
       const timer = setTimeout(() => {
         setCommandResult(null);
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [commandResult, setCommandResult]);
+  }, [commandResult, setCommandResult, setMessages]);
 
   if (!commandResult) return null;
 
