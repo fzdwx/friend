@@ -2,6 +2,7 @@
   "common": {
     "cancel": "Cancel",
     "save": "Save",
+    "saving": "Saving...",
     "delete": "Delete",
     "edit": "Edit",
     "create": "Create",
@@ -19,7 +20,8 @@
     "back": "Back",
     "submit": "Submit",
     "submitting": "Submitting...",
-    "next": "Next"
+    "next": "Next",
+    "refresh": "Refresh"
   },
   "sidebar": {
     "title": "Friend",
@@ -53,7 +55,8 @@
       "providers": "Providers",
       "memory": "Memory",
       "appearance": "Appearance",
-      "skills": "Skills"
+      "skills": "Skills",
+      "subagents": "Subagents"
     }
   },
   "agents": {
@@ -188,6 +191,28 @@
     "skillCount": "({{count}} skill{{plural}})",
     "manualOnly": "Manual only",
     "file": "File:"
+  },
+  "subagents": {
+    "title": "Subagents",
+    "description": "Manage specialized agents for task delegation",
+    "create": "Create Subagent",
+    "createNew": "Create New Subagent",
+    "edit": "Edit Subagent",
+    "empty": "No subagents found",
+    "emptyHint": "Create a subagent to delegate specialized tasks",
+    "helpTitle": "Subagent Files",
+    "helpText": "Subagents are defined in markdown files with YAML frontmatter",
+    "form": {
+      "name": "Name",
+      "description": "Description",
+      "model": "Model",
+      "defaultModel": "Use default model",
+      "tools": "Allowed Tools",
+      "toolsHint": "Select tools this subagent can use, or leave empty for all tools",
+      "systemPrompt": "System Prompt",
+      "selectAll": "Select All",
+      "clearAll": "Clear All"
+    }
   },
   "plan": {
     "title": "Plan Mode",

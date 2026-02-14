@@ -2,6 +2,7 @@
   "common": {
     "cancel": "取消",
     "save": "保存",
+    "saving": "保存中...",
     "delete": "删除",
     "edit": "编辑",
     "create": "创建",
@@ -19,7 +20,8 @@
     "back": "返回",
     "submit": "提交",
     "submitting": "提交中...",
-    "next": "下一步"
+    "next": "下一步",
+    "refresh": "刷新"
   },
   "sidebar": {
     "title": "Friend",
@@ -53,7 +55,8 @@
       "providers": "提供商",
       "memory": "记忆",
       "appearance": "外观",
-      "skills": "技能"
+      "skills": "技能",
+      "subagents": "子智能体"
     }
   },
   "agents": {
@@ -188,6 +191,28 @@
     "skillCount": "({{count}} 个技能)",
     "manualOnly": "仅手动",
     "file": "文件："
+  },
+  "subagents": {
+    "title": "子智能体",
+    "description": "管理用于任务委托的专业智能体",
+    "create": "创建子智能体",
+    "createNew": "创建新子智能体",
+    "edit": "编辑子智能体",
+    "empty": "未找到子智能体",
+    "emptyHint": "创建一个子智能体来委托专业任务",
+    "helpTitle": "子智能体文件",
+    "helpText": "子智能体用带有 YAML frontmatter 的 markdown 文件定义",
+    "form": {
+      "name": "名称",
+      "description": "描述",
+      "model": "模型",
+      "defaultModel": "使用默认模型",
+      "tools": "允许的工具",
+      "toolsHint": "选择此子智能体可以使用的工具，或留空表示所有工具",
+      "systemPrompt": "系统提示词",
+      "selectAll": "全选",
+      "clearAll": "清空"
+    }
   },
   "plan": {
     "title": "计划模式",

@@ -48,35 +48,49 @@ export function InputArea({ onSend, onSteer, onFollowUp, onAbort, isStreaming, d
     }
   }, []);
 
-  // Handle command selection
-  const handleCommandSelect = useCallback(async (command: SlashCommandInfo) => {
+  // Handle command selection - insert command text into input
+  const handleCommandSelect = useCallback((command: SlashCommandInfo) => {
+    // Insert command with trailing space for parameters
+    setInput(`/${command.name} `);
     setShowCommandPalette(false);
-    setInput("");
-
-    if (!activeSessionId) return;
-
-    try {
-      await api.executeCommand(activeSessionId, command.name);
-    } catch (error) {
-      console.error("Failed to execute command:", error);
-    }
-  }, [activeSessionId]);
+    // Focus textarea for user to type parameters
+    textareaRef.current?.focus();
+  }, []);
 
   // Close command palette
   const handleCommandPaletteClose = useCallback(() => {
     setShowCommandPalette(false);
     // Clear the "/" if palette is closed without selection
-    if (input.startsWith("/")) {
+    if (input === "/") {
       setInput("");
     }
   }, [input]);
 
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback(async () => {
     const trimmed = input.trim();
     if (!trimmed || disabled) return;
+
+    // Check if it's a command (starts with /)
+    if (trimmed.startsWith("/")) {
+      // Parse command and args
+      const parts = trimmed.slice(1).split(/\s+/);
+      const commandName = parts[0];
+      const args = parts.slice(1).join(" ");
+
+      if (activeSessionId && commandName) {
+        try {
+          await api.executeCommand(activeSessionId, commandName, args || undefined);
+        } catch (error) {
+          console.error("Failed to execute command:", error);
+        }
+      }
+      setInput("");
+      return;
+    }
+
     onSend(trimmed);
     setInput("");
-  }, [input, disabled, onSend]);
+  }, [input, disabled, onSend, activeSessionId]);
 
   const handleSteer = useCallback(() => {
     const trimmed = input.trim();

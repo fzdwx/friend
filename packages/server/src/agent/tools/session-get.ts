@@ -29,7 +29,6 @@ export function createGetSessionTool(manager: IAgentManager): ToolDefinition {
       try {
         const p = params as { sessionId?: string; includeMessages?: boolean };
         const { sessionId: requestedId, includeMessages = false } = p;
-        console.log("111111111111:::", _ctx.sessionManager.getSessionId());
 
         if (!manager.getSession) {
           return {

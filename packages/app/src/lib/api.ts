@@ -234,4 +234,52 @@ export const api = {
     request<{ exists: boolean; path: string; files: string[]; size: number }>(
       `/agents/${id}/stats`,
     ),
+
+  // ─── Subagents ──────────────────────────────────────────────
+  listSubagents: (workspace?: string, scope?: "user" | "workspace" | "both") => {
+    const params = new URLSearchParams();
+    if (workspace) params.append("workspace", workspace);
+    if (scope) params.append("scope", scope);
+    const query = params.toString() ? `?${params}` : "";
+    return request<{ name: string; description: string; tools?: string[]; model?: string; systemPrompt: string; source: string; filePath: string }[]>(`/subagents${query}`);
+  },
+  getSubagent: (name: string, workspace?: string, scope?: string) => {
+    const params = new URLSearchParams();
+    if (workspace) params.append("workspace", workspace);
+    if (scope) params.append("scope", scope);
+    const query = params.toString() ? `?${params}` : "";
+    return request<{ name: string; description: string; tools?: string[]; model?: string; systemPrompt: string; source: string; filePath: string }>(`/subagents/${name}${query}`);
+  },
+  createSubagent: (data: {
+    name: string;
+    description: string;
+    tools?: string[];
+    model?: string;
+    systemPrompt: string;
+  }) =>
+    request<{ name: string; description: string; tools?: string[]; model?: string; systemPrompt: string; source: string; filePath: string }>(
+      "/subagents",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+    ),
+  updateSubagent: (
+    name: string,
+    updates: {
+      description?: string;
+      tools?: string[];
+      model?: string;
+      systemPrompt?: string;
+    },
+  ) =>
+    request<{ name: string; description: string; tools?: string[]; model?: string; systemPrompt: string; source: string; filePath: string }>(
+      `/subagents/${name}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(updates),
+      },
+    ),
+  deleteSubagent: (name: string) =>
+    request<{ ok: boolean; message: string }>(`/subagents/${name}`, { method: "DELETE" }),
 };

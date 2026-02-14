@@ -25,7 +25,7 @@ export type { TodoItem, PlanModeState } from "@friend/shared";
 
 // ─── Constants ────────────────────────────────────────────────────────────
 
-export const PLAN_MODE_TOOLS = ["read", "bash", "grep", "glob", "ls"];
+export const PLAN_MODE_TOOLS = ["read", "bash", "grep", "glob", "ls", "question"];
 export const NORMAL_MODE_TOOLS = ["read", "bash", "edit", "write", "grep", "glob", "ls"];
 
 // Destructive commands blocked in plan mode
@@ -361,7 +361,7 @@ export const PLAN_MODE_CONTEXT_PROMPT = `[PLAN MODE ACTIVE]
 You are in plan mode — read-only exploration for analysis and planning.
 
 ## Restrictions
-- Available tools: read, bash (read-only), grep, glob, ls
+- Available tools: read, bash (read-only), grep, glob, ls, question
 - Disabled tools: edit, write
 - Bash is restricted to read-only commands
 
@@ -383,14 +383,13 @@ Take your time — read more files rather than fewer. The plan quality depends o
 After exploring, output your response in two parts:
 
 ### Part 1 — Analysis (markdown)
-Summarize your findings before the plan:
+Brief summary of your findings:
 - Key files and their roles
 - Existing patterns you'll follow
 - Dependencies and impact scope
-- Risks or open questions
 
-### Part 2 — Plan (structured)
-End your response with the actionable plan:
+### Part 2 — Plan (CRITICAL - MUST BE INCLUDED)
+End your response with the actionable plan in this EXACT format:
 
 Plan:
 1. Action verb + what to do + where (file path)
@@ -399,12 +398,13 @@ Plan:
 2. Next step description
 3. Simple step (subtasks optional)
 
-Rules:
-- Start with "Plan:" on its own line, followed by numbered steps
-- Each step: actionable verb + specific file paths/function names
-- Subtasks (optional): indented, format "1.1.", "1.2."
-- Use the same language as the user
-- Do NOT include commentary after the plan — end with the last step`;
+## Important Rules
+
+1. **ALWAYS output a Plan section** - even if you have questions
+2. **If you need user input** - use the \`question\` tool BEFORE writing the plan
+3. **Do NOT write "待确认" or ask questions in text** - use the question tool or proceed with reasonable defaults
+4. **End with the last plan step** - no commentary after the plan
+5. **Use the same language as the user**`;
 
 export function getExecutionContextPrompt(todos: TodoItem[]): string {
   const remaining = todos.filter((t) => !t.completed);
