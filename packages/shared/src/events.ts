@@ -154,6 +154,14 @@ export interface SlashCommandInfo {
   path?: string;
 }
 
+/** Command execution result event */
+export interface CommandResultEvent {
+  type: "command_result";
+  command: string;
+  success: boolean;
+  message?: string;
+}
+
 export type SSEEvent =
   | AgentSessionEvent
   | ErrorEvent
@@ -165,7 +173,8 @@ export type SSEEvent =
   | PlanModeRequestChoiceEvent
   | PlanModeProgressEvent
   | PlanModeCompleteEvent
-  | QuestionRequestEvent;
+  | QuestionRequestEvent
+  | CommandResultEvent;
 
 /** Wire format: every event carries a sessionId for multiplexing */
 export type GlobalSSEEvent = SSEEvent & { sessionId: string };

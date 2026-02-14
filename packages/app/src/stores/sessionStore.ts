@@ -61,6 +61,7 @@ interface SessionState {
 
   // Slash commands
   availableCommands: SlashCommandInfo[];
+  commandResult: { command: string; success: boolean; message?: string } | null;
 
   // Actions
   setActiveTurnIndex: (index: number | null) => void;
@@ -109,6 +110,7 @@ interface SessionState {
 
   // Slash commands actions
   loadCommands: (sessionId: string) => Promise<void>;
+  setCommandResult: (result: { command: string; success: boolean; message?: string } | null) => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -135,6 +137,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   planModeProgress: null,
   pendingQuestion: null,
   availableCommands: [],
+  commandResult: null,
 
   setActiveTurnIndex: (index) => set({ activeTurnIndex: index }),
   setSessions: (sessions) => set({ sessions }),
@@ -295,4 +298,5 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       set({ availableCommands: res.data });
     }
   },
+  setCommandResult: (result) => set({ commandResult: result }),
 }));

@@ -278,6 +278,17 @@ export function useGlobalSSE() {
             });
             break;
 
+          case "command_result":
+            if (event.sessionId && event.sessionId !== useSessionStore.getState().activeSessionId) {
+              break; // Ignore events for other sessions
+            }
+            useSessionStore.getState().setCommandResult({
+              command: event.command,
+              success: event.success,
+              message: event.message,
+            });
+            break;
+
           case "error":
             console.error("SSE error:", event.message);
             setStreaming(false);

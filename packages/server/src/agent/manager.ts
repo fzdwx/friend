@@ -447,7 +447,19 @@ export class AgentManager implements IAgentManager {
           },
         }),
         // Custom slash commands extension
-        createCommandsExtension(this),
+        createCommandsExtension(this, {
+          onCommandResult: (sessionId: string, command: string, success: boolean, message?: string) => {
+            const managed = this.managedSessions.get(sessionId);
+            if (managed) {
+              this.broadcast(managed, {
+                type: "command_result",
+                command,
+                success,
+                message,
+              });
+            }
+          },
+        }),
       ],
     });
     await resourceLoader.reload();

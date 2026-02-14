@@ -5,10 +5,11 @@ import { InputArea } from "@/components/chat/InputArea";
 import { StreamingTurn } from "@/components/activity/StreamingTurn";
 import { PlanEditor, PlanProgress } from "@/components/plan/PlanEditor";
 import { QuestionnaireCard } from "@/components/tools/QuestionnaireCard";
-import { MessageSquarePlus, Zap } from "lucide-react";
+import { MessageSquarePlus, Zap, CheckCircle, XCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import type { QuestionAnswer } from "@friend/shared";
+import { useEffect } from "react";
 
 function PendingMessages() {
   const { t } = useTranslation();
@@ -117,6 +118,60 @@ function PlanModePanel() {
   return null;
 }
 
+/**
+ * Command result notification - shows result of slash command execution
+ */
+function CommandResultNotification() {
+  const commandResult = useSessionStore((s) => s.commandResult);
+  const setCommandResult = useSessionStore((s) => s.setCommandResult);
+
+  // Auto-hide after 3 seconds
+  useEffect(() => {
+    if (commandResult) {
+      const timer = setTimeout(() => {
+        setCommandResult(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [commandResult, setCommandResult]);
+
+  if (!commandResult) return null;
+
+  return (
+    <div className="px-4 py-2">
+      <div
+        className={`flex items-start gap-2 p-3 rounded-lg border ${
+          commandResult.success
+            ? "bg-green-500/10 border-green-500/30"
+            : "bg-red-500/10 border-red-500/30"
+        }`}
+      >
+        {commandResult.success ? (
+          <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+        ) : (
+          <XCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium">
+            /{commandResult.command}
+          </div>
+          {commandResult.message && (
+            <div className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
+              {commandResult.message}
+            </div>
+          )}
+        </div>
+        <button
+          onClick={() => setCommandResult(null)}
+          className="text-xs text-muted-foreground hover:text-foreground"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function ChatPanel() {
   const { t } = useTranslation();
   const { sessionId, messages, isStreaming, sendMessage, steer, followUp, abort } = useSession();
@@ -164,7 +219,8 @@ export function ChatPanel() {
           />
         </div>
       )}
-      
+
+      <CommandResultNotification />
       <PlanModePanel />
       <PendingMessages />
       <InputArea

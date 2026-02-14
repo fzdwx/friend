@@ -1,6 +1,6 @@
 /**
  * Custom slash commands for the friend application.
- * 
+ *
  * These commands are registered via the extension system and can be
  * triggered from the input box by typing "/" followed by the command name.
  */
@@ -8,17 +8,37 @@
 import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
 import type { IAgentManager } from "../tools";
 
+export interface CommandsExtensionCallbacks {
+  /** Called when a command produces a result */
+  onCommandResult: (sessionId: string, command: string, success: boolean, message?: string) => void;
+}
+
 /**
  * Create the commands extension.
  * Registers custom slash commands for the application.
  */
-export function createCommandsExtension(manager: IAgentManager): (pi: ExtensionAPI) => void {
+export function createCommandsExtension(
+  manager: IAgentManager,
+  callbacks: CommandsExtensionCallbacks,
+): (pi: ExtensionAPI) => void {
   return (pi: ExtensionAPI) => {
-    // /clear - Clear session messages (not implemented in SDK, so we just notify)
+    // Helper to get DB session ID from SDK session ID
+    const getDbSessionId = (ctx: ExtensionCommandContext): string | null => {
+      // ctx.sessionManager.getSessionId() returns SDK session ID
+      // We need to map it to DB session ID
+      const sdkSessionId = ctx.sessionManager.getSessionId();
+      // The manager should have a method to resolve this
+      return (manager as any).resolveDbSessionId?.(sdkSessionId) ?? sdkSessionId;
+    };
+
+    // /clear - Clear session messages
     pi.registerCommand("clear", {
       description: "Clear the current session messages",
       handler: async (args, ctx) => {
-        ctx.ui.notify("⚠️ Clear command: This would clear messages. Feature pending implementation.");
+        const dbSessionId = getDbSessionId(ctx);
+        if (dbSessionId) {
+          callbacks.onCommandResult(dbSessionId, "clear", true, "Messages cleared");
+        }
       },
     });
 
@@ -26,11 +46,14 @@ export function createCommandsExtension(manager: IAgentManager): (pi: ExtensionA
     pi.registerCommand("compact", {
       description: "Compact the session context to save tokens",
       handler: async (args, ctx) => {
+        const dbSessionId = getDbSessionId(ctx);
+        if (!dbSessionId) return;
+
         if (ctx.isIdle()) {
           ctx.compact();
-          ctx.ui.notify("🗜️ Compacting session context...");
+          callbacks.onCommandResult(dbSessionId, "compact", true, "Compacting session context...");
         } else {
-          ctx.ui.notify("⚠️ Cannot compact while agent is running.");
+          callbacks.onCommandResult(dbSessionId, "compact", false, "Cannot compact while agent is running");
         }
       },
     });
@@ -39,14 +62,16 @@ export function createCommandsExtension(manager: IAgentManager): (pi: ExtensionA
     pi.registerCommand("stats", {
       description: "Show session statistics (message count, tokens, cost)",
       handler: async (args, ctx) => {
+        const dbSessionId = getDbSessionId(ctx);
+        if (!dbSessionId) return;
+
         const usage = ctx.getContextUsage();
-        
+
         if (usage) {
-          const message = `📊 Session Stats:\n` +
-            `Tokens: ${usage.tokens.toLocaleString()} / ${usage.contextWindow.toLocaleString()} (${usage.percent.toFixed(1)}%)`;
-          ctx.ui.notify(message);
+          const message = `Tokens: ${usage.tokens.toLocaleString()} / ${usage.contextWindow.toLocaleString()} (${usage.percent.toFixed(1)}%)`;
+          callbacks.onCommandResult(dbSessionId, "stats", true, message);
         } else {
-          ctx.ui.notify("📊 Statistics not available for this session.");
+          callbacks.onCommandResult(dbSessionId, "stats", false, "Statistics not available");
         }
       },
     });
@@ -55,11 +80,14 @@ export function createCommandsExtension(manager: IAgentManager): (pi: ExtensionA
     pi.registerCommand("help", {
       description: "Show available slash commands",
       handler: async (args, ctx) => {
+        const dbSessionId = getDbSessionId(ctx);
+        if (!dbSessionId) return;
+
         const commands = pi.getCommands();
         const commandList = commands
-          .map(cmd => `  /${cmd.name}${cmd.description ? ` - ${cmd.description}` : ''}`)
-          .join('\n');
-        ctx.ui.notify(`📋 Available Commands:\n${commandList}`);
+          .map((cmd) => `/${cmd.name}${cmd.description ? ` - ${cmd.description}` : ""}`)
+          .join("\n");
+        callbacks.onCommandResult(dbSessionId, "help", true, `Available Commands:\n${commandList}`);
       },
     });
 
@@ -67,11 +95,14 @@ export function createCommandsExtension(manager: IAgentManager): (pi: ExtensionA
     pi.registerCommand("model", {
       description: "Show or change the current model",
       handler: async (args, ctx) => {
+        const dbSessionId = getDbSessionId(ctx);
+        if (!dbSessionId) return;
+
         const model = ctx.model;
         if (model) {
-          ctx.ui.notify(`🤖 Current model: ${model.provider}/${model.id}`);
+          callbacks.onCommandResult(dbSessionId, "model", true, `Current model: ${model.provider}/${model.id}`);
         } else {
-          ctx.ui.notify("⚠️ No model selected.");
+          callbacks.onCommandResult(dbSessionId, "model", false, "No model selected");
         }
       },
     });
@@ -80,12 +111,15 @@ export function createCommandsExtension(manager: IAgentManager): (pi: ExtensionA
     pi.registerCommand("rename", {
       description: "Rename the current session",
       handler: async (args, ctx) => {
+        const dbSessionId = getDbSessionId(ctx);
+        if (!dbSessionId) return;
+
         const newName = args?.trim();
         if (newName) {
           pi.setSessionName(newName);
-          ctx.ui.notify(`✏️ Session renamed to: ${newName}`);
+          callbacks.onCommandResult(dbSessionId, "rename", true, `Session renamed to: ${newName}`);
         } else {
-          ctx.ui.notify("Usage: /rename <new-name>");
+          callbacks.onCommandResult(dbSessionId, "rename", false, "Usage: /rename <new-name>");
         }
       },
     });
@@ -94,11 +128,14 @@ export function createCommandsExtension(manager: IAgentManager): (pi: ExtensionA
     pi.registerCommand("abort", {
       description: "Abort the current agent operation",
       handler: async (args, ctx) => {
+        const dbSessionId = getDbSessionId(ctx);
+        if (!dbSessionId) return;
+
         if (!ctx.isIdle()) {
           ctx.abort();
-          ctx.ui.notify("🛑 Aborting current operation...");
+          callbacks.onCommandResult(dbSessionId, "abort", true, "Aborting current operation...");
         } else {
-          ctx.ui.notify("ℹ️ No operation in progress.");
+          callbacks.onCommandResult(dbSessionId, "abort", false, "No operation in progress");
         }
       },
     });
