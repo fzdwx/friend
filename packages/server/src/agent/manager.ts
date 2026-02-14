@@ -70,7 +70,6 @@ import {
   createPlanModeExtension,
   type PlanModeState,
   type TodoItem,
-  shouldTriggerPlanMode,
   extractTodoItems,
   markCompletedSteps,
   isAssistantMessage,
@@ -1117,17 +1116,9 @@ Your output must be:
       return;
     }
 
-    // Check if this should trigger plan mode
-    if (!currentState.enabled && !currentState.executing) {
-      if (shouldTriggerPlanMode(message)) {
-        // Enable plan mode
-        this.setPlanModeState(id, { enabled: true, executing: false, modifying: false, todos: [] });
-        managed.session.setActiveToolsByName(PLAN_MODE_TOOLS);
-      }
-    }
-
     // Run prompt (non-blocking - returns after agent finishes)
     // SDK session automatically tracks user + assistant messages
+    // Note: Agent can use enter_plan_mode tool if task is complex
     managed.session.prompt(message).catch((err) => {
       this.broadcast(managed, { type: "error", message: String(err) });
     });

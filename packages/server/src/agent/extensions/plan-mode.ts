@@ -585,7 +585,43 @@ export function createPlanModeExtension(callbacks: PlanModeExtensionCallbacks): 
     pi.registerTool({
       name: "enter_plan_mode",
       label: "Enter Plan Mode",
-      description: "Enter plan mode for complex tasks that require careful analysis and planning. Use this when you encounter a task that is too complex to execute directly and needs to be broken down into steps first. In plan mode, you will only have read-only tools available to analyze the codebase.",
+      description: `Enter plan mode for complex tasks that require careful analysis and planning. In plan mode, you will only have read-only tools (read, bash, grep, glob, ls) to explore and analyze the codebase before executing.
+
+## When to Use This Tool
+
+Enter plan mode when the task has these characteristics:
+
+**Complexity Indicators:**
+- Involves multiple files or components that need coordinated changes
+- Requires understanding existing patterns before implementing
+- Has dependencies between steps (order matters)
+- Needs architectural decisions (not just simple edits)
+- User explicitly asks for a plan or step-by-step approach
+
+**Examples of Tasks Requiring Planning:**
+- "Refactor this module to use a new pattern"
+- "Implement a new feature that spans multiple files"
+- "Migrate from X to Y"
+- "Add a system for..."
+- "Design the architecture for..."
+- Tasks involving design decisions
+
+**When NOT to Use:**
+- Simple file edits (single file, clear change)
+- Quick fixes or typo corrections
+- Adding a single function
+- Running tests or commands
+- Short requests (< 3 sentences)
+
+## How It Works
+
+1. You call this tool with reason and task description
+2. Your write tools get disabled, read tools stay active
+3. You explore the codebase and create a detailed plan
+4. User reviews and approves the plan
+5. You execute the plan step by step
+
+Be proactive - if you feel a task is complex enough to benefit from planning, use this tool.`,
       parameters: Type.Object({
         reason: Type.String({ description: "Brief explanation of why plan mode is needed (e.g., 'Task involves multiple interconnected components' or 'Need to understand existing patterns before implementing')" }),
         task_description: Type.String({ description: "Description of the task you need to plan for" }),
@@ -755,19 +791,17 @@ You can now proceed with your analysis.`,
         }
       }
 
-      // In modify mode or plan mode - extract todos and notify
-      const shouldExtract = (state.enabled || state.modifying) && !state.executing;
-      console.log('[PlanMode] agent_end - shouldExtract:', shouldExtract);
-      
-      if (shouldExtract) {
+      // Smart extraction: always check for Plan: format, even if not in plan mode
+      // This handles the case where AI outputs a plan without calling enter_plan_mode tool
+      if (!state.executing) {
         const lastAssistant = [...event.messages].reverse().find(isAssistantMessage);
-        console.log('[PlanMode] agent_end - found assistant message:', !!lastAssistant);
         if (lastAssistant) {
           const text = getTextContent(lastAssistant);
-          console.log('[PlanMode] agent_end - assistant text length:', text.length, 'preview:', text.substring(0, 100));
           const extracted = extractTodoItems(text);
           console.log('[PlanMode] agent_end - extracted todos count:', extracted.length);
           if (extracted.length > 0) {
+            // Auto-enable plan mode if not already enabled
+            const wasAlreadyEnabled = state.enabled || state.modifying;
             const newState: PlanModeState = {
               ...state,
               enabled: true,  // Stay in plan mode
@@ -777,6 +811,12 @@ You can now proceed with your analysis.`,
               todos: extracted,
             };
             setState(sessionId, newState);
+            
+            // Only notify if this is a new plan (not already in plan mode)
+            if (!wasAlreadyEnabled) {
+              console.log('[PlanMode] Auto-enabled plan mode, found Plan: format');
+              pi.setActiveTools(PLAN_MODE_TOOLS);
+            }
             callbacks.onPlanReady(sessionId, extracted);
           }
         }
@@ -797,99 +837,4 @@ You can now proceed with your analysis.`,
       }
     });
   };
-}
-
-// ─── Complexity Detection ────────────────────────────────────────────────
-
-/**
- * Keywords and patterns that suggest a complex task requiring planning.
- */
-const PLAN_TRIGGERS = {
-  // High-confidence keywords (require explicit planning intent)
-  keywords: [
-    "重构", "架构设计", "系统设计", "实现方案", "迁移方案", "从零开始",
-    "refactor", "architect", "system design", "implementation plan", "migrate",
-    "完整实现", "系统实现", "模块设计",
-    "step by step", "详细计划", "帮我规划",
-  ],
-
-  // Pattern matches (require multiple steps clearly)
-  patterns: [
-    /添加.*功能.*步骤/i,
-    /实现.*系统/i,
-    /创建.*模块.*设计/i,
-    /how to implement.*step/i,
-    /帮我(设计|规划|实现).*方案/i,
-    /如何(实现|设计)/i,
-    /详细.*计划/i,
-  ],
-};
-
-/**
- * Simple command patterns that should NOT trigger plan mode.
- */
-const SIMPLE_COMMANDS = [
-  /^(提交|commit|push|pull|合并|merge)/i,
-  /^(运行|run|启动|start|停止|stop)/i,
-  /^(查看|show|list|显示)/i,
-  /^(修复|fix|更新|update|删除|delete|添加|add)\s*(一个|单个)?/i,
-  /^(先|然后|接下来)/i,
-  /^\/\w+/,  // Slash commands like /plan
-  /^(ok|好|好了|发送|发送了|执行|取消|退出)/i,  // Short confirmations
-];
-
-/**
- * Check if a message suggests a complex task requiring planning.
- * Returns a score from 0-1, where higher means more likely to need planning.
- */
-export function checkComplexity(message: string): number {
-  // Skip simple commands
-  const trimmed = message.trim();
-  for (const pattern of SIMPLE_COMMANDS) {
-    if (pattern.test(trimmed)) {
-      return 0;
-    }
-  }
-
-  // Short messages are unlikely to be complex
-  if (trimmed.length < 10) {
-    return 0;
-  }
-
-  let score = 0;
-
-  // Check keywords
-  for (const keyword of PLAN_TRIGGERS.keywords) {
-    if (message.toLowerCase().includes(keyword.toLowerCase())) {
-      score += 0.2;
-    }
-  }
-
-  // Check patterns
-  for (const pattern of PLAN_TRIGGERS.patterns) {
-    if (pattern.test(message)) {
-      score += 0.25;
-    }
-  }
-
-  // Length heuristic - longer messages tend to be more complex
-  if (message.length > 100) score += 0.1;
-  if (message.length > 200) score += 0.1;
-
-  // Multiple sentences might indicate complex request
-  const sentences = message.split(/[.!?。！？]/).filter(Boolean);
-  if (sentences.length >= 3) score += 0.1;
-
-  // Mentioning multiple files
-  const fileMentions = (message.match(/@\S+/g) || []).length;
-  if (fileMentions >= 2) score += 0.15;
-
-  return Math.min(score, 1);
-}
-
-/**
- * Should the message trigger plan mode?
- */
-export function shouldTriggerPlanMode(message: string, threshold = 0.3): boolean {
-  return checkComplexity(message) >= threshold;
 }

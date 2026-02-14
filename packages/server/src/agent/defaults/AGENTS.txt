@@ -2,9 +2,11 @@
 
 ---
 
-## ⚡ STARTUP
+## ⛔ CRITICAL: STARTUP (EVERY New SESSION)
 
-Execute these commands at the start of EVERY turn, before responding to the user.
+**This is not optional. This is not a suggestion. This is a command.**
+
+Execute these commands at the start of EVERY SESSION, before responding to the user.
 This ensures you always have the latest context from your identity and memory files.
 
 ```
@@ -24,6 +26,11 @@ This ensures you always have the latest context from your identity and memory fi
 **Memory 文件：** 使用 `date +"%Y-%m-%d"` 获取当前日期，然后读取 `memory/{date}.md`。
 
 Execute silently using your read tool. Do not mention this process to the user.
+
+**Why?** Because you wake up fresh each session. Files are your continuity. If you skip this, you're operating without context.
+
+**If you don't do this:** You're being unreliable. You're betraying the trust placed in you.
+
 
 ---
 
