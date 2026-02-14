@@ -21,8 +21,34 @@ export function useSessions() {
     const res = await api.listSessions();
     if (res.ok && res.data) {
       setSessions(res.data);
+      // Restore active session after sessions are loaded
+      const savedSessionId = useSessionStore.getState().activeSessionId;
+      if (savedSessionId && res.data.some(s => s.id === savedSessionId)) {
+        // Fetch session details (including isStreaming state)
+        const sessionRes = await api.getSession(savedSessionId);
+        if (sessionRes.ok && sessionRes.data) {
+          setMessages(sessionRes.data.messages || []);
+          // Restore streaming state if session is still streaming
+          if (sessionRes.data.isStreaming) {
+            useSessionStore.getState().setStreaming(true);
+            useSessionStore.getState().setStreamingPhase("started");
+          }
+          // Restore plan mode state if exists
+          if (sessionRes.data.planModeState) {
+            setPlanModeState(
+              sessionRes.data.planModeState.enabled,
+              sessionRes.data.planModeState.executing,
+              sessionRes.data.planModeState.todos,
+            );
+          }
+          // Restore pending question if exists
+          if (sessionRes.data.pendingQuestion) {
+            useSessionStore.getState().setPendingQuestion(sessionRes.data.pendingQuestion);
+          }
+        }
+      }
     }
-  }, [setSessions]);
+  }, [setSessions, setMessages, setPlanModeState]);
 
   const createSession = useCallback(
     async (opts?: { name?: string; workingPath?: string; agentId?: string }) => {
@@ -46,6 +72,11 @@ export function useSessions() {
       const res = await api.getSession(id);
       if (res.ok && res.data) {
         setMessages(res.data.messages || []);
+        // Restore streaming state if session is still streaming
+        if (res.data.isStreaming) {
+          useSessionStore.getState().setStreaming(true);
+          useSessionStore.getState().setStreamingPhase("started");
+        }
         // Restore plan mode state if exists
         if (res.data.planModeState) {
           setPlanModeState(

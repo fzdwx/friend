@@ -1063,6 +1063,7 @@ export class AgentManager implements IAgentManager {
       messageCount: messages.length,
       messages,
       workingPath: managed.workingPath,
+      isStreaming: managed.session.isStreaming,
       planModeState: planModeState.enabled || planModeState.executing ? planModeState : undefined,
       pendingQuestion: pendingQuestion ? {
         questionId: pendingQuestion.questionId,

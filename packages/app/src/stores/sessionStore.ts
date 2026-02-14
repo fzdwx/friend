@@ -2,6 +2,8 @@ import { create } from "zustand";
 import type { SessionInfo, Message, AssistantMessage, ToolCall, ModelInfo, TodoItem, Question, SlashCommandInfo } from "@friend/shared";
 import { api } from "@/lib/api.js";
 
+const ACTIVE_SESSION_KEY = "friend_active_session";
+
 export type StreamingPhase =
   | "idle"
   | "started"
@@ -63,9 +65,6 @@ interface SessionState {
   availableCommands: SlashCommandInfo[];
   commandResult: { command: string; success: boolean; message?: string } | null;
 
-  // Notifications
-  notifications: Array<{ id: number; message: string; type: "info" | "warning" | "error" }>;
-
   // Actions
   setActiveTurnIndex: (index: number | null) => void;
   setSessions: (sessions: SessionInfo[]) => void;
@@ -114,15 +113,11 @@ interface SessionState {
   // Slash commands actions
   loadCommands: (sessionId: string) => Promise<void>;
   setCommandResult: (result: { command: string; success: boolean; message?: string } | null) => void;
-
-  // Notification actions
-  addNotification: (message: string, type?: "info" | "warning" | "error") => void;
-  removeNotification: (id: number) => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
   sessions: [],
-  activeSessionId: null,
+  activeSessionId: typeof window !== "undefined" ? localStorage.getItem(ACTIVE_SESSION_KEY) : null,
   messages: [],
   isStreaming: false,
   streamingText: "",
@@ -145,7 +140,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   pendingQuestion: null,
   availableCommands: [],
   commandResult: null,
-  notifications: [],
 
   setActiveTurnIndex: (index) => set({ activeTurnIndex: index }),
   setSessions: (sessions) => set({ sessions }),
@@ -171,6 +165,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       };
     }),
   setActiveSession: (id) => {
+    // Persist to localStorage
+    if (id) {
+      localStorage.setItem(ACTIVE_SESSION_KEY, id);
+    } else {
+      localStorage.removeItem(ACTIVE_SESSION_KEY);
+    }
     // Reset streaming state and messages when switching sessions
     set({
       activeSessionId: id,
@@ -307,14 +307,4 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     }
   },
   setCommandResult: (result) => set({ commandResult: result }),
-
-  // Notification actions
-  addNotification: (message, type = "info") =>
-    set((s) => ({
-      notifications: [...s.notifications, { id: Date.now(), message, type }],
-    })),
-  removeNotification: (id) =>
-    set((s) => ({
-      notifications: s.notifications.filter((n) => n.id !== id),
-    })),
 }));

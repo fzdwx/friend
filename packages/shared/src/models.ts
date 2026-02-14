@@ -29,6 +29,7 @@ export interface SessionInfo {
 
 export interface SessionDetail extends SessionInfo {
   messages: Message[];
+  isStreaming?: boolean;
   planModeState?: {
     enabled: boolean;
     executing: boolean;

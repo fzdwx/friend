@@ -293,10 +293,16 @@ export function useGlobalSSE() {
             if (event.sessionId && event.sessionId !== useSessionStore.getState().activeSessionId) {
               break; // Ignore events for other sessions
             }
-            useSessionStore.getState().addNotification(
-              event.message,
-              event.notificationType,
-            );
+            // Use dynamic import to avoid circular dependency
+            import("sonner").then(({ toast }) => {
+              if (event.notificationType === "error") {
+                toast.error(event.message);
+              } else if (event.notificationType === "warning") {
+                toast.warning(event.message);
+              } else {
+                toast.info(event.message);
+              }
+            });
             break;
 
           case "error":
