@@ -12,6 +12,7 @@ import {
   Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface SkillGroup {
   title: string;
@@ -22,6 +23,7 @@ interface SkillGroup {
 }
 
 export function SkillsContent() {
+  const { t } = useTranslation();
   const [skills, setSkills] = useState<SkillInfo[]>([]);
   const [paths, setPaths] = useState<SkillPaths | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,7 @@ export function SkillsContent() {
         setPaths(pathsRes.data);
       }
     } catch (err) {
-      setError("Failed to load skills");
+      setError(t("skills.errorLoad"));
       console.error(err);
     } finally {
       setLoading(false);
@@ -69,7 +71,7 @@ export function SkillsContent() {
     const globalSkills = skills.filter((s) => s.source === "user");
     if (globalSkills.length > 0) {
       groups.push({
-        title: "Global Skills",
+        title: t("skills.globalSkills"),
         type: "global",
         path: paths?.global || globalSkills[0]?.baseDir || "",
         skills: globalSkills,
@@ -96,7 +98,7 @@ export function SkillsContent() {
       // Use baseDir from first skill, or fallback to paths.agents
       const agentPath = agentSkillList[0]?.baseDir || paths?.agents.find((a) => a.agentId === agentId)?.path || "";
       groups.push({
-        title: `${agentId} Skills`,
+        title: t("skills.agentSkills", { agentId }),
         type: "agent",
         agentId,
         path: agentPath,
@@ -105,16 +107,16 @@ export function SkillsContent() {
     }
 
     return groups;
-  }, [skills, paths]);
+  }, [skills, paths, t]);
 
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Skills</h2>
+          <h2 className="text-lg font-semibold">{t("skills.title")}</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Skills provide specialized instructions for specific tasks.
+            {t("skills.description")}
           </p>
         </div>
         <button
@@ -127,7 +129,7 @@ export function SkillsContent() {
           )}
         >
           <RefreshCw className={cn("w-4 h-4", reloading && "animate-spin")} />
-          Reload
+          {t("skills.reload")}
         </button>
       </div>
 
@@ -148,10 +150,9 @@ export function SkillsContent() {
         /* Empty State */
         <div className="text-center py-12">
           <BookOpen className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-          <h3 className="text-sm font-medium mb-2">No skills installed</h3>
+          <h3 className="text-sm font-medium mb-2">{t("skills.noSkills")}</h3>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-            Add skills by creating SKILL.md files in the skills directory. Skills extend the AI's
-            capabilities with specialized instructions.
+            {t("skills.noSkillsHint")}
           </p>
           {paths?.global && (
             <div className="flex items-center justify-center gap-2 mt-4 px-3 py-2 rounded-md bg-muted/50 text-sm max-w-md mx-auto">
@@ -165,7 +166,7 @@ export function SkillsContent() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 mt-4 text-sm text-primary hover:underline"
           >
-            Learn more about Agent Skills
+            {t("skills.learnMore")}
             <ExternalLink className="w-3 h-3" />
           </a>
         </div>
@@ -187,7 +188,7 @@ export function SkillsContent() {
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ExternalLink className="w-3 h-3" />
-          Browse skills at agentskills.io
+          {t("skills.browseSkills")}
         </a>
       </div>
     </div>
@@ -199,6 +200,7 @@ interface SkillSectionProps {
 }
 
 function SkillSection({ group }: SkillSectionProps) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
 
   return (
@@ -225,10 +227,10 @@ function SkillSection({ group }: SkillSectionProps) {
                   : "bg-accent text-accent-foreground",
               )}
             >
-              {group.type === "global" ? "Global" : "Agent"}
+              {group.type === "global" ? t("skills.global") : t("skills.agent")}
             </span>
             <span className="text-xs text-muted-foreground">
-              ({group.skills.length} skill{group.skills.length !== 1 ? "s" : ""})
+              {t("skills.skillCount", { count: group.skills.length, plural: group.skills.length !== 1 ? "s" : "" })}
             </span>
           </div>
           <div className="flex items-center gap-1 mt-1">
@@ -257,6 +259,7 @@ interface SkillCardProps {
 }
 
 function SkillCard({ skill }: SkillCardProps) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -268,7 +271,7 @@ function SkillCard({ skill }: SkillCardProps) {
               <span className="font-medium text-sm">{skill.name}</span>
               {skill.disableModelInvocation && (
                 <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-muted text-muted-foreground">
-                  Manual only
+                  {t("skills.manualOnly")}
                 </span>
               )}
             </div>
@@ -282,7 +285,7 @@ function SkillCard({ skill }: SkillCardProps) {
         <div className="px-4 pb-3 pt-0 border-t border-border/30">
           <div className="pt-3 space-y-2 text-xs">
             <div className="flex items-start gap-2">
-              <span className="text-muted-foreground flex-shrink-0">File:</span>
+              <span className="text-muted-foreground flex-shrink-0">{t("skills.file")}</span>
               <code className="font-mono bg-muted px-1.5 py-0.5 rounded break-all">
                 {skill.filePath}
               </code>

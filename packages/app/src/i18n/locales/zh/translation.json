@@ -67,10 +67,12 @@
     "thinkingLevelLow": "低",
     "thinkingLevelMedium": "中",
     "thinkingLevelHigh": "高",
+    "thinkingLevelXHigh": "超高",
     "defaultModel": "默认模型",
     "notSet": "未设置",
     "displayName": "显示名称",
     "displayNamePlaceholder": "我的助手",
+    "agentIdPlaceholder": "my-agent",
     "emoji": "表情",
     "personality": "风格 / 人格",
     "personalityPlaceholder": "专业高效",
@@ -85,8 +87,11 @@
     "title": "自定义提供商",
     "addProvider": "添加提供商",
     "providerName": "提供商名称",
+    "providerNamePlaceholder": "例如 my-ollama",
     "baseUrl": "基础 URL",
+    "baseUrlPlaceholder": "https://api.example.com/v1",
     "apiKey": "API 密钥（可选）",
+    "apiKeyPlaceholder": "sk-...",
     "apiProtocol": "API 协议",
     "models": "模型",
     "modelsLabel": "模型",
@@ -104,7 +109,9 @@
     "noProviders": "暂无自定义提供商。",
     "addOne": "添加一个以使用自定义 OpenAI 兼容端点。",
     "openaiCompletions": "OpenAI Completions",
-    "anthropicMessages": "Anthropic Messages"
+    "anthropicMessages": "Anthropic Messages",
+    "noModelsAvailable": "无可用模型",
+    "selectModel": "选择模型..."
   },
   "memory": {
     "title": "记忆搜索",
@@ -163,7 +170,21 @@
   },
   "skills": {
     "title": "技能",
-    "subtitle": "配置智能体技能和能力"
+    "subtitle": "配置智能体技能和能力",
+    "description": "技能为特定任务提供专业指导。",
+    "reload": "重新加载",
+    "errorLoad": "加载技能失败",
+    "noSkills": "未安装技能",
+    "noSkillsHint": "通过在技能目录中创建 SKILL.md 文件来添加技能。技能通过专业指导扩展 AI 的能力。",
+    "learnMore": "了解更多关于 Agent Skills",
+    "browseSkills": "在 agentskills.io 浏览技能",
+    "globalSkills": "全局技能",
+    "agentSkills": "{{agentId}} 技能",
+    "global": "全局",
+    "agent": "智能体",
+    "skillCount": "({{count}} 个技能)",
+    "manualOnly": "仅手动",
+    "file": "文件："
   },
   "plan": {
     "title": "计划模式",
@@ -210,6 +231,12 @@
   },
   "activity": {
     "title": "活动",
-    "active": "活跃"
+    "active": "活跃",
+    "emptyHint": "思考和工具活动\n将显示在这里",
+    "streaming": "流式传输中",
+    "connected": "已连接",
+    "disconnected": "已断开",
+    "thinking": "思考中",
+    "tools": "{{count}} 个工具"
   }
 }

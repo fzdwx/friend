@@ -67,10 +67,12 @@
     "thinkingLevelLow": "Low",
     "thinkingLevelMedium": "Medium",
     "thinkingLevelHigh": "High",
+    "thinkingLevelXHigh": "XHigh",
     "defaultModel": "Default Model",
     "notSet": "Not set",
     "displayName": "Display Name",
     "displayNamePlaceholder": "My Assistant",
+    "agentIdPlaceholder": "my-agent",
     "emoji": "Emoji",
     "personality": "Vibe / Personality",
     "personalityPlaceholder": "Professional and efficient",
@@ -85,8 +87,11 @@
     "title": "Custom Providers",
     "addProvider": "Add Provider",
     "providerName": "Provider Name",
+    "providerNamePlaceholder": "e.g. my-ollama",
     "baseUrl": "Base URL",
+    "baseUrlPlaceholder": "https://api.example.com/v1",
     "apiKey": "API Key (optional)",
+    "apiKeyPlaceholder": "sk-...",
     "apiProtocol": "API Protocol",
     "models": "Models",
     "modelsLabel": "Models",
@@ -104,7 +109,9 @@
     "noProviders": "No custom providers configured.",
     "addOne": "Add one to use custom OpenAI-compatible endpoints.",
     "openaiCompletions": "OpenAI Completions",
-    "anthropicMessages": "Anthropic Messages"
+    "anthropicMessages": "Anthropic Messages",
+    "noModelsAvailable": "No models available",
+    "selectModel": "Select model..."
   },
   "memory": {
     "title": "Memory Search",
@@ -163,7 +170,21 @@
   },
   "skills": {
     "title": "Skills",
-    "subtitle": "Configure agent skills and capabilities"
+    "subtitle": "Configure agent skills and capabilities",
+    "description": "Skills provide specialized instructions for specific tasks.",
+    "reload": "Reload",
+    "errorLoad": "Failed to load skills",
+    "noSkills": "No skills installed",
+    "noSkillsHint": "Add skills by creating SKILL.md files in the skills directory. Skills extend the AI's capabilities with specialized instructions.",
+    "learnMore": "Learn more about Agent Skills",
+    "browseSkills": "Browse skills at agentskills.io",
+    "globalSkills": "Global Skills",
+    "agentSkills": "{{agentId}} Skills",
+    "global": "Global",
+    "agent": "Agent",
+    "skillCount": "({{count}} skill{{plural}})",
+    "manualOnly": "Manual only",
+    "file": "File:"
   },
   "plan": {
     "title": "Plan Mode",
@@ -210,6 +231,12 @@
   },
   "activity": {
     "title": "Activity",
-    "active": "Active"
+    "active": "Active",
+    "emptyHint": "Thinking and tool activity\nwill appear here",
+    "streaming": "Streaming",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "thinking": "thinking",
+    "tools": "{{count}} tools"
   }
 }

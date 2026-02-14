@@ -4,6 +4,7 @@ import { useSessionStore } from "@/stores/sessionStore";
 import type { Message, UserMessage, AssistantMessage, ToolResultMessage } from "@friend/shared";
 import { TurnGroup, type Turn } from "@/components/activity/TurnGroup";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 function groupByTurns(messages: Message[]): Turn[] {
   const turns: Turn[] = [];
@@ -29,6 +30,7 @@ function groupByTurns(messages: Message[]): Turn[] {
 }
 
 export function ActivityPanel() {
+  const { t } = useTranslation();
   const messages = useSessionStore((s) => s.messages);
   const isStreaming = useSessionStore((s) => s.isStreaming);
   const sseConnected = useSessionStore((s) => s.sseConnected);
@@ -56,7 +58,7 @@ export function ActivityPanel() {
           <div className="flex items-center justify-center w-6 h-6 rounded-md bg-primary/10 text-primary">
             <Activity className="w-3.5 h-3.5" />
           </div>
-          <span>Activity</span>
+          <span>{t("activity.title")}</span>
         </div>
       </div>
 
@@ -67,10 +69,8 @@ export function ActivityPanel() {
             <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center mb-3">
               <Radio className="w-5 h-5 text-muted-foreground/40" />
             </div>
-            <p className="text-center">
-              Thinking and tool activity
-              <br />
-              will appear here
+            <p className="text-center whitespace-pre-line">
+              {t("activity.emptyHint")}
             </p>
           </div>
         ) : (
@@ -110,7 +110,7 @@ export function ActivityPanel() {
                   : "text-red-500",
             )}
           >
-            {isStreaming ? "Streaming" : sseConnected ? "Connected" : "Disconnected"}
+            {isStreaming ? t("activity.streaming") : sseConnected ? t("activity.connected") : t("activity.disconnected")}
           </span>
         </div>
       </div>

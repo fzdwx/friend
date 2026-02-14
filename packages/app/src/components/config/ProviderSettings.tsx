@@ -181,38 +181,38 @@ function ProviderForm({
       {/* Provider fields */}
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-[11px] text-muted-foreground block mb-0.5">Provider Name</label>
+          <label className="text-[11px] text-muted-foreground block mb-0.5">{t("providers.providerName")}</label>
           <input
             value={form.name}
             onChange={(e) => updateField("name", e.target.value)}
-            placeholder="e.g. my-ollama"
+            placeholder={t("providers.providerNamePlaceholder")}
             className="w-full bg-secondary border border-border rounded px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-ring"
           />
         </div>
         <div>
-          <label className="text-[11px] text-muted-foreground block mb-0.5">Base URL</label>
+          <label className="text-[11px] text-muted-foreground block mb-0.5">{t("providers.baseUrl")}</label>
           <input
             value={form.baseUrl}
             onChange={(e) => updateField("baseUrl", e.target.value)}
-            placeholder="https://api.example.com/v1"
+            placeholder={t("providers.baseUrlPlaceholder")}
             className="w-full bg-secondary border border-border rounded px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-ring"
           />
         </div>
       </div>
 
       <div>
-        <label className="text-[11px] text-muted-foreground block mb-0.5">API Key (optional)</label>
+        <label className="text-[11px] text-muted-foreground block mb-0.5">{t("providers.apiKey")}</label>
         <input
           type="password"
           value={form.apiKey || ""}
           onChange={(e) => updateField("apiKey", e.target.value)}
-          placeholder="sk-..."
+          placeholder={t("providers.apiKeyPlaceholder")}
           className="w-full bg-secondary border border-border rounded px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-ring"
         />
       </div>
 
       <div>
-        <label className="text-[11px] text-muted-foreground block mb-0.5">API Protocol</label>
+        <label className="text-[11px] text-muted-foreground block mb-0.5">{t("providers.apiProtocol")}</label>
         <select
           value={form.api || "openai-completions"}
           onChange={(e) => updateField("api", e.target.value)}
@@ -266,7 +266,7 @@ function ProviderForm({
 
               <div className="grid grid-cols-3 gap-1.5">
                 <div>
-                  <label className="text-[10px] text-muted-foreground">Context Window</label>
+                  <label className="text-[10px] text-muted-foreground">{t("providers.contextWindow")}</label>
                   <input
                     type="number"
                     value={model.contextWindow}
@@ -275,7 +275,7 @@ function ProviderForm({
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-muted-foreground">Max Tokens</label>
+                  <label className="text-[10px] text-muted-foreground">{t("providers.maxTokens")}</label>
                   <input
                     type="number"
                     value={model.maxTokens}

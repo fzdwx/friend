@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 
 function PendingMessages() {
+  const { t } = useTranslation();
   const steeringMessages = useSessionStore((s) => s.steeringMessages);
   const followUpMessages = useSessionStore((s) => s.followUpMessages);
 
@@ -21,14 +22,14 @@ function PendingMessages() {
       {steeringMessages.map((msg, i) => (
         <div key={`steer-${i}`} className="flex items-center gap-2 text-xs text-yellow-600 dark:text-yellow-400 py-0.5">
           <Zap className="w-3 h-3 flex-shrink-0" />
-          <span className="font-medium">Steering:</span>
+          <span className="font-medium">{t("chat.steering")}</span>
           <span className="truncate">{msg}</span>
         </div>
       ))}
       {followUpMessages.map((msg, i) => (
         <div key={`followup-${i}`} className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 py-0.5">
           <MessageSquarePlus className="w-3 h-3 flex-shrink-0" />
-          <span className="font-medium">Follow-up:</span>
+          <span className="font-medium">{t("chat.followUp")}</span>
           <span className="truncate">{msg}</span>
         </div>
       ))}
@@ -41,6 +42,7 @@ function PendingMessages() {
  * PlanProgress during execution, or a status indicator when enabled but no todos yet.
  */
 function PlanModePanel() {
+  const { t } = useTranslation();
   const sessionId = useSessionStore((s) => s.activeSessionId);
   const planModeEnabled = useSessionStore((s) => s.planModeEnabled);
   const planModeExecuting = useSessionStore((s) => s.planModeExecuting);
@@ -91,16 +93,16 @@ function PlanModePanel() {
       <div className="px-4 py-2">
         <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 flex items-center gap-2">
           <span className="text-yellow-600 dark:text-yellow-400 text-sm font-medium">
-            📋 Plan Mode Active
+            {t("chat.planModeActive")}
           </span>
           <span className="text-muted-foreground text-xs">
-            — Describe what you want to plan
+            {t("chat.planModeHint")}
           </span>
           <button
             onClick={handleCancel}
             className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
         </div>
       </div>
@@ -111,13 +113,14 @@ function PlanModePanel() {
 }
 
 export function ChatPanel() {
+  const { t } = useTranslation();
   const { sessionId, messages, isStreaming, sendMessage, steer, followUp, abort } = useSession();
 
   if (!sessionId) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
         <MessageSquarePlus className="w-10 h-10" />
-        <p className="text-sm">Select or create a session to start</p>
+        <p className="text-sm">{t("chat.selectSession")}</p>
       </div>
     );
   }

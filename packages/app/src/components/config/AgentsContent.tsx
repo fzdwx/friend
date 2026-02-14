@@ -305,7 +305,7 @@ function EditAgentForm({ agent, onChange, onSave, onCancel, isNew, modelsByProvi
               type="text"
               value={agent.id || ""}
               onChange={(e) => onChange({ ...agent, id: e.target.value })}
-              placeholder="my-agent"
+              placeholder={t("agents.agentIdPlaceholder")}
               className="w-full mt-1 px-3 py-2 rounded-md bg-secondary border border-border text-sm focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
@@ -384,7 +384,7 @@ function EditAgentForm({ agent, onChange, onSave, onCancel, isNew, modelsByProvi
             <option value="low">{t("agents.thinkingLevelLow")}</option>
             <option value="medium">{t("agents.thinkingLevelMedium")}</option>
             <option value="high">{t("agents.thinkingLevelHigh")}</option>
-            <option value="xhigh">XHigh</option>
+            <option value="xhigh">{t("agents.thinkingLevelXHigh")}</option>
           </select>
         </div>
       </div>

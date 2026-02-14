@@ -2,8 +2,10 @@ import { useEffect, useMemo } from "react";
 import { Cpu } from "lucide-react";
 import { useSessionStore } from "@/stores/sessionStore.js";
 import type { ModelInfo } from "@friend/shared";
+import { useTranslation } from "react-i18next";
 
 export function ModelSelector() {
+  const { t } = useTranslation();
   const availableModels = useSessionStore((s) => s.availableModels);
   const currentModel = useSessionStore((s) => s.currentModel);
   const activeSessionId = useSessionStore((s) => s.activeSessionId);
@@ -61,10 +63,10 @@ export function ModelSelector() {
         className="bg-secondary border border-border rounded px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {availableModels.length === 0 ? (
-          <option value="">No models available</option>
+          <option value="">{t("providers.noModelsAvailable")}</option>
         ) : (
           <>
-            <option value="">Select model...</option>
+            <option value="">{t("providers.selectModel")}</option>
             {[...groupedModels.entries()].map(([provider, models]) => (
               <optgroup key={provider} label={provider}>
                 {models.map((model) => (
