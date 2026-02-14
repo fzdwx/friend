@@ -247,5 +247,9 @@
     "typeSomething": "Type something...",
     "typeYourAnswer": "Type your answer here...",
     "backToOptions": "← Back to options"
+  },
+  "commands": {
+    "title": "Commands",
+    "noResults": "No commands found"
   }
 }

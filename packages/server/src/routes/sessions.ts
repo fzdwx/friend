@@ -172,6 +172,31 @@ export const sessionRoutes = new Elysia({ prefix: "/api/sessions" })
     return { ok: true, data: plan };
   })
 
+  // Slash commands - get available commands
+  .get("/:id/commands", ({ params: { id } }) => {
+    const commands = getAgentManager().getCommands(id);
+    return { ok: true, data: commands };
+  })
+
+  // Slash commands - execute a command
+  .post(
+    "/:id/command",
+    async ({ params: { id }, body }) => {
+      try {
+        await getAgentManager().executeCommand(id, body.name, body.args);
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: String(e) };
+      }
+    },
+    {
+      body: t.Object({
+        name: t.String(),
+        args: t.Optional(t.String()),
+      }),
+    },
+  )
+
   // Question tool - answer questionnaire
   .post(
     "/:id/answer-question",

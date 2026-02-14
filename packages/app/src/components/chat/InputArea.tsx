@@ -2,7 +2,11 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Send, Square, Zap, MessageSquarePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ModelSelector } from "@/components/ModelSelector";
+import { CommandPalette } from "@/components/chat/CommandPalette";
+import { useSessionStore } from "@/stores/sessionStore";
+import { api } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import type { SlashCommandInfo } from "@friend/shared";
 
 interface InputAreaProps {
   onSend: (message: string) => void;
@@ -16,7 +20,56 @@ interface InputAreaProps {
 export function InputArea({ onSend, onSteer, onFollowUp, onAbort, isStreaming, disabled }: InputAreaProps) {
   const { t } = useTranslation();
   const [input, setInput] = useState("");
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [commandQuery, setCommandQuery] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const { activeSessionId, availableCommands, loadCommands } = useSessionStore();
+
+  // Load commands when session changes
+  useEffect(() => {
+    if (activeSessionId) {
+      loadCommands(activeSessionId);
+    }
+  }, [activeSessionId, loadCommands]);
+
+  // Detect "/" input to trigger command palette
+  const handleInputChange = useCallback((value: string) => {
+    setInput(value);
+
+    // Check if input starts with "/"
+    if (value.startsWith("/")) {
+      const query = value.slice(1);
+      setCommandQuery(query);
+      setShowCommandPalette(true);
+    } else {
+      setShowCommandPalette(false);
+    }
+  }, []);
+
+  // Handle command selection
+  const handleCommandSelect = useCallback(async (command: SlashCommandInfo) => {
+    setShowCommandPalette(false);
+    setInput("");
+
+    if (!activeSessionId) return;
+
+    try {
+      await api.executeCommand(activeSessionId, command.name);
+    } catch (error) {
+      console.error("Failed to execute command:", error);
+    }
+  }, [activeSessionId]);
+
+  // Close command palette
+  const handleCommandPaletteClose = useCallback(() => {
+    setShowCommandPalette(false);
+    // Clear the "/" if palette is closed without selection
+    if (input.startsWith("/")) {
+      setInput("");
+    }
+  }, [input]);
 
   const handleSend = useCallback(() => {
     const trimmed = input.trim();
@@ -41,7 +94,16 @@ export function InputArea({ onSend, onSteer, onFollowUp, onAbort, isStreaming, d
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      // If command palette is open, let it handle keyboard events
+      if (showCommandPalette && (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Escape")) {
+        return;
+      }
+
       if (e.key === "Enter" && !e.shiftKey) {
+        // If command palette is open and user presses Enter, the palette handles it
+        if (showCommandPalette) {
+          return;
+        }
         e.preventDefault();
         if (isStreaming) {
           // Streaming: Enter = steer
@@ -53,12 +115,12 @@ export function InputArea({ onSend, onSteer, onFollowUp, onAbort, isStreaming, d
         // Streaming: Shift+Enter = followUp
         e.preventDefault();
         handleFollowUp();
-      } else if (e.key === "Escape" && isStreaming) {
+      } else if (e.key === "Escape" && isStreaming && !showCommandPalette) {
         e.preventDefault();
         onAbort();
       }
     },
-    [handleSend, handleSteer, handleFollowUp, isStreaming, onAbort],
+    [handleSend, handleSteer, handleFollowUp, isStreaming, onAbort, showCommandPalette],
   );
 
   // Auto-resize textarea
@@ -74,12 +136,22 @@ export function InputArea({ onSend, onSteer, onFollowUp, onAbort, isStreaming, d
 
   return (
     <div className="border-t border-border p-3">
-      <div className="bg-secondary/30 rounded-lg border border-border px-3 py-2">
+      <div ref={containerRef} className="bg-secondary/30 rounded-lg border border-border px-3 py-2 relative">
+        {/* Command Palette */}
+        {showCommandPalette && availableCommands.length > 0 && (
+          <CommandPalette
+            commands={availableCommands}
+            query={commandQuery}
+            onSelect={handleCommandSelect}
+            onClose={handleCommandPaletteClose}
+          />
+        )}
+
         <div className="flex items-end gap-2">
           <textarea
             ref={textareaRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => handleInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isStreaming ? t('input.placeholderStreaming') : t('input.placeholder')}
             disabled={disabled}

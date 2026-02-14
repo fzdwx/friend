@@ -8,14 +8,16 @@ datasource db {
 }
 
 model Session {
-  id          String    @id @default(uuid())
-  name        String
-  agentId     String    @default("main") // Agent this session belongs to
-  model       String?
-  workingPath String?                    // Project working directory
-  sessionFile String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id              String    @id @default(uuid())
+  name            String
+  agentId         String    @default("main") // Agent this session belongs to
+  model           String?
+  workingPath     String?                    // Project working directory
+  sessionFile     String?
+  planModeState   String?                    // JSON string of PlanModeState
+  pendingQuestion String?                    // JSON string of pending question
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([agentId])
 }

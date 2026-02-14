@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { SessionInfo, Message, AssistantMessage, ToolCall, ModelInfo, TodoItem, Question } from "@friend/shared";
+import type { SessionInfo, Message, AssistantMessage, ToolCall, ModelInfo, TodoItem, Question, SlashCommandInfo } from "@friend/shared";
 import { api } from "@/lib/api.js";
 
 export type StreamingPhase =
@@ -59,6 +59,9 @@ interface SessionState {
     questions: Question[];
   } | null;
 
+  // Slash commands
+  availableCommands: SlashCommandInfo[];
+
   // Actions
   setActiveTurnIndex: (index: number | null) => void;
   setSessions: (sessions: SessionInfo[]) => void;
@@ -103,6 +106,9 @@ interface SessionState {
     questions: Question[];
   } | null) => void;
   clearPendingQuestion: () => void;
+
+  // Slash commands actions
+  loadCommands: (sessionId: string) => Promise<void>;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -128,6 +134,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   planModeTodos: [],
   planModeProgress: null,
   pendingQuestion: null,
+  availableCommands: [],
 
   setActiveTurnIndex: (index) => set({ activeTurnIndex: index }),
   setSessions: (sessions) => set({ sessions }),
@@ -280,4 +287,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   // Question tool actions
   setPendingQuestion: (question) => set({ pendingQuestion: question }),
   clearPendingQuestion: () => set({ pendingQuestion: null }),
+
+  // Slash commands actions
+  loadCommands: async (sessionId: string) => {
+    const res = await api.getCommands(sessionId);
+    if (res.ok && res.data) {
+      set({ availableCommands: res.data });
+    }
+  },
 }));

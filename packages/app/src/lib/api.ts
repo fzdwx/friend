@@ -4,6 +4,7 @@ import type {
   ThemeConfig,
   SkillInfo,
   SkillPaths,
+  SlashCommandInfo,
 } from "@friend/shared";
 
 const API_BASE = "/api";
@@ -124,6 +125,15 @@ export const api = {
         answers,
         cancelled: cancelled ?? false,
       }),
+    }),
+
+  // Slash commands
+  getCommands: (sessionId: string) =>
+    request<SlashCommandInfo[]>(`/sessions/${sessionId}/commands`),
+  executeCommand: (sessionId: string, name: string, args?: string) =>
+    request<void>(`/sessions/${sessionId}/command`, {
+      method: "POST",
+      body: JSON.stringify({ name, args }),
     }),
 
   // Models

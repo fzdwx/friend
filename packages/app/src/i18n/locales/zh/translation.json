@@ -247,5 +247,9 @@
     "typeSomething": "自定义输入...",
     "typeYourAnswer": "在这里输入您的答案...",
     "backToOptions": "← 返回选项列表"
+  },
+  "commands": {
+    "title": "命令",
+    "noResults": "未找到命令"
   }
 }

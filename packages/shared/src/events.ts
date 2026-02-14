@@ -52,6 +52,15 @@ export interface TodoItem {
   subtasks?: TodoItem[];  // Optional nested subtasks
 }
 
+/** Plan mode state (serializable for persistence) */
+export interface PlanModeState {
+  enabled: boolean;
+  executing: boolean;
+  modifying: boolean;  // True when user is modifying existing plan
+  modifyMessage?: string;  // The user's modification request
+  todos: TodoItem[];
+}
+
 /** Plan mode state changed */
 export interface PlanModeStateChangedEvent {
   type: "plan_mode_state_changed";
@@ -127,6 +136,22 @@ export interface QuestionRequestEvent {
   questionId: string;
   /** Questions to ask */
   questions: Question[];
+}
+
+/** Pending question state (serializable for persistence) */
+export interface PendingQuestion {
+  questionId: string;
+  questions: Question[];
+}
+
+// ─── Slash Commands ───────────────────────────────────────────────────────
+
+export interface SlashCommandInfo {
+  name: string;
+  description?: string;
+  source: "extension" | "prompt" | "skill";
+  location?: "user" | "project" | "path";
+  path?: string;
 }
 
 export type SSEEvent =

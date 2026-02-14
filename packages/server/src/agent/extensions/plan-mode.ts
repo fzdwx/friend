@@ -18,25 +18,10 @@ import type { ExtensionAPI, ExtensionContext, ToolCallEvent, AgentEndEvent, Turn
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, TextContent } from "@mariozechner/pi-ai";
 import { Type } from "@sinclair/typebox";
+import type { TodoItem, PlanModeState } from "@friend/shared";
 
-// ─── Types ───────────────────────────────────────────────────────────────
-
-export interface TodoItem {
-  step: number;
-  text: string;
-  completed: boolean;
-  subtasks?: TodoItem[];  // Optional nested subtasks
-}
-
-export interface PlanModeState {
-  enabled: boolean;
-  executing: boolean;
-  modifying: boolean;  // True when user is modifying existing plan
-  modifyMessage?: string;  // The user's modification request
-  todos: TodoItem[];
-}
-
-export type PlanModeAction = "execute" | "cancel" | "modify";
+// Re-export for convenience
+export type { TodoItem, PlanModeState } from "@friend/shared";
 
 // ─── Constants ────────────────────────────────────────────────────────────
 
@@ -380,14 +365,32 @@ You are in plan mode — read-only exploration for analysis and planning.
 - Disabled tools: edit, write
 - Bash is restricted to read-only commands
 
-## Instructions
-1. Explore the codebase to understand relevant patterns and dependencies
-2. Design an implementation broken into clear, actionable steps
-3. Output the plan in the format below
+## Phase 1: Explore
 
-## Output Format — CRITICAL
+Thoroughly investigate the codebase before writing any plan. Use this checklist:
 
-You MUST end your response with a plan in this exact structure:
+- [ ] Read the files directly related to the task
+- [ ] Identify existing patterns and conventions to follow
+- [ ] Trace dependencies: what imports/calls/uses the code you'll change?
+- [ ] Find similar implementations in the codebase to reference
+- [ ] Check for tests, types, and configs that will need updates
+- [ ] Note potential risks or edge cases
+
+Take your time — read more files rather than fewer. The plan quality depends on exploration depth.
+
+## Phase 2: Report & Plan
+
+After exploring, output your response in two parts:
+
+### Part 1 — Analysis (markdown)
+Summarize your findings before the plan:
+- Key files and their roles
+- Existing patterns you'll follow
+- Dependencies and impact scope
+- Risks or open questions
+
+### Part 2 — Plan (structured)
+End your response with the actionable plan:
 
 Plan:
 1. Action verb + what to do + where (file path)
@@ -469,8 +472,9 @@ ${userMessage}
 ## Your Task
 
 1. Understand what changes the user wants
-2. Update the plan to incorporate their feedback
-3. Output the COMPLETE updated plan (not just the changes)
+2. If the changes affect new areas of code, explore them first
+3. Update the plan to incorporate their feedback
+4. Output the COMPLETE updated plan (not just the changes)
 
 ## Output Format - CRITICAL
 

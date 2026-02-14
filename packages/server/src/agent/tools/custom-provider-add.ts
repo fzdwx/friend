@@ -69,6 +69,8 @@ export interface IAgentManager {
     name: string,
   ): Promise<{ success: boolean; oldName?: string; error?: "not_found" }>;
   getSession?(id: string): Promise<SessionDetail | null>;
+  getCommands?(id: string): import("@mariozechner/pi-coding-agent").SlashCommandInfo[];
+  executeCommand?(id: string, name: string, args?: string): Promise<void>;
 }
 
 // ─── Tool Definition ───────────────────────────────────────

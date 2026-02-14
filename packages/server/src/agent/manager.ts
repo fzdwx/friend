@@ -9,6 +9,7 @@ import {
   type AgentSessionEvent,
   type SessionStats,
   type Skill,
+  type SlashCommandInfo,
 } from "@mariozechner/pi-coding-agent";
 import { completeSimple } from "@mariozechner/pi-ai";
 import type {
@@ -20,6 +21,8 @@ import type {
   ModelInfo,
   CustomProviderConfig,
   ThemeConfig,
+  PlanModeState,
+  PendingQuestion,
 } from "@friend/shared";
 import { BUILT_IN_THEMES, DEFAULT_AGENT_ID } from "@friend/shared";
 import type { SSEEvent, GlobalSSEEvent, ConfigUpdatedEvent, SessionCreatedEvent, PlanModeStateChangedEvent, PlanModeRequestChoiceEvent, TodoItem as SharedTodoItem } from "@friend/shared";
@@ -68,7 +71,6 @@ import {
 } from "./memory-flush.js";
 import {
   createPlanModeExtension,
-  type PlanModeState,
   type TodoItem,
   extractTodoItems,
   markCompletedSteps,
@@ -77,6 +79,7 @@ import {
   PLAN_MODE_TOOLS,
   NORMAL_MODE_TOOLS,
 } from "./extensions/plan-mode.js";
+import { createCommandsExtension } from "./extensions/commands.js";
 
 // ─── DB mapping types ──────────────────────────────────────
 
@@ -198,6 +201,66 @@ export class AgentManager implements IAgentManager {
     }
     // Broadcast state change
     this.broadcastPlanModeState(sessionId, state);
+    // Persist to database (fire-and-forget)
+    this.savePlanModeState(sessionId, state).catch(err => {
+      console.error(`[AgentManager] Failed to persist planModeState:`, err);
+    });
+  }
+
+  // ─── State Persistence Helpers ─────────────────────────────────────────
+
+  /**
+   * Persist plan mode state to database.
+   * Called whenever plan state changes.
+   */
+  private async savePlanModeState(sessionId: string, state: PlanModeState): Promise<void> {
+    try {
+      await prisma.session.update({
+        where: { id: sessionId },
+        data: {
+          planModeState: JSON.stringify(state),
+          updatedAt: new Date(),
+        },
+      });
+    } catch (err) {
+      console.error(`[AgentManager] Failed to save planModeState for session ${sessionId}:`, err);
+    }
+  }
+
+  /**
+   * Persist pending question to database.
+   * Called when agent asks a question.
+   */
+  private async savePendingQuestion(sessionId: string, question: PendingQuestion): Promise<void> {
+    try {
+      await prisma.session.update({
+        where: { id: sessionId },
+        data: {
+          pendingQuestion: JSON.stringify(question),
+          updatedAt: new Date(),
+        },
+      });
+    } catch (err) {
+      console.error(`[AgentManager] Failed to save pendingQuestion for session ${sessionId}:`, err);
+    }
+  }
+
+  /**
+   * Clear pending question from database.
+   * Called when user answers or cancels the question.
+   */
+  private async clearPendingQuestion(sessionId: string): Promise<void> {
+    try {
+      await prisma.session.update({
+        where: { id: sessionId },
+        data: {
+          pendingQuestion: null,
+          updatedAt: new Date(),
+        },
+      });
+    } catch (err) {
+      console.error(`[AgentManager] Failed to clear pendingQuestion for session ${sessionId}:`, err);
+    }
   }
 
   // Register SDK sessionId to DB sessionId mapping
@@ -510,6 +573,40 @@ export class AgentManager implements IAgentManager {
           const modelId = s.model.substring(slashIdx + 1);
           const model = this.modelRegistry.find(provider, modelId);
           if (model) await managed.session.setModel(model);
+        }
+      }
+
+      // Restore plan mode state from database
+      if (s.planModeState) {
+        try {
+          const restoredState = JSON.parse(s.planModeState) as PlanModeState;
+          if (restoredState.enabled || restoredState.executing) {
+            this.planModeStates.set(s.id, restoredState);
+            managed.planModeState = restoredState;
+            console.log(`[AgentManager] Restored planModeState for session ${s.id}`);
+          }
+        } catch (err) {
+          console.error(`[AgentManager] Failed to restore planModeState:`, err);
+        }
+      }
+
+      // Restore pending question from database
+      if (s.pendingQuestion) {
+        try {
+          const restoredQuestion = JSON.parse(s.pendingQuestion) as PendingQuestion;
+          // Re-create the Promise that will be resolved when user answers
+          const questionPromise = new Promise<{ questionId: string; answers: any[]; cancelled: boolean }>((resolve) => {
+            this.pendingQuestions.set(s.id, {
+              resolve,
+              questionId: restoredQuestion.questionId,
+              questions: restoredQuestion.questions,
+            });
+          });
+          console.log(`[AgentManager] Restored pendingQuestion for session ${s.id}`);
+          // Note: The promise is stored but we don't await it here
+          // The agent will continue waiting for user input
+        } catch (err) {
+          console.error(`[AgentManager] Failed to restore pendingQuestion:`, err);
         }
       }
 
@@ -1221,6 +1318,11 @@ Your output must be:
         questions,
       });
 
+      // Persist to database (fire-and-forget)
+      this.savePendingQuestion(dbSessionId, { questionId, questions }).catch(err => {
+        console.error(`[AgentManager] Failed to persist pendingQuestion:`, err);
+      });
+
       // Broadcast question request to frontend
       this.broadcast(managed, {
         type: "question_request",
@@ -1244,8 +1346,13 @@ Your output must be:
       return false;
     }
 
-    // Remove pending questionnaire
+    // Remove pending questionnaire from memory
     this.pendingQuestions.delete(sessionId);
+
+    // Clear from database (fire-and-forget)
+    this.clearPendingQuestion(sessionId).catch(err => {
+      console.error(`[AgentManager] Failed to clear pendingQuestion:`, err);
+    });
 
     // Resolve the promise
     pending.resolve({ 
@@ -1306,6 +1413,40 @@ Your output must be:
     const managed = this.managedSessions.get(id);
     if (!managed) return null;
     return managed.session.getSessionStats();
+  }
+
+  /**
+   * Get available slash commands for a session.
+   */
+  getCommands(id: string): SlashCommandInfo[] {
+    const managed = this.managedSessions.get(id);
+    if (!managed) return [];
+
+    const extensionRunner = managed.session.extensionRunner;
+    if (!extensionRunner) return [];
+
+    const commands = extensionRunner.getRegisteredCommands();
+    return commands.map((cmd) => ({
+      name: cmd.name,
+      description: cmd.description,
+      source: "extension" as const,
+    }));
+  }
+
+  /**
+   * Execute a slash command in a session.
+   * Constructs the command string and sends it via prompt().
+   */
+  async executeCommand(id: string, name: string, args?: string): Promise<void> {
+    const managed = this.managedSessions.get(id);
+    if (!managed) throw new Error(`Session ${id} not found`);
+
+    // Construct command string like "/plan" or "/search keyword"
+    const commandText = args ? `/${name} ${args}` : `/${name}`;
+
+    // Use prompt to execute the command
+    // SDK's prompt() automatically handles extension commands via _tryExecuteExtensionCommand
+    await managed.session.prompt(commandText);
   }
 
   getContextUsage(id: string): { tokens: number; contextWindow: number; percent: number } | null {
