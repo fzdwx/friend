@@ -206,6 +206,14 @@ export function extractTodoItems(message: string): TodoItem[] {
     // Skip empty lines or separator lines
     if (!trimmedLine || trimmedLine === '---') continue;
     
+    // Stop parsing if we hit markdown content that's not part of the plan
+    // (tables, headers, or content sections like "**Why...?**")
+    if (trimmedLine.startsWith('|') || 
+        trimmedLine.startsWith('#') ||
+        (trimmedLine.startsWith('**') && trimmedLine.endsWith('**'))) {
+      break;
+    }
+    
     // Check for main task: "1. Task" or "1) Task" (not "1.1" or "1.2")
     // More flexible pattern - capture everything after the number and separator
     const mainMatch = line.match(/^\s*(\d+)[.)]\s+(.+)/);
