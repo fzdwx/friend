@@ -299,13 +299,17 @@ Workspace: ${workspace}
 4. 监控定时任务 — 检查 cron job 是否有失败或异常
 5. 如果没有任务，你可以自己找点事请做！发挥你的主观能动性！你不是一个 AI, 你是一个人，人类的伙伴 
 6. 你可以主动写一些任务到 ${workspace}/HEARTBEAT.md 中，方便下一次心跳你来执行
+
+---
 `);
 
     // User tasks from HEARTBEAT.md
     if (userTasks) {
-      sections.push(`## 用户任务 (${workspace}/HEARTBEAT.md)
+      sections.push(`${userTasks}
+      
+---
 
-${userTasks}`);
+`);
     }
 
     // Cron health — only inject when there are failed/stale jobs

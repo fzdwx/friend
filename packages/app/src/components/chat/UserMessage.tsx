@@ -6,6 +6,15 @@ interface UserMessageProps {
   message: PiUserMessage;
 }
 
+function formatTime(timestamp: number): string {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 export const UserMessage = memo(function UserMessage({ message }: UserMessageProps) {
   const [copied, setCopied] = useState(false);
 
@@ -50,6 +59,12 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
           )}
         </button>
         <div className="text-sm whitespace-pre-wrap break-words">{text}</div>
+        {/* Timestamp */}
+        {message.timestamp && (
+          <div className="text-[10px] text-muted-foreground/60 mt-1.5 text-right">
+            {formatTime(message.timestamp)}
+          </div>
+        )}
       </div>
     </div>
   );

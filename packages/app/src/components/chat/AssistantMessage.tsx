@@ -8,6 +8,15 @@ interface AssistantMessageProps {
   isStreaming?: boolean;
 }
 
+function formatTime(timestamp: number): string {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 export const AssistantMessage = memo(function AssistantMessage({
   message,
   isStreaming,
@@ -65,6 +74,12 @@ export const AssistantMessage = memo(function AssistantMessage({
         <MarkdownRenderer className="[&_p]:leading-relaxed [&_p:last-child]:mb-0">
           {fullText}
         </MarkdownRenderer>
+        {/* Timestamp */}
+        {!isStreaming && message.timestamp && (
+          <div className="text-[10px] text-muted-foreground/60 mt-1.5 text-right">
+            {formatTime(message.timestamp)}
+          </div>
+        )}
       </div>
     </div>
   );
