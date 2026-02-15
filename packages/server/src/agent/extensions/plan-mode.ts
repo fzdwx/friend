@@ -532,6 +532,11 @@ export function createPlanModeExtension(callbacks: PlanModeExtensionCallbacks): 
   // Session-specific state (managed externally via callbacks)
   const sessionStates = new Map<string, PlanModeState>();
 
+  // Track completed count per session to detect progress between agent turns.
+  // Only call onContinue when new steps are completed; prevents infinite loop
+  // when the agent doesn't output [DONE:n] markers.
+  const lastCompletedCounts = new Map<string, number>();
+
   const getState = (sessionId: string): PlanModeState => {
     return callbacks.getState(sessionId) ?? { enabled: false, executing: false, modifying: false, todos: [] };
   };
@@ -584,6 +589,7 @@ Don't use when: single-file edits, quick fixes, or straightforward changes.`,
       parameters: Type.Object({
         reason: Type.String({ description: "Brief explanation of why plan mode is needed (e.g., 'Task involves multiple interconnected components' or 'Need to understand existing patterns before implementing')" }),
         task_description: Type.String({ description: "Description of the task you need to plan for" }),
+        autoExecute: Type.Optional(Type.Boolean({ description: "If true, automatically start execution when plan is ready (no user confirmation needed). Use when AI initiates the task itself." })),
       }),
       execute: async (toolCallId, params, signal, onUpdate, ctx) => {
         const sessionId = ctx.sessionManager.getSessionId();
@@ -602,10 +608,19 @@ Don't use when: single-file edits, quick fixes, or straightforward changes.`,
           executing: false,
           modifying: false,
           todos: [],
+          autoExecute: params.autoExecute ?? false,
         };
         setState(sessionId, newState);
         pi.setActiveTools(PLAN_MODE_TOOLS);
-        ctx.ui.notify("📋 Plan mode enabled via tool call.");
+        
+        const notifyMsg = params.autoExecute 
+          ? "📋 Plan mode enabled. Auto-execute ON."
+          : "📋 Plan mode enabled via tool call.";
+        ctx.ui.notify(notifyMsg);
+
+        const autoExecuteHint = params.autoExecute 
+          ? "\n\nNOTE: Auto-execute is ON. When you finish outputting your plan, execution will start automatically."
+          : "";
 
         return {
           content: [{
@@ -613,12 +628,12 @@ Don't use when: single-file edits, quick fixes, or straightforward changes.`,
             text: `Plan mode enabled. You now have read-only access to analyze the codebase.
 
 Task: ${params.task_description}
-Reason for planning: ${params.reason}
+Reason for planning: ${params.reason}${autoExecuteHint}
 
 Explore the codebase, then output a plan ending with a "Plan:" section.
 IMPORTANT: Use ONLY numbered list format (1. / 1.1.) — do NOT use markdown headers, bold numbers, or bullet points as steps. The parser cannot handle other formats.`,
           }],
-          details: { enabled: true, task: params.task_description },
+          details: { enabled: true, task: params.task_description, autoExecute: params.autoExecute },
         };
       },
     });
@@ -712,20 +727,32 @@ IMPORTANT: Use ONLY numbered list format (1. / 1.1.) — do NOT use markdown hea
       const state = getState(sessionId);
       // Check if execution is complete
       if (state.executing && state.todos.length > 0) {
+        const completedNow = state.todos.filter((t) => t.completed).length;
+
         if (state.todos.every((t) => t.completed)) {
           // All done - notify frontend and clear state
           const completedTodos = [...state.todos];
+          lastCompletedCounts.delete(sessionId);
           setState(sessionId, { enabled: false, executing: false, modifying: false, todos: [] });
           pi.setActiveTools(NORMAL_MODE_TOOLS);
           callbacks.onComplete(sessionId, completedTodos);
           return;
         }
-        
-        // Continue with next task
-        const nextTask = state.todos.find((t) => !t.completed);
-        if (nextTask && callbacks.onContinue) {
-          callbacks.onContinue(sessionId, nextTask);
-          return;
+
+        // Only continue if progress was made since last turn.
+        // This prevents infinite looping when agent doesn't output [DONE:n].
+        const lastCompleted = lastCompletedCounts.get(sessionId) ?? 0;
+        if (completedNow > lastCompleted) {
+          lastCompletedCounts.set(sessionId, completedNow);
+          const nextTask = state.todos.find((t) => !t.completed);
+          if (nextTask && callbacks.onContinue) {
+            callbacks.onContinue(sessionId, nextTask);
+            return;
+          }
+        } else {
+          // No progress — stop auto-continue to avoid infinite loop.
+          // User can manually trigger the next step or investigate.
+          console.log(`[PlanMode] No progress detected (completed=${completedNow}), stopping auto-continue for session ${sessionId}`);
         }
       }
 
@@ -737,7 +764,30 @@ IMPORTANT: Use ONLY numbered list format (1. / 1.1.) — do NOT use markdown hea
           const text = getTextContent(lastAssistant);
           const extracted = extractTodoItems(text);
           if (extracted.length > 0) {
-            // Auto-enable plan mode if not already enabled
+            // Check if autoExecute is set - skip user review and start execution
+            if (state.autoExecute) {
+              const newState: PlanModeState = {
+                ...state,
+                enabled: false,
+                executing: true,
+                modifying: false,
+                modifyMessage: undefined,
+                autoExecute: false,
+                todos: extracted,
+              };
+              setState(sessionId, newState);
+              pi.setActiveTools(NORMAL_MODE_TOOLS);
+              lastCompletedCounts.set(sessionId, 0);
+
+              // Start execution with first task
+              const firstTask = extracted[0];
+              if (firstTask && callbacks.onContinue) {
+                callbacks.onContinue(sessionId, firstTask);
+              }
+              return;
+            }
+
+            // Normal flow - show plan to user for review
             const wasAlreadyEnabled = state.enabled || state.modifying;
             const newState: PlanModeState = {
               ...state,
@@ -748,7 +798,7 @@ IMPORTANT: Use ONLY numbered list format (1. / 1.1.) — do NOT use markdown hea
               todos: extracted,
             };
             setState(sessionId, newState);
-            
+
             // Only notify if this is a new plan (not already in plan mode)
             if (!wasAlreadyEnabled) {
               pi.setActiveTools(PLAN_MODE_TOOLS);

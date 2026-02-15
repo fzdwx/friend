@@ -16,6 +16,7 @@ export const CronParams = Type.Object({
       Type.Literal("add", { description: "Add a new scheduled task" }),
       Type.Literal("list", { description: "List all scheduled tasks" }),
       Type.Literal("remove", { description: "Remove a scheduled task" }),
+      Type.Literal("update", { description: "Update a scheduled task (message, name, or schedule)" }),
       Type.Literal("enable", { description: "Enable a disabled task" }),
       Type.Literal("disable", { description: "Disable a task" }),
     ],
@@ -51,6 +52,16 @@ export const CronParams = Type.Object({
       description: "Optional name for the scheduled task. Defaults to a truncated version of the message.",
     }),
   ),
+  new_message: Type.Optional(
+    Type.String({
+      description: "New message for the task (use with 'update' action).",
+    }),
+  ),
+  new_name: Type.Optional(
+    Type.String({
+      description: "New name for the task (use with 'update' action).",
+    }),
+  ),
 });
 
 // ─── Manager Interface ───────────────────────────────────────
@@ -71,14 +82,16 @@ export function createCronTool(manager: ICronManager, agentId: string): ToolDefi
       "Use 'cron_expr' for complex schedules like 'daily at 9am'.",
     parameters: CronParams,
     async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
-      const { action, message, at_seconds, every_seconds, cron_expr, job_id, job_name } = params as {
-        action: "add" | "list" | "remove" | "enable" | "disable";
+      const { action, message, at_seconds, every_seconds, cron_expr, job_id, job_name, new_message, new_name } = params as {
+        action: "add" | "list" | "remove" | "update" | "enable" | "disable";
         message?: string;
         at_seconds?: number;
         every_seconds?: number;
         cron_expr?: string;
         job_id?: string;
         job_name?: string;
+        new_message?: string;
+        new_name?: string;
       };
 
       try {
@@ -89,6 +102,8 @@ export function createCronTool(manager: ICronManager, agentId: string): ToolDefi
             return await handleList(manager, agentId);
           case "remove":
             return await handleRemove(manager, job_id);
+          case "update":
+            return await handleUpdate(manager, job_id, { new_message, new_name, at_seconds, every_seconds, cron_expr });
           case "enable":
           case "disable":
             return await handleToggle(manager, job_id, action === "enable");
@@ -244,6 +259,81 @@ async function handleRemove(manager: ICronManager, jobId?: string) {
   if (removed) {
     return {
       content: [{ type: "text" as const, text: `🗑️ Removed scheduled task: ${jobId}` }],
+      details: undefined,
+    };
+  } else {
+    return {
+      content: [{ type: "text" as const, text: `Error: Task ${jobId} not found.` }],
+      details: undefined,
+    };
+  }
+}
+
+async function handleUpdate(
+  manager: ICronManager,
+  jobId?: string,
+  opts?: {
+    new_message?: string;
+    new_name?: string;
+    at_seconds?: number;
+    every_seconds?: number;
+    cron_expr?: string;
+  },
+) {
+  if (!jobId) {
+    return {
+      content: [{ type: "text" as const, text: "Error: 'job_id' is required for update action." }],
+      details: undefined,
+    };
+  }
+
+  const updates: {
+    name?: string;
+    message?: string;
+    schedule?: import("../cron/types.js").CronSchedule;
+    enabled?: boolean;
+  } = {};
+
+  // Update name
+  if (opts?.new_name) {
+    updates.name = opts.new_name;
+  }
+
+  // Update message
+  if (opts?.new_message) {
+    updates.message = opts.new_message;
+  }
+
+  // Update schedule
+  const now = Date.now();
+  if (opts?.at_seconds !== undefined && opts.at_seconds > 0) {
+    updates.schedule = { kind: "at", atMs: now + opts.at_seconds * 1000 };
+  } else if (opts?.every_seconds !== undefined && opts.every_seconds > 0) {
+    updates.schedule = { kind: "every", everyMs: opts.every_seconds * 1000, anchorMs: now };
+  } else if (opts?.cron_expr) {
+    updates.schedule = { kind: "cron", expr: opts.cron_expr };
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return {
+      content: [{ type: "text" as const, text: "Error: No updates provided. Use 'new_message', 'new_name', 'at_seconds', 'every_seconds', or 'cron_expr'." }],
+      details: undefined,
+    };
+  }
+
+  const success = await manager.updateCronJobFull(jobId, updates);
+
+  if (success) {
+    const changes = Object.keys(updates)
+      .map((k) => {
+        if (k === "message") return `message → "${updates.message}"`;
+        if (k === "name") return `name → "${updates.name}"`;
+        if (k === "schedule") return `schedule updated`;
+        return k;
+      })
+      .join(", ");
+    return {
+      content: [{ type: "text" as const, text: `✏️ Updated task ${jobId}:\n   ${changes}` }],
       details: undefined,
     };
   } else {

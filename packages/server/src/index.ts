@@ -15,6 +15,7 @@ import { modelRoutes } from "./routes/models";
 import { skillRoutes } from "./routes/skills";
 import { agentsRoutes, bindingsRoutes } from "./routes/agents.js";
 import { fileRoutes } from "./routes/files.js";
+import { cronRoutes } from "./routes/cron.js";
 
 // Ensure built-in skills exist
 ensureBuiltinSkills();
@@ -31,6 +32,7 @@ const app = new Elysia()
   .use(agentsRoutes)
   .use(bindingsRoutes)
   .use(fileRoutes)
+  .use(cronRoutes)
   .listen(3001);
 
 console.log(`Friend server running at http://localhost:3001`);

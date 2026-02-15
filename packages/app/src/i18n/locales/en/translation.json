@@ -55,7 +55,8 @@
       "providers": "Providers",
       "memory": "Memory",
       "appearance": "Appearance",
-      "skills": "Skills"
+      "skills": "Skills",
+      "cron": "Cron Jobs"
     }
   },
   "agents": {
@@ -270,5 +271,36 @@
     "close": "Close file",
     "showTree": "Show file tree",
     "hideTree": "Hide file tree"
+  },
+  "cron": {
+    "title": "Cron Jobs",
+    "subtitle": "Manage scheduled tasks and reminders for agents",
+    "addJob": "Add Job",
+    "noJobs": "No scheduled tasks",
+    "createFirst": "Click + to create your first scheduled task",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "enable": "Enable",
+    "disable": "Disable",
+    "nextRun": "Next",
+    "jobName": "Job Name",
+    "jobNamePlaceholder": "e.g. Daily Reminder",
+    "agentId": "Agent ID",
+    "message": "Message / Task",
+    "messagePlaceholder": "What should the agent do when this task runs?",
+    "scheduleType": "Schedule Type",
+    "scheduleTypes": {
+      "at": "Once (in)",
+      "every": "Repeat every",
+      "cron": "Cron expression"
+    },
+    "atSeconds": "Run in (seconds)",
+    "atSecondsHelp": "Run once after this many seconds",
+    "everySeconds": "Repeat interval (seconds)",
+    "seconds": "seconds",
+    "cronExpr": "Cron Expression",
+    "cronExprHelp": "Standard cron format: minute hour day month weekday (e.g. '0 9 * * *' for daily at 9am)",
+    "create": "Create",
+    "confirmDelete": "Delete this scheduled task?"
   }
 }

@@ -41,6 +41,7 @@ import {
   createRenameSessionTool,
   createGetSessionTool,
   createCreateSessionTool,
+  createSessionSearchTool,
   createMemorySearchTool,
   createMemoryGetTool,
   createQuestionTool,
@@ -84,6 +85,16 @@ import {
   NORMAL_MODE_TOOLS,
 } from "./extensions/plan-mode.js";
 import { createCommandsExtension } from "./extensions/commands.js";
+
+// Sub-managers (modular refactoring)
+import {
+  ProviderManager,
+  ThemeManager,
+  CronManager,
+  PlanModeManager,
+  QuestionManager,
+} from "./managers/index.js";
+import type { ManagedSession, EventSubscriber } from "./managers/index.js";
 
 // ─── DB mapping types ──────────────────────────────────────
 
@@ -135,29 +146,6 @@ function dbProviderToConfig(p: DbCustomProvider): CustomProviderConfig {
   };
 }
 
-// ─── ManagedSession & EventSubscriber ──────────────────────
-
-interface ManagedSession {
-  id: string;
-  name: string;
-  agentId: string;  // Agent this session belongs to
-  session: AgentSession;
-  resourceLoader: DefaultResourceLoader;
-  createdAt: string;
-  updatedAt: string;
-  workingPath?: string;
-  userMessageCount: number;
-  autoRenamed?: boolean;
-  memoryFlushPending?: boolean;  // Track if memory flush is queued
-  planModeState?: PlanModeState;  // Track plan mode state
-}
-
-interface EventSubscriber {
-  push(event: GlobalSSEEvent): void;
-
-  close(): void;
-}
-
 // ─── AgentManager ──────────────────────────────────────────
 
 export class AgentManager implements IAgentManager {
@@ -176,9 +164,53 @@ export class AgentManager implements IAgentManager {
     embedding: undefined,
   };
 
+  // Sub-managers
+  private providerManager: ProviderManager;
+  private themeManager: ThemeManager;
+  private cronManager: CronManager;
+  private planModeManager: PlanModeManager;
+  private questionManager: QuestionManager;
+
   constructor() {
     this.authStorage = new AuthStorage();
     this.modelRegistry = new ModelRegistry(this.authStorage);
+
+    // Initialize sub-managers with dependency injection
+    // ProviderManager needs modelRegistry and authStorage
+    this.providerManager = new ProviderManager(
+      this.modelRegistry,
+      this.authStorage,
+      {
+        getManagedSessions: () => this.managedSessions,
+        broadcastGlobal: (event) => this.broadcastGlobal(event),
+      },
+    );
+
+    // ThemeManager needs getter/setter for activeThemeId
+    this.themeManager = new ThemeManager({
+      getActiveThemeId: () => this.config.activeThemeId,
+      setActiveThemeId: (id) => { this.config.activeThemeId = id; },
+      broadcastGlobal: (event) => this.broadcastGlobal(event),
+    });
+
+    // CronManager will be initialized after cronService is created
+    this.cronManager = new CronManager(null);
+
+    // PlanModeManager needs session access
+    this.planModeManager = new PlanModeManager({
+      getManagedSession: (id) => this.managedSessions.get(id)!,
+      broadcast: (managed, event) => this.broadcast(managed as any, event),
+      saveState: (sessionId, state) => this.savePlanModeState(sessionId, state),
+    });
+
+    // QuestionManager needs session access
+    this.questionManager = new QuestionManager({
+      getManagedSession: (id) => this.managedSessions.get(id)!,
+      broadcast: (managed, event) => this.broadcast(managed as any, event),
+      savePendingQuestion: (sessionId, question) => this.savePendingQuestion(sessionId, question),
+      clearPendingQuestion: (sessionId) => this.clearPendingQuestion(sessionId),
+      resolveDbSessionId: (sdkSessionId) => this.sdkToDbSessionId.get(sdkSessionId),
+    });
   }
 
   // ─── Plan Mode State Management ────────────────────────────────────────
@@ -350,6 +382,7 @@ export class AgentManager implements IAgentManager {
       createRenameSessionTool(this),
       createGetSessionTool(this),
       createCreateSessionTool(this, agentId),
+      createSessionSearchTool(this),
       // Memory tools for semantic search and recall
       // Note: API keys are fetched lazily when the tool is first used
       createMemorySearchTool(agentWorkspace, {
@@ -474,12 +507,21 @@ export class AgentManager implements IAgentManager {
             const managed = this.managedSessions.get(dbSessionId);
             if (!managed) return;
 
-            // Use setTimeout to avoid blocking
+            // Use setTimeout to avoid blocking the agent_end handler
             setTimeout(async () => {
               try {
                 await managed.session.prompt(`Continue with: ${nextTask.text}`);
-              } catch (err) {
+              } catch (err: any) {
                 console.error('[PlanMode] Failed to continue with next task:', err);
+                // Stop execution on error (e.g. context overflow)
+                this.setPlanModeState(dbSessionId, {
+                  ...this.getPlanModeState(dbSessionId),
+                  executing: false,
+                });
+                this.broadcast(managed, {
+                  type: "error",
+                  message: `Plan execution stopped: ${err.message || String(err)}`,
+                });
               }
             }, 100);
           },
@@ -757,19 +799,54 @@ export class AgentManager implements IAgentManager {
     this.cronService = new CronService(cronDeps);
     this.cronService.start();
 
+    // Update cronManager with the initialized service
+    this.cronManager = new CronManager(this.cronService);
+
     console.log("[AgentManager] Heartbeat and Cron services started");
   }
 
-  private async executeAgentTask(agentId: string, prompt: string): Promise<string> {
-    const { prompt: promptFn } = await this.getOrCreateSessionForAgent(agentId);
-    // Use prompt to send message and wait for response
-    await promptFn(prompt);
-    // Return a simple status - the actual response will be streamed
-    return "Task executed";
+  private async executeAgentTask(agentId: string, promptText: string): Promise<string> {
+    const managed = await this.getOrCreateSessionForAgent(agentId);
+    const agent = managed.session.agent;
+
+    // Collect the last assistant message when agent finishes
+    let lastAssistantText = "";
+    const unsubscribe = agent.subscribe((event) => {
+      if (event.type === "agent_end") {
+        // Find the last assistant message
+        const messages = event.messages;
+        for (let i = messages.length - 1; i >= 0; i--) {
+          const msg = messages[i];
+          if (msg.role === "assistant" && msg.content) {
+            // Extract text from content
+            if (typeof msg.content === "string") {
+              lastAssistantText = msg.content;
+            } else if (Array.isArray(msg.content)) {
+              lastAssistantText = msg.content
+                .filter((c): c is { type: "text"; text: string } => c.type === "text")
+                .map((c) => c.text)
+                .join("");
+            }
+            break;
+          }
+        }
+      }
+    });
+
+    try {
+      // Send the prompt
+      await managed.session.prompt(promptText);
+      // Wait for agent to complete
+      await agent.waitForIdle();
+      return lastAssistantText || "Task executed (no response)";
+    } finally {
+      unsubscribe();
+    }
   }
 
   private async getOrCreateSessionForAgent(agentId: string): Promise<{
     id: string;
+    session: AgentSession;
     prompt: (msg: string) => Promise<void>;
   }> {
     // Find the most recent session for this agent
@@ -789,6 +866,7 @@ export class AgentManager implements IAgentManager {
     if (managed) {
       return {
         id: managed.id,
+        session: managed.session,
         prompt: (msg: string) => this.prompt(managed!.id, msg),
       };
     }
@@ -799,6 +877,7 @@ export class AgentManager implements IAgentManager {
 
   private async createSessionForAgent(agentId: string): Promise<{
     id: string;
+    session: AgentSession;
     prompt: (msg: string) => Promise<void>;
   }> {
     const session = await this.createSession({ agentId });
@@ -808,106 +887,27 @@ export class AgentManager implements IAgentManager {
     }
     return {
       id: session.id,
+      session: managed.session,
       prompt: (msg: string) => this.prompt(session.id, msg),
     };
   }
 
-  // Custom provider management
+  // Custom provider management (delegated to ProviderManager)
   addCustomProvider(provider: CustomProviderConfig, persist = true): void {
-    // Remove existing with same name
-    this.config.customProviders = this.config.customProviders.filter(
-      (p) => p.name !== provider.name,
-    );
-    this.config.customProviders.push(provider);
-
-    // Register with ModelRegistry via registerProvider
-    this.modelRegistry.registerProvider(provider.name, {
-      baseUrl: provider.baseUrl,
-      apiKey: provider.apiKey,
-      api: (provider.api ?? "openai-completions") as any,
-      headers: provider.headers,
-      models: provider.models.map((m) => ({
-        id: m.id,
-        name: m.name,
-        reasoning: m.reasoning,
-        input: ["text" as const, "image" as const],
-        cost: m.cost,
-        contextWindow: m.contextWindow,
-        maxTokens: m.maxTokens,
-      })),
-    });
-
-    // Set API key if provided
-    if (provider.apiKey) {
-      this.authStorage.setRuntimeApiKey(provider.name, provider.apiKey);
-    }
-
-    if (persist) {
-      prisma.customProvider
-        .upsert({
-          where: { name: provider.name },
-          create: {
-            name: provider.name,
-            baseUrl: provider.baseUrl,
-            apiKey: provider.apiKey ?? null,
-            api: provider.api ?? null,
-            headers: provider.headers ? JSON.stringify(provider.headers) : null,
-            models: {
-              create: provider.models.map((m) => ({
-                modelId: m.id,
-                name: m.name,
-                reasoning: m.reasoning,
-                contextWindow: m.contextWindow,
-                maxTokens: m.maxTokens,
-                costInput: m.cost.input,
-                costOutput: m.cost.output,
-                costCacheRead: m.cost.cacheRead,
-                costCacheWrite: m.cost.cacheWrite,
-              })),
-            },
-          },
-          update: {
-            baseUrl: provider.baseUrl,
-            apiKey: provider.apiKey ?? null,
-            api: provider.api ?? null,
-            headers: provider.headers ? JSON.stringify(provider.headers) : null,
-            models: {
-              deleteMany: {},
-              create: provider.models.map((m) => ({
-                modelId: m.id,
-                name: m.name,
-                reasoning: m.reasoning,
-                contextWindow: m.contextWindow,
-                maxTokens: m.maxTokens,
-                costInput: m.cost.input,
-                costOutput: m.cost.output,
-                costCacheRead: m.cost.cacheRead,
-                costCacheWrite: m.cost.cacheWrite,
-              })),
-            },
-          },
-        })
-        .catch((err) => console.error("Failed to persist custom provider:", err));
-    }
+    this.providerManager.addCustomProvider(provider, persist);
+    // Update config for backward compatibility
+    this.config.customProviders = this.providerManager.listCustomProviders();
   }
 
   async removeCustomProvider(name: string): Promise<boolean> {
-    const before = this.config.customProviders.length;
-    this.config.customProviders = this.config.customProviders.filter((p) => p.name !== name);
-    if (this.config.customProviders.length === before) return false;
-
-    // Re-register all remaining providers (no unregister API, so refresh)
-    this.modelRegistry.refresh();
-    for (const p of this.config.customProviders) {
-      this.addCustomProvider(p, false);
-    }
-
-    await prisma.customProvider.delete({ where: { name } }).catch(() => {});
-    return true;
+    const result = await this.providerManager.removeCustomProvider(name);
+    // Update config for backward compatibility
+    this.config.customProviders = this.providerManager.listCustomProviders();
+    return result;
   }
 
   getCustomProviders(): CustomProviderConfig[] {
-    return [...this.config.customProviders];
+    return this.providerManager.listCustomProviders();
   }
 
   // ─── Skill management ──────────────────────────────────────
@@ -1710,88 +1710,39 @@ Your output must be:
     }).catch((err) => console.error("Failed to persist embedding config:", err));
   }
 
-  // ─── Theme management ──────────────────────────────────────
+  // ─── Theme management (delegated to ThemeManager) ──────────────────────
 
   async setActiveTheme(themeId: string): Promise<void> {
-    this.config.activeThemeId = themeId;
-    await prisma.appConfig.upsert({
-      where: { id: "singleton" },
-      create: { id: "singleton", activeThemeId: themeId },
-      update: { activeThemeId: themeId },
-    });
-    this.broadcastGlobal({ type: "config_updated", activeThemeId: themeId });
+    await this.themeManager.setActiveTheme(themeId);
+    // Update config for backward compatibility
+    this.config.activeThemeId = this.themeManager.getActiveThemeId();
   }
 
   async getCustomThemes(): Promise<ThemeConfig[]> {
-    const rows = await prisma.customTheme.findMany({ orderBy: { updatedAt: "desc" } });
-    return rows.map((ct) => ({
-      id: ct.id,
-      name: ct.name,
-      mode: ct.mode as "light" | "dark" | "system",
-      isPreset: false,
-      isBuiltIn: false,
-      colors: JSON.parse(ct.colors),
-    }));
+    const allThemes = await this.themeManager.getThemes();
+    return allThemes.filter(t => !t.isBuiltIn);
   }
 
   async getAllThemes(): Promise<ThemeConfig[]> {
-    const custom = await this.getCustomThemes();
-    return [...BUILT_IN_THEMES, ...custom];
+    return this.themeManager.getThemes();
   }
 
   async addCustomTheme(theme: ThemeConfig): Promise<void> {
-    await prisma.customTheme.create({
-      data: {
-        id: theme.id,
-        name: theme.name,
-        mode: theme.mode,
-        colors: JSON.stringify(theme.colors),
-      },
-    });
-    this.broadcastGlobal({ type: "config_updated", addedTheme: theme });
+    await this.themeManager.addCustomTheme(theme);
   }
 
   async updateCustomTheme(
     themeId: string,
     updates: Partial<ThemeConfig>,
   ): Promise<ThemeConfig | null> {
-    const existing = await prisma.customTheme.findUnique({ where: { id: themeId } });
-    if (!existing) return null;
-
-    const data: Record<string, unknown> = {};
-    if (updates.name) data.name = updates.name;
-    if (updates.mode) data.mode = updates.mode;
-    if (updates.colors) data.colors = JSON.stringify(updates.colors);
-
-    await prisma.customTheme.update({ where: { id: themeId }, data });
-
-    const updated: ThemeConfig = {
-      id: existing.id,
-      name: updates.name ?? existing.name,
-      mode: (updates.mode ?? existing.mode) as "light" | "dark" | "system",
-      isPreset: false,
-      isBuiltIn: false,
-      colors: updates.colors ?? JSON.parse(existing.colors),
-    };
-    this.broadcastGlobal({ type: "config_updated", updatedTheme: updated });
-    return updated;
+    return this.themeManager.updateCustomTheme(themeId, updates);
   }
 
   async deleteCustomTheme(themeId: string): Promise<boolean> {
-    const existing = await prisma.customTheme.findUnique({ where: { id: themeId } });
-    if (!existing) return false;
-    await prisma.customTheme.delete({ where: { id: themeId } });
-    // If deleted theme was active, reset to default
-    if (this.config.activeThemeId === themeId) {
-      this.config.activeThemeId = "default-dark";
-      await prisma.appConfig.upsert({
-        where: { id: "singleton" },
-        create: { id: "singleton", activeThemeId: "default-dark" },
-        update: { activeThemeId: "default-dark" },
-      });
-    }
-    this.broadcastGlobal({ type: "config_updated", deletedThemeId: themeId });
-    return true;
+    const result = await this.themeManager.deleteCustomTheme(themeId);
+    // Update config for backward compatibility
+    this.config.activeThemeId = this.themeManager.getActiveThemeId();
+    return result;
   }
 
   setApiKey(provider: string, apiKey: string): void {
@@ -1986,7 +1937,7 @@ Your output must be:
     await this.renameSession(managed.id, newName);
   }
 
-  // ─── ICronManager Implementation ────────────────────────────────────────
+  // ─── ICronManager Implementation (delegated to CronManager) ────────────
 
   async addCronJob(
     agentId: string,
@@ -1994,43 +1945,31 @@ Your output must be:
     schedule: CronSchedule,
     message: string,
   ): Promise<{ id: string; nextRunAt?: Date }> {
-    if (!this.cronService) {
-      throw new Error("CronService not initialized");
-    }
-
-    const job = await this.cronService.addJob({
-      agentId,
-      name,
-      schedule,
-      payload: { kind: "agentTurn", message },
-    });
-
-    return {
-      id: job.id,
-      nextRunAt: job.state.nextRunAtMs ? new Date(job.state.nextRunAtMs) : undefined,
-    };
+    return this.cronManager.addCronJob(agentId, name, schedule, message);
   }
 
   async listCronJobs(agentId?: string): Promise<CronJobInfo[]> {
-    if (!this.cronService) {
-      return [];
-    }
-    return this.cronService.listJobs({ agentId, includeDisabled: true });
+    return this.cronManager.listCronJobs(agentId);
   }
 
   async removeCronJob(jobId: string): Promise<boolean> {
-    if (!this.cronService) {
-      return false;
-    }
-    return this.cronService.removeJob(jobId);
+    return this.cronManager.removeCronJob(jobId);
   }
 
   async updateCronJob(jobId: string, enabled: boolean): Promise<boolean> {
-    if (!this.cronService) {
-      return false;
-    }
-    const job = await this.cronService.updateJob(jobId, { enabled });
-    return job !== null;
+    return this.cronManager.updateCronJob(jobId, enabled);
+  }
+
+  async updateCronJobFull(
+    jobId: string,
+    updates: {
+      name?: string;
+      message?: string;
+      schedule?: import("./cron/types.js").CronSchedule;
+      enabled?: boolean;
+    },
+  ): Promise<boolean> {
+    return this.cronManager.updateCronJobFull(jobId, updates);
   }
 }
 

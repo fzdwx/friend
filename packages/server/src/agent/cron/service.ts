@@ -354,6 +354,7 @@ export class CronService {
         description: job.description ?? undefined,
         enabled: job.enabled,
         schedule: this.parseSchedule(job.schedule),
+        payload: this.parsePayload(job.payload),
         nextRunAt: state.nextRunAtMs ? new Date(state.nextRunAtMs) : undefined,
         lastRunAt: state.lastRunAtMs ? new Date(state.lastRunAtMs) : undefined,
         lastStatus: state.lastStatus,

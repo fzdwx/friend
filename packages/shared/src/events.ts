@@ -59,6 +59,7 @@ export interface PlanModeState {
   modifying: boolean;  // True when user is modifying existing plan
   modifyMessage?: string;  // The user's modification request
   todos: TodoItem[];
+  autoExecute?: boolean;  // If true, auto-start execution when plan is ready (no user confirmation needed)
 }
 
 /** Plan mode state changed */

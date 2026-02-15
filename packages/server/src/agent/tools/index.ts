@@ -20,6 +20,7 @@ export { createGlobTool, GlobParams } from "./glob.js";
 export { createRenameSessionTool, RenameSessionParams } from "./session-rename";
 export { createGetSessionTool, GetSessionParams } from "./session-get";
 export { createCreateSessionTool, CreateSessionParams } from "./session-create";
+export { createSessionSearchTool, SessionSearchParams } from "./session-search";
 
 // Memory Tools
 export { createMemorySearchTool, createMemoryGetTool, MemorySearchParams, MemoryGetParams } from "./memory.js";

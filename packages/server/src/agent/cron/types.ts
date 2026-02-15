@@ -134,6 +134,7 @@ export interface CronJobInfo {
   description?: string;
   enabled: boolean;
   schedule: CronSchedule;
+  payload: CronPayload;
   nextRunAt?: Date;
   lastRunAt?: Date;
   lastStatus?: CronJobStatus;

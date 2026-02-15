@@ -6,10 +6,11 @@ import { ProvidersContent } from "@/components/config/ProvidersContent";
 import { AppearanceContent } from "@/components/config/AppearanceContent";
 import { SkillsContent } from "@/components/config/SkillsContent";
 import { MemoryContent } from "@/components/config/MemoryContent";
+import { CronJobsContent } from "@/components/config/CronJobsContent";
 import { useConfigStore } from "@/stores/configStore";
 import { useTranslation } from "react-i18next";
 
-type SettingsSection = "agents" | "providers" | "memory" | "appearance" | "skills";
+type SettingsSection = "agents" | "providers" | "memory" | "appearance" | "skills" | "cron";
 
 export function SettingsModal() {
   const { t } = useTranslation();
@@ -24,6 +25,7 @@ export function SettingsModal() {
       memory: "settings.sections.memory",
       appearance: "settings.sections.appearance",
       skills: "settings.sections.skills",
+      cron: "settings.sections.cron",
     };
     return t(keyMap[section]);
   };
@@ -43,6 +45,7 @@ export function SettingsModal() {
           {activeSection === "memory" && <MemoryContent />}
           {activeSection === "appearance" && <AppearanceContent />}
           {activeSection === "skills" && <SkillsContent />}
+          {activeSection === "cron" && <CronJobsContent />}
         </div>
       </div>
     </Modal>

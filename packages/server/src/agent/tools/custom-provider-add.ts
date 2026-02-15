@@ -85,6 +85,15 @@ export interface ICronManager {
   listCronJobs(agentId?: string): Promise<import("../cron/types.js").CronJobInfo[]>;
   removeCronJob(jobId: string): Promise<boolean>;
   updateCronJob(jobId: string, enabled: boolean): Promise<boolean>;
+  updateCronJobFull(
+    jobId: string,
+    updates: {
+      name?: string;
+      message?: string;
+      schedule?: import("../cron/types.js").CronSchedule;
+      enabled?: boolean;
+    },
+  ): Promise<boolean>;
 }
 
 // ─── Tool Definition ───────────────────────────────────────

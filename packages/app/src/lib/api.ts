@@ -58,6 +58,44 @@ export interface WorkspaceFile {
   size: number;
 }
 
+// ─── Cron Types ─────────────────────────────────────────────────
+
+export type CronSchedule =
+  | { kind: "at"; atMs: number }
+  | { kind: "every"; everyMs: number; anchorMs?: number }
+  | { kind: "cron"; expr: string; tz?: string };
+
+export type CronPayload =
+  | { kind: "systemEvent"; text: string }
+  | { kind: "agentTurn"; message: string; sessionTarget?: string; deliver?: boolean };
+
+export interface CronJobInfo {
+  id: string;
+  agentId: string;
+  name: string;
+  description?: string;
+  enabled: boolean;
+  schedule: CronSchedule;
+  payload: CronPayload;
+  nextRunAt?: string;
+  lastRunAt?: string;
+  lastStatus?: string;
+}
+
+export interface CreateCronJobInput {
+  agentId: string;
+  name: string;
+  schedule: { kind: "at"; at_seconds: number } | { kind: "every"; every_seconds: number } | { kind: "cron"; expr: string };
+  message: string;
+}
+
+export interface UpdateCronJobInput {
+  name?: string;
+  message?: string;
+  schedule?: { kind: "at"; at_seconds: number } | { kind: "every"; every_seconds: number } | { kind: "cron"; expr: string };
+  enabled?: boolean;
+}
+
 // ─── API ───────────────────────────────────────────────────────
 
 export const api = {
@@ -202,6 +240,28 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(config),
     }),
+
+  // ─── Cron Jobs ─────────────────────────────────────────────
+  listCronJobs: (agentId?: string) =>
+    request<CronJobInfo[]>(`/cron${agentId ? `?agentId=${encodeURIComponent(agentId)}` : ""}`),
+  getCronJob: (id: string) => request<CronJobInfo>(`/cron/${id}`),
+  addCronJob: (job: CreateCronJobInput) =>
+    request<{ id: string; nextRunAt?: string }>("/cron", {
+      method: "POST",
+      body: JSON.stringify(job),
+    }),
+  updateCronJob: (id: string, updates: UpdateCronJobInput) =>
+    request<void>(`/cron/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(updates),
+    }),
+  setCronJobEnabled: (id: string, enabled: boolean) =>
+    request<void>(`/cron/${id}/enabled`, {
+      method: "PATCH",
+      body: JSON.stringify({ enabled }),
+    }),
+  deleteCronJob: (id: string) =>
+    request<void>(`/cron/${id}`, { method: "DELETE" }),
 
   // ─── Agents ────────────────────────────────────────────────
   listAgents: () => request<AgentInfo[]>("/agents"),

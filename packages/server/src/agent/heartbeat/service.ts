@@ -51,7 +51,12 @@ export class HeartbeatService {
 
   constructor(deps: HeartbeatServiceDeps) {
     this.deps = deps;
-    this.log = (level, agentId, msg) => this.logToFile(agentId, level, msg);
+    this.log = (level, agentId, msg) => {
+      // Print to console
+      console.log(`[Heartbeat] [${level}] [${agentId}] ${msg}`);
+      // Also write to file
+      this.logToFile(agentId, level, msg);
+    };
   }
 
   // ─── Lifecycle ────────────────────────────────────────────
@@ -86,6 +91,7 @@ export class HeartbeatService {
     try {
       const agents = await this.deps.getAgents();
       const now = Date.now();
+      console.log(`[Heartbeat] Checking ${agents.length} agent(s)...`);
 
       for (const agent of agents) {
         const state = this.getOrCreateState(agent);
@@ -94,11 +100,14 @@ export class HeartbeatService {
         if (state.lastRunAtMs !== null) {
           const elapsed = now - state.lastRunAtMs;
           if (elapsed < state.intervalMs) {
+            const remaining = Math.round((state.intervalMs - elapsed) / 60000);
+            console.log(`[Heartbeat] [${agent.id}] Skipping, next run in ~${remaining}min`);
             continue;  // Not yet time for this agent
           }
         }
 
         // Execute heartbeat for this agent
+        console.log(`[Heartbeat] [${agent.id}] Starting heartbeat execution...`);
         await this.executeHeartbeat(agent.id);
       }
     } catch (err) {
