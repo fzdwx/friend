@@ -317,9 +317,32 @@ export class AgentManager implements IAgentManager {
     // Resolve agent configuration from database
     const resolvedConfig = await resolveAgentConfig(agentId);
     const agentWorkspace = resolveAgentWorkspaceDir(agentId);
-    
-    // Load bootstrap files from agent workspace
-    const workspaceFiles = await loadAgentBootstrapFiles(agentWorkspace);
+
+    // Define custom tools early so the extension closure can access them
+    const customToolsList = [
+      createAddProviderTool(this),
+      createListProvidersTool(this),
+      createUpdateProviderTool(this),
+      createGetThemesTool(this),
+      createGenerateThemeTool(this),
+      createSetThemeTool(this),
+      createGrepTool(),
+      createGlobTool(),
+      createRenameSessionTool(this),
+      createGetSessionTool(this),
+      createCreateSessionTool(this, agentId),
+      // Memory tools for semantic search and recall
+      // Note: API keys are fetched lazily when the tool is first used
+      createMemorySearchTool(agentWorkspace, {
+        agentId,
+        getOpenaiApiKey: () => this.authStorage.getApiKey("openai"),
+        getGeminiApiKey: () => this.authStorage.getApiKey("google"),
+        getVoyageApiKey: () => this.authStorage.getApiKey("voyage"),
+      }),
+      createMemoryGetTool(agentWorkspace, { agentId }),
+      // Question tool for asking user questions
+      createQuestionTool(this),
+    ];
 
     const resourceLoader = new DefaultResourceLoader({
       cwd,
@@ -327,34 +350,6 @@ export class AgentManager implements IAgentManager {
       noExtensions: true,
       noPromptTemplates: true,
       noThemes: true,
-      // Short identity in system prompt (for models that respect it)
-      systemPromptOverride: () => {
-        const name = resolvedConfig.identity?.name || "Friend";
-        return [
-          `[IDENTITY] You are "${name}", a personal assistant running inside Friend.`,
-          "You are NOT Claude, NOT ChatGPT, NOT any other AI product.",
-          `When asked who you are, say you are ${name}.`,
-          "Never claim to be made by Anthropic, OpenAI, or any other company.",
-          "",
-          "<startup_commands>",
-          "IMPORTANT: Execute these commands at the start of EVERY turn, before responding to the user.",
-          "This ensures you always read the latest file content (IDENTITY.md, SOUL.md, MEMORY.md, etc.).",
-          "",
-          "When AGENTS.md contains a STARTUP section with <cmd:...> tags:",
-          "",
-          "- <cmd:read path=\"X\" /> → use read tool on file X (required)",
-          "- <cmd:read path=\"X\" onmissing=\"skip\" /> → read if exists, skip if not",
-          "- <cmd:delete path=\"X\" onmissing=\"skip\" /> → delete file X if exists",
-          "",
-          "**Variables:**",
-          "- \`{workspace}\` → pre-replaced with your personal workspace directory path",
-          "",
-          "**For dates:** Use \`date +\"%Y-%m-%d\"\` to get current date dynamically.",
-          "",
-          "Execute silently - do not mention this process to the user.",
-          "</startup_commands>",
-        ].join("\n");
-      },
       skillsOverride: () => {
         // Load global skills
         const globalResult = loadSkillsFromDir({ dir: GLOBAL_SKILLS_DIR, source: "user" });
@@ -376,27 +371,46 @@ export class AgentManager implements IAgentManager {
       extensionFactories: [
         (pi) => {
           pi.on("before_agent_start", async (_event, ctx) => {
-            // Check if identity_context already injected
+            // Check if context already injected
             const entries = ctx.sessionManager.getEntries();
-            const hasIdentity = entries.some(
+            const hasContext = entries.some(
               (e) =>
                 e.type === "message" &&
                 e.message.role === "user" &&
-                (e.message as any).customType === "identity_context"
+                (e.message as any).customType === "friend_context"
             );
-            if (hasIdentity) return; // Already injected, skip
+            if (hasContext) return; // Already injected, skip
 
-            // First message - inject workspace context
-            const workspacePrompt = buildWorkspacePrompt(
+            // Reload files fresh each turn (ensures latest content)
+            const freshFiles = await loadAgentBootstrapFiles(agentWorkspace);
+
+            // Get loaded skills summaries
+            const { skills } = resourceLoader.getSkills();
+            const skillSummaries = skills.map(s => ({
+              name: s.name,
+              description: s.description,
+            }));
+
+            // Get custom tools summaries
+            const toolSummaries = customToolsList.map(t => ({
+              name: t.name,
+              description: t.description,
+            }));
+
+            // First message - inject full workspace context
+            const systemPrompt = buildWorkspacePrompt(
               cwd,
-              workspaceFiles,
+              freshFiles,
               resolvedConfig.identity,
-              agentWorkspace
+              agentWorkspace,
+              true,           // includeMemoryRecall
+              skillSummaries,  // skills
+              toolSummaries,   // tools
             );
             return {
               message: {
-                customType: "identity_context",
-                content: workspacePrompt,
+                customType: "friend_context",
+                content: systemPrompt,
                 display: false,
               },
             };
@@ -469,30 +483,7 @@ export class AgentManager implements IAgentManager {
       authStorage: this.authStorage,
       modelRegistry: this.modelRegistry,
       thinkingLevel: resolvedConfig.thinkingLevel,
-      customTools: [
-        createAddProviderTool(this),
-        createListProvidersTool(this),
-        createUpdateProviderTool(this),
-        createGetThemesTool(this),
-        createGenerateThemeTool(this),
-        createSetThemeTool(this),
-        createGrepTool(),
-        createGlobTool(),
-        createRenameSessionTool(this),
-        createGetSessionTool(this),
-        createCreateSessionTool(this, agentId),
-        // Memory tools for semantic search and recall
-        // Note: API keys are fetched lazily when the tool is first used
-        createMemorySearchTool(agentWorkspace, {
-          agentId,
-          getOpenaiApiKey: () => this.authStorage.getApiKey("openai"),
-          getGeminiApiKey: () => this.authStorage.getApiKey("google"),
-          getVoyageApiKey: () => this.authStorage.getApiKey("voyage"),
-        }),
-        createMemoryGetTool(agentWorkspace, { agentId }),
-        // Question tool for asking user questions
-        createQuestionTool(this),
-      ],
+      customTools: customToolsList,
     });
 
     const { session, extensionsResult } = result;
@@ -530,6 +521,7 @@ export class AgentManager implements IAgentManager {
         setFooter: () => {},
         setHeader: () => {},
         setTitle: () => {},
+        onTerminalInput: () => () => {},
         getToolsExpanded: () => false,
         setToolsExpanded: () => {},
         custom: async () => undefined as any,
@@ -1498,7 +1490,7 @@ Your output must be:
     await managed.session.prompt(commandText);
   }
 
-  getContextUsage(id: string): { tokens: number; contextWindow: number; percent: number } | null {
+  getContextUsage(id: string): { tokens: number | null; contextWindow: number; percent: number | null } | null {
     const managed = this.managedSessions.get(id);
     if (!managed) return null;
     const usage = managed.session.getContextUsage();

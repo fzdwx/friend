@@ -2,15 +2,23 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentIdentity } from "@friend/shared";
 
-// Only load files that define how the agent works, not content it should read itself
-const WORKSPACE_FILES = ["AGENTS.md"] as const;
+// All bootstrap files loaded directly into context (like picoclaw's context.go)
+// Order: identity → soul → user preferences → workspace rules → tool notes → memory
+const WORKSPACE_FILES = [
+  "IDENTITY.md",
+  "SOUL.md",
+  "USER.md",
+  "AGENTS.md",
+  "TOOLS.md",
+  "MEMORY.md",
+] as const;
 
 export type WorkspaceFile = { path: string; content: string };
 
 /**
- * Load workspace files from a directory
- * Note: We only load AGENTS.md here. Other files (SOUL.md, IDENTITY.md, USER.md, etc.)
- * are read by the LLM itself as directed by AGENTS.md instructions.
+ * Load workspace files from a directory.
+ * All bootstrap files (IDENTITY.md, SOUL.md, USER.md, AGENTS.md, TOOLS.md, MEMORY.md)
+ * are loaded directly into context so the LLM doesn't need to read them via tool calls.
  */
 export async function loadWorkspaceFiles(workspaceDir: string): Promise<WorkspaceFile[]> {
   const results: WorkspaceFile[] = [];
@@ -75,54 +83,80 @@ Citations: Include "Source: <path#Lline>" when it helps verify memory snippets.
 }
 
 /**
- * Build context message for injection
+ * Build context message for injection.
  *
- * We inject:
- * - Workspace paths (working directory + personal workspace)
- * - AGENTS.md (if exists) - defines how the agent works
- * - Memory Recall instructions (if memory tools are available)
+ * All bootstrap files, skills, and tools are loaded directly into the context.
+ * The LLM does not need to read these files via tool calls.
  *
- * The LLM will read other files (SOUL.md, IDENTITY.md, USER.md, etc.) itself
- * as directed by AGENTS.md instructions. This ensures:
- * 1. LLM always gets the latest file content
- * 2. No duplicate/stale content in session history
- * 3. Reduced token usage
+ * Sections:
+ * 1. Identity & Environment (name, time, paths)
+ * 2. Memory Recall instructions
+ * 3. Bootstrap files (IDENTITY.md, SOUL.md, USER.md, AGENTS.md, TOOLS.md, MEMORY.md)
+ * 4. Skills summary
+ * 5. Custom tools summary
  *
  * @param cwd - Working directory (project path)
- * @param files - Workspace files (AGENTS.md)
+ * @param files - Workspace files (all bootstrap files)
  * @param identity - Agent identity for name
  * @param workspaceDir - Workspace directory path
  * @param includeMemoryRecall - Whether to include memory recall instructions
+ * @param skills - Loaded skills summaries
+ * @param tools - Custom tools summaries
  */
 export function buildWorkspacePrompt(
   cwd: string,
   files: WorkspaceFile[],
   identity?: AgentIdentity,
   workspaceDir?: string,
-  includeMemoryRecall: boolean = true
+  includeMemoryRecall: boolean = true,
+  skills: Array<{ name: string; description: string }> = [],
+  tools: Array<{ name: string; description: string }> = [],
 ): string {
-  const displayName = identity?.name || "Friend";
+  const sections: string[] = [];
 
-  const lines: string[] = [
-    "## Workspace",
+  // 1. Identity & Runtime metadata
+  const displayName = identity?.name || "Friend";
+  const now = new Date();
+  sections.push([
+    "## Identity & Environment",
+    `- Name: ${displayName}`,
+    `- Current time: ${now.toISOString()}`,
     `- Working directory: ${cwd}`,
     `- Personal workspace: ${workspaceDir || cwd}`,
-    "",
-    "The **working directory** is where you operate on project files.",
-    "The **personal workspace** is where you store memories, notes, and agent-specific files.",
-    "",
-  ];
+  ].join("\n"));
 
-  // Include Memory Recall section
+  // 2. Memory Recall instructions
   if (includeMemoryRecall) {
-    lines.push(buildMemoryRecallPrompt());
+    sections.push(buildMemoryRecallPrompt());
   }
 
-  // Include AGENTS.md if present
-  const agentsFile = files.find((f) => f.path.endsWith("AGENTS.md"));
-  if (agentsFile) {
-    lines.push("---", "", agentsFile.content, "");
+  // 3. All bootstrap files (IDENTITY.md, SOUL.md, USER.md, AGENTS.md, TOOLS.md, MEMORY.md)
+  for (const file of files) {
+    const name = file.path.split("/").pop() || file.path;
+    sections.push(`<!-- ${name} -->\n${file.content}`);
   }
 
-  return lines.join("\n");
+  // 4. Skills summary (name + description for each loaded skill)
+  if (skills.length > 0) {
+    const skillLines = skills.map(s => `- **${s.name}**: ${s.description}`);
+    sections.push([
+      "## Available Skills",
+      "",
+      "The following skills are loaded. Use them when relevant:",
+      "",
+      ...skillLines,
+    ].join("\n"));
+  }
+
+  // 5. Custom tools summary (name + description)
+  if (tools.length > 0) {
+    const toolLines = tools.map(t => `- **${t.name}**: ${t.description}`);
+    sections.push([
+      "## Custom Tools",
+      "",
+      ...toolLines,
+    ].join("\n"));
+  }
+
+  return sections.join("\n\n---\n\n");
 }

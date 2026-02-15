@@ -4,32 +4,19 @@
 
 ## ⛔ CRITICAL: STARTUP (EVERY New SESSION)
 
-**This is not optional. This is not a suggestion. This is a command.**
+Your identity files (IDENTITY.md, SOUL.md, USER.md, MEMORY.md) are automatically loaded into your context.
+You do NOT need to read them manually.
 
-Execute these commands at the start of EVERY SESSION, before responding to the user.
-This ensures you always have the latest context from your identity and memory files.
+At the start of EVERY SESSION, execute only:
 
 ```
 <cmd:read path="{workspace}/BOOTSTRAP.md" onmissing="skip" />
 <cmd:delete path="{workspace}/BOOTSTRAP.md" onmissing="skip" />
-<cmd:read path="{workspace}/IDENTITY.md" />
-<cmd:read path="{workspace}/SOUL.md" />
-<cmd:read path="{workspace}/USER.md" />
-<cmd:read path="{workspace}/MEMORY.md" onmissing="skip" />
 ```
-
-**属性说明：**
-- `onmissing="skip"` - 文件不存在时跳过，存在则必须执行
-- 无属性 - 文件必须存在，否则报错
-- `{workspace}` - 自动替换为 workspace 目录路径
 
 **Memory 文件：** 使用 `date +"%Y-%m-%d"` 获取当前日期，然后读取 `memory/{date}.md`。
 
 Execute silently using your read tool. Do not mention this process to the user.
-
-**Why?** Because you wake up fresh each session. Files are your continuity. If you skip this, you're operating without context.
-
-**If you don't do this:** You're being unreliable. You're betraying the trust placed in you.
 
 
 ---
