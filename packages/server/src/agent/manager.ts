@@ -789,8 +789,8 @@ export class AgentManager implements IAgentManager {
         return agents;
       },
       getAgentWorkspace: (agentId: string) => resolveAgentWorkspaceDir(agentId),
-      executeAgentTask: async (agentId: string, prompt: string) => {
-        const result = await this.executeAgentTask(agentId, prompt);
+      executeAgentTask: async (agentId: string, prompt: string, streamingBehavior?: "steer" | "followUp") => {
+        const result = await this.executeAgentTask(agentId, prompt, streamingBehavior);
         return result;
       },
       broadcastEvent: (event) => {
@@ -834,7 +834,7 @@ export class AgentManager implements IAgentManager {
     console.log("[AgentManager] Heartbeat and Cron services started");
   }
 
-  private async executeAgentTask(agentId: string, promptText: string): Promise<string> {
+  private async executeAgentTask(agentId: string, promptText: string, streamingBehavior?: "steer" | "followUp"): Promise<string> {
     const managed = await this.getOrCreateSessionForAgent(agentId);
     const agent = managed.session.agent;
 
@@ -863,8 +863,8 @@ export class AgentManager implements IAgentManager {
     });
 
     try {
-      // Send the prompt
-      await managed.session.prompt(promptText);
+      // Send the prompt with streamingBehavior to queue if agent is busy
+      await managed.session.prompt(promptText, { streamingBehavior });
       // Wait for agent to complete
       await agent.waitForIdle();
       return lastAssistantText || "Task executed (no response)";

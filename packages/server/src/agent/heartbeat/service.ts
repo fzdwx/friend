@@ -44,7 +44,7 @@ export interface CronHealthInfo {
 export interface HeartbeatServiceDeps {
   getAgents: () => Promise<AgentConfig[]>;
   getAgentWorkspace: (agentId: string) => string;
-  executeAgentTask: (agentId: string, prompt: string) => Promise<string>;
+  executeAgentTask: (agentId: string, prompt: string, streamingBehavior?: "steer" | "followUp") => Promise<string>;
   broadcastEvent?: (event: { type: string; agentId: string; status: string; message?: string }) => void;
   getCronJobs?: (agentId: string) => Promise<CronHealthInfo[]>;
 }
@@ -165,7 +165,8 @@ export class HeartbeatService {
     this.log("INFO", agentId, "Executing heartbeat");
 
     try {
-      const response = await this.deps.executeAgentTask(agentId, prompt);
+      // Use "followUp" to queue heartbeat even when agent is busy
+      const response = await this.deps.executeAgentTask(agentId, prompt, "followUp");
 
       // Update state
       const state = this.agentStates.get(agentId);
