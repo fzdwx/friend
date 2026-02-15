@@ -1653,7 +1653,7 @@ Your output must be:
     return all.map((m) => ({
       provider: m.provider,
       id: m.id,
-      name: `${m.provider}/${m.id}`,
+      name: m.name,
       available: availableSet.has(`${m.provider}/${m.id}`),
     }));
   }
