@@ -43,6 +43,7 @@ export function useGlobalSSE() {
   const setSteeringMessages = useSessionStore((s) => s.setSteeringMessages);
   const setFollowUpMessages = useSessionStore((s) => s.setFollowUpMessages);
   const setCompacting = useSessionStore((s) => s.setCompacting);
+  const setSessionStreaming = useSessionStore((s) => s.setSessionStreaming);
 
   const { addExecution, updateExecution, completeExecution, clearExecutions } = useToolStore();
 
@@ -108,6 +109,13 @@ export function useGlobalSSE() {
               sessions.map((s) => (s.id === event.sessionId ? { ...s, name: event.newName } : s)),
             );
           return;
+        }
+
+        // Update streaming state for any session (for sidebar indicator)
+        if (event.type === "agent_start") {
+          setSessionStreaming(event.sessionId, true);
+        } else if (event.type === "agent_end" || event.type === "error") {
+          setSessionStreaming(event.sessionId, false);
         }
 
         const currentActiveSessionId = useSessionStore.getState().activeSessionId;

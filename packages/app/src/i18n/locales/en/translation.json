@@ -36,7 +36,12 @@
     "delete": "Delete",
     "msgs": "{{count}} msgs",
     "context": "Context",
-    "compacting": "Compacting context..."
+    "compacting": "Compacting context...",
+    "streaming": {
+      "thinking": "Thinking...",
+      "generating": "Generating...",
+      "tool": "Tool"
+    }
   },
   "input": {
     "placeholder": "Ask anything... \"Add input validation\"",

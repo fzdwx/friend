@@ -25,6 +25,7 @@ export interface SessionInfo {
   model?: string;
   messageCount: number;
   workingPath?: string;
+  isStreaming?: boolean;  // Whether the session is currently streaming
 }
 
 export interface SessionDetail extends SessionInfo {

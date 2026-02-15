@@ -30,6 +30,7 @@ export class SessionManager implements ISessionManager {
       model: s.session.model ? `${s.session.model.provider}/${s.session.model.id}` : undefined,
       messageCount: s.session.messages.length,
       workingPath: s.workingPath,
+      isStreaming: s.session.isStreaming,
     }));
   }
 

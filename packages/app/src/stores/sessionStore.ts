@@ -38,6 +38,9 @@ interface SessionState {
   currentModel: ModelInfo | null;
   sseConnected: boolean; // SSE connection status
 
+  // Streaming states for all sessions (for sidebar indicator)
+  sessionStreamingStates: Record<string, boolean>;
+
   // Pending messages (steer/followUp queues)
   steeringMessages: string[];
   followUpMessages: string[];
@@ -93,6 +96,9 @@ interface SessionState {
   removeFollowUpMessage: (message: string) => void;
   clearPendingMessages: () => void;
 
+  // Streaming states for all sessions
+  setSessionStreaming: (sessionId: string, streaming: boolean) => void;
+
   // Stats actions
   setSessionStats: (stats: SessionStats | null) => void;
   setContextUsage: (usage: ContextUsage | null) => void;
@@ -129,6 +135,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   availableModels: [],
   currentModel: null,
   sseConnected: false,
+  sessionStreamingStates: {},
   steeringMessages: [],
   followUpMessages: [],
   sessionStats: null,
@@ -311,6 +318,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     set((s) => ({ followUpMessages: s.followUpMessages.filter((m) => m !== message) })),
   clearPendingMessages: () =>
     set({ steeringMessages: [], followUpMessages: [] }),
+
+  // Streaming states for all sessions
+  setSessionStreaming: (sessionId, streaming) =>
+    set((s) => ({
+      sessionStreamingStates: { ...s.sessionStreamingStates, [sessionId]: streaming },
+    })),
 
   // Stats actions
   setSessionStats: (stats) => set({ sessionStats: stats }),
