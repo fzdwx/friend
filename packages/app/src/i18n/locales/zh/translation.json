@@ -87,7 +87,10 @@
     "deleteConfirm": "确定删除此智能体？此操作不可撤销。",
     "noAgents": "暂无智能体。",
     "createFirst": "创建第一个智能体",
-    "agentLabel": "智能体"
+    "agentLabel": "智能体",
+    "heartbeatInterval": "心跳间隔",
+    "heartbeatDefault": "30分钟（默认）",
+    "heartbeatHint": "例如：30m、1h、2h"
   },
   "providers": {
     "title": "自定义提供商",

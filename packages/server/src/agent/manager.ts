@@ -1,100 +1,77 @@
 import {
-  createAgentSession,
-  AuthStorage,
-  ModelRegistry,
-  SessionManager,
-  DefaultResourceLoader,
-  loadSkillsFromDir,
   type AgentSession,
   type AgentSessionEvent,
+  AuthStorage,
+  createAgentSession,
+  DefaultResourceLoader,
+  loadSkillsFromDir,
+  ModelRegistry,
+  SessionManager,
   type SessionStats,
   type Skill,
   type SlashCommandInfo,
 } from "@mariozechner/pi-coding-agent";
-import {completeSimple, Model} from "@mariozechner/pi-ai";
+import {completeSimple} from "@mariozechner/pi-ai";
 import type {
-  SessionInfo,
-  SessionDetail,
-  Message,
-  ThinkingLevel,
   AppConfig,
-  ModelInfo,
+  ConfigUpdatedEvent,
   CustomProviderConfig,
-  ThemeConfig,
-  PlanModeState,
+  GlobalSSEEvent,
+  Message,
+  ModelInfo,
   PendingQuestion,
+  PlanModeState,
+  SessionCreatedEvent,
+  SessionDetail,
+  SessionInfo,
+  SSEEvent,
+  ThemeConfig,
+  ThinkingLevel,
 } from "@friend/shared";
-import { BUILT_IN_THEMES, DEFAULT_AGENT_ID } from "@friend/shared";
-import type { SSEEvent, GlobalSSEEvent, ConfigUpdatedEvent, SessionCreatedEvent, PlanModeStateChangedEvent, PlanModeRequestChoiceEvent, TodoItem as SharedTodoItem } from "@friend/shared";
-import { prisma } from "@friend/db";
-import { stat, unlink } from "node:fs/promises";
-import { join } from "node:path";
+import {DEFAULT_AGENT_ID} from "@friend/shared";
+import {prisma} from "@friend/db";
+import {stat, unlink} from "node:fs/promises";
+import type {IAgentManager} from "./tools";
 import {
   createAddProviderTool,
-  createListProvidersTool,
-  createUpdateProviderTool,
-  createGetThemesTool,
-  createGenerateThemeTool,
-  createSetThemeTool,
-  createGrepTool,
-  createGlobTool,
-  createRenameSessionTool,
-  createGetSessionTool,
   createCreateSessionTool,
-  createSessionSearchTool,
-  createMemorySearchTool,
-  createMemoryGetTool,
-  createQuestionTool,
   createCronTool,
+  createGenerateThemeTool,
+  createGetSessionTool,
+  createGetThemesTool,
+  createGlobTool,
+  createGrepTool,
+  createListProvidersTool,
+  createMemoryGetTool,
+  createMemorySearchTool,
+  createQuestionTool,
+  createRenameSessionTool,
+  createSessionSearchTool,
+  createSetThemeTool,
+  createUpdateProviderTool,
 } from "./tools";
-import type { IAgentManager, ICronManager } from "./tools";
-import { HeartbeatService, type HeartbeatServiceDeps } from "./heartbeat/index.js";
-import { CronService, type CronServiceDeps, type CronSchedule, type CronJobInfo } from "./cron/index.js";
-import { SystemEventQueue, globalSystemEventQueue } from "./system-events.js";
-import { GLOBAL_SKILLS_DIR, SkillWatcher, ensureSkillsDir } from "./skills.js";
-import { ensureAgentWorkspace } from "./bootstrap.js";
-import { loadAgentBootstrapFiles, buildWorkspacePrompt } from "./context.js";
+import {HeartbeatService, type HeartbeatServiceDeps} from "./heartbeat/index.js";
+import {type CronJobInfo, type CronSchedule, CronService, type CronServiceDeps} from "./cron/index.js";
+import {globalSystemEventQueue, SystemEventQueue} from "./system-events.js";
+import {ensureSkillsDir, GLOBAL_SKILLS_DIR, SkillWatcher} from "./skills.js";
+import {ensureAgentWorkspace} from "./bootstrap.js";
+import {buildWorkspacePrompt, loadAgentBootstrapFiles} from "./context.js";
 import {
-  listAgents,
-  getAgent,
+  ensureDefaultAgent,
   getDefaultAgent,
-  createAgent,
-  updateAgent,
-  deleteAgent,
+  listAgents,
   resolveAgentConfig,
-  resolveAgentWorkspaceDir,
   resolveAgentSessionsDir,
   resolveAgentSkillsDir,
-  ensureDefaultAgent,
-  type AgentConfig,
-  type ResolvedAgentConfig,
+  resolveAgentWorkspaceDir,
 } from "./agent-manager.js";
-import {
-  shouldRunMemoryFlush,
-  DEFAULT_MEMORY_FLUSH_PROMPT,
-  SILENT_REPLY_TOKEN,
-} from "./memory-flush.js";
-import {
-  createPlanModeExtension,
-  type TodoItem,
-  extractTodoItems,
-  markCompletedSteps,
-  isAssistantMessage,
-  getTextContent,
-  PLAN_MODE_TOOLS,
-  NORMAL_MODE_TOOLS,
-} from "./extensions/plan-mode.js";
-import { createCommandsExtension } from "./extensions/commands.js";
+import {DEFAULT_MEMORY_FLUSH_PROMPT, shouldRunMemoryFlush,} from "./memory-flush.js";
+import {createPlanModeExtension, NORMAL_MODE_TOOLS, type TodoItem,} from "./extensions/plan-mode.js";
+import {createCommandsExtension} from "./extensions/commands.js";
 
+import type {EventSubscriber, ManagedSession} from "./managers/index.js";
 // Sub-managers (modular refactoring)
-import {
-  ProviderManager,
-  ThemeManager,
-  CronManager,
-  PlanModeManager,
-  QuestionManager,
-} from "./managers/index.js";
-import type { ManagedSession, EventSubscriber } from "./managers/index.js";
+import {CronManager, PlanModeManager, ProviderManager, QuestionManager, ThemeManager,} from "./managers/index.js";
 
 // ─── DB mapping types ──────────────────────────────────────
 
@@ -398,12 +375,25 @@ export class AgentManager implements IAgentManager {
       createCronTool(this, agentId),
     ];
 
+    // Reload files fresh each turn (ensures latest content)
+    const freshFiles = await loadAgentBootstrapFiles(agentWorkspace);
+
     const resourceLoader = new DefaultResourceLoader({
       cwd,
       noSkills: true,
       noExtensions: true,
       noPromptTemplates: true,
       noThemes: true,
+      systemPromptOverride:(base)=>{
+        // First message - inject full workspace context
+        return buildWorkspacePrompt(
+            cwd,
+            freshFiles,
+            resolvedConfig.identity,
+            agentWorkspace,
+            true,           // includeMemoryRecall
+        )
+      },
       skillsOverride: () => {
         // Load global skills
         const globalResult = loadSkillsFromDir({ dir: GLOBAL_SKILLS_DIR, source: "user" });
@@ -423,53 +413,39 @@ export class AgentManager implements IAgentManager {
       },
       // Inject full context via before_agent_start on first message only
       extensionFactories: [
-        (pi) => {
-          pi.on("before_agent_start", async (_event, ctx) => {
-            // Check if context already injected
-            const entries = ctx.sessionManager.getEntries();
-            const hasContext = entries.some(
-              (e) =>
-                e.type === "message" &&
-                e.message.role === "user" &&
-                (e.message as any).customType === "friend_context"
-            );
-            if (hasContext) return; // Already injected, skip
-
-            // Reload files fresh each turn (ensures latest content)
-            const freshFiles = await loadAgentBootstrapFiles(agentWorkspace);
-
-            // Get loaded skills summaries
-            const { skills } = resourceLoader.getSkills();
-            const skillSummaries = skills.map(s => ({
-              name: s.name,
-              description: s.description,
-            }));
-
-            // Get custom tools summaries
-            const toolSummaries = customToolsList.map(t => ({
-              name: t.name,
-              description: t.description,
-            }));
-
-            // First message - inject full workspace context
-            const systemPrompt = buildWorkspacePrompt(
-              cwd,
-              freshFiles,
-              resolvedConfig.identity,
-              agentWorkspace,
-              true,           // includeMemoryRecall
-              skillSummaries,  // skills
-              toolSummaries,   // tools
-            );
-            return {
-              message: {
-                customType: "friend_context",
-                content: systemPrompt,
-                display: false,
-              },
-            };
-          });
-        },
+        // (pi) => {
+        //   pi.on("before_agent_start", async (_event, ctx) => {
+        //     // Check if context already injected
+        //     const entries = ctx.sessionManager.getEntries();
+        //     const hasContext = entries.some(
+        //       (e) =>
+        //         e.type === "message" &&
+        //         e.message.role === "user" &&
+        //         (e.message as any).customType === "friend_context"
+        //     );
+        //     if (hasContext) return; // Already injected, skip
+        //
+        //     // Reload files fresh each turn (ensures latest content)
+        //     const freshFiles = await loadAgentBootstrapFiles(agentWorkspace);
+        //
+        //
+        //     // First message - inject full workspace context
+        //     const systemPrompt = buildWorkspacePrompt(
+        //       cwd,
+        //       freshFiles,
+        //       resolvedConfig.identity,
+        //       agentWorkspace,
+        //       true,           // includeMemoryRecall
+        //     );
+        //     return {
+        //       message: {
+        //         customType: "friend_context",
+        //         content: systemPrompt,
+        //         display: false,
+        //       },
+        //     };
+        //   });
+        // },
         // Plan mode extension - handles /plan command and plan execution tracking
         createPlanModeExtension({
           // Get current plan mode state (using SDK sessionId, internally maps to DB sessionId)

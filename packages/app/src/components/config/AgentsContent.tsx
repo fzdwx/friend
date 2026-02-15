@@ -233,13 +233,23 @@ export function AgentsContent() {
                         </div>
                       </div>
 
-                      <div>
-                        <label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          {t("agents.defaultModel")}
-                        </label>
-                        <p className="text-sm mt-1 font-mono">
-                          {agent.model || t("agents.notSet")}
-                        </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs text-muted-foreground uppercase tracking-wide">
+                            {t("agents.defaultModel")}
+                          </label>
+                          <p className="text-sm mt-1 font-mono">
+                            {agent.model || t("agents.notSet")}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground uppercase tracking-wide">
+                            {t("agents.heartbeatInterval")}
+                          </label>
+                          <p className="text-sm mt-1">
+                            {agent.heartbeat?.every || t("agents.heartbeatDefault")}
+                          </p>
+                        </div>
                       </div>
                     </>
                   )}
@@ -386,6 +396,22 @@ function EditAgentForm({ agent, onChange, onSave, onCancel, isNew, modelsByProvi
             <option value="high">{t("agents.thinkingLevelHigh")}</option>
             <option value="xhigh">{t("agents.thinkingLevelXHigh")}</option>
           </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs text-muted-foreground">{t("agents.heartbeatInterval")}</label>
+        <div className="flex items-center gap-2 mt-1">
+          <input
+            type="text"
+            value={agent.heartbeat?.every || ""}
+            onChange={(e) =>
+              onChange({ ...agent, heartbeat: { ...agent.heartbeat, every: e.target.value || undefined } })
+            }
+            placeholder="30m, 1h, 2h..."
+            className="flex-1 px-3 py-2 rounded-md bg-secondary border border-border text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          <span className="text-xs text-muted-foreground whitespace-nowrap">{t("agents.heartbeatHint")}</span>
         </div>
       </div>
 

@@ -87,7 +87,10 @@
     "deleteConfirm": "Delete this agent? This cannot be undone.",
     "noAgents": "No agents yet.",
     "createFirst": "Create your first agent",
-    "agentLabel": "Agent"
+    "agentLabel": "Agent",
+    "heartbeatInterval": "Heartbeat Interval",
+    "heartbeatDefault": "30m (default)",
+    "heartbeatHint": "e.g. 30m, 1h, 2h"
   },
   "providers": {
     "title": "Custom Providers",

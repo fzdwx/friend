@@ -32,6 +32,7 @@ model Agent {
   defaultModel   String?
   thinkingLevel  String?
   workspacePath  String?
+  heartbeatEvery String?  // Interval for heartbeat (e.g., "30m", "1h")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

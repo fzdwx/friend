@@ -35,6 +35,7 @@ export const agentsRoutes = new Elysia({ prefix: "/api/agents" })
         model: agent.model,
         thinkingLevel: agent.thinkingLevel,
         workspace: agent.workspace,
+        heartbeat: agent.heartbeat,
       }))
     };
   })
@@ -90,9 +91,10 @@ export const agentsRoutes = new Elysia({ prefix: "/api/agents" })
         name: body.name || body.identity?.name || "New Agent",
         isDefault: body.default,
         identity: body.identity,
-        model: body.model,
-        thinkingLevel: body.thinkingLevel as ThinkingLevel | undefined,
+        model: body.model ?? undefined,
+        thinkingLevel: (body.thinkingLevel ?? undefined) as ThinkingLevel | undefined,
         workspace: body.workspace,
+        heartbeat: body.heartbeat,
       };
       
       const agent = await createAgent(agentConfig);
@@ -115,12 +117,15 @@ export const agentsRoutes = new Elysia({ prefix: "/api/agents" })
       workspace: t.Optional(t.String()),
       identity: t.Optional(t.Object({
         name: t.String(),
-        emoji: t.Optional(t.String()),
-        vibe: t.Optional(t.String()),
-        avatar: t.Optional(t.String()),
+        emoji: t.Optional(t.Union([t.String(), t.Null()])),
+        vibe: t.Optional(t.Union([t.String(), t.Null()])),
+        avatar: t.Optional(t.Union([t.String(), t.Null()])),
       })),
-      model: t.Optional(t.String()),
-      thinkingLevel: t.Optional(t.String()),
+      model: t.Optional(t.Union([t.String(), t.Null()])),
+      thinkingLevel: t.Optional(t.Union([t.String(), t.Null()])),
+      heartbeat: t.Optional(t.Object({
+        every: t.Optional(t.String()),
+      })),
     }),
   })
 
@@ -131,11 +136,12 @@ export const agentsRoutes = new Elysia({ prefix: "/api/agents" })
         name: body.name,
         isDefault: body.default,
         identity: body.identity,
-        model: body.model,
-        thinkingLevel: body.thinkingLevel as ThinkingLevel | undefined,
+        model: body.model ?? undefined,
+        thinkingLevel: (body.thinkingLevel ?? undefined) as ThinkingLevel | undefined,
         workspace: body.workspace,
+        heartbeat: body.heartbeat,
       });
-      
+
       return { ok: true, data: { success: true } };
     } catch (e) {
       return { ok: false, error: String(e) };
@@ -147,12 +153,15 @@ export const agentsRoutes = new Elysia({ prefix: "/api/agents" })
       workspace: t.Optional(t.String()),
       identity: t.Optional(t.Object({
         name: t.String(),
-        emoji: t.Optional(t.String()),
-        vibe: t.Optional(t.String()),
-        avatar: t.Optional(t.String()),
+        emoji: t.Optional(t.Union([t.String(), t.Null()])),
+        vibe: t.Optional(t.Union([t.String(), t.Null()])),
+        avatar: t.Optional(t.Union([t.String(), t.Null()])),
       })),
-      model: t.Optional(t.String()),
-      thinkingLevel: t.Optional(t.String()),
+      model: t.Optional(t.Union([t.String(), t.Null()])),
+      thinkingLevel: t.Optional(t.Union([t.String(), t.Null()])),
+      heartbeat: t.Optional(t.Object({
+        every: t.Optional(t.String()),
+      })),
     }),
   })
 

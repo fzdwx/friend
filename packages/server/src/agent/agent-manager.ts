@@ -35,6 +35,7 @@ export interface AgentConfig {
     /** Interval for heartbeat checks (e.g., "30m", "1h") */
     every?: string;
   };
+  skills?: string[];
 }
 
 export interface ResolvedAgentConfig extends AgentConfig {
@@ -95,6 +96,7 @@ export async function listAgents(): Promise<AgentConfig[]> {
     model: a.defaultModel ?? undefined,
     thinkingLevel: a.thinkingLevel as ThinkingLevel | undefined,
     workspace: a.workspacePath ?? undefined,
+    heartbeat: a.heartbeatEvery ? { every: a.heartbeatEvery } : undefined,
   }));
 }
 
@@ -121,6 +123,7 @@ export async function getAgent(id: string): Promise<AgentConfig | null> {
     model: agent.defaultModel ?? undefined,
     thinkingLevel: agent.thinkingLevel as ThinkingLevel | undefined,
     workspace: agent.workspacePath ?? undefined,
+    heartbeat: agent.heartbeatEvery ? { every: agent.heartbeatEvery } : undefined,
   };
 }
 
@@ -146,6 +149,7 @@ export async function getDefaultAgent(): Promise<AgentConfig> {
       model: agent.defaultModel ?? undefined,
       thinkingLevel: agent.thinkingLevel as ThinkingLevel | undefined,
       workspace: agent.workspacePath ?? undefined,
+      heartbeat: agent.heartbeatEvery ? { every: agent.heartbeatEvery } : undefined,
     };
   }
 
@@ -185,6 +189,7 @@ export async function createAgent(config: AgentConfig): Promise<AgentConfig> {
       defaultModel: config.model,
       thinkingLevel: config.thinkingLevel,
       workspacePath: config.workspace,
+      heartbeatEvery: config.heartbeat?.every,
     },
   });
 
@@ -210,6 +215,7 @@ export async function createAgent(config: AgentConfig): Promise<AgentConfig> {
     model: agent.defaultModel ?? undefined,
     thinkingLevel: agent.thinkingLevel as ThinkingLevel | undefined,
     workspace: agent.workspacePath ?? undefined,
+    heartbeat: agent.heartbeatEvery ? { every: agent.heartbeatEvery } : undefined,
   };
 }
 
@@ -239,6 +245,7 @@ export async function updateAgent(
       defaultModel: updates.model,
       thinkingLevel: updates.thinkingLevel,
       workspacePath: updates.workspace,
+      heartbeatEvery: updates.heartbeat?.every,
     },
   });
 
@@ -255,6 +262,7 @@ export async function updateAgent(
     model: agent.defaultModel ?? undefined,
     thinkingLevel: agent.thinkingLevel as ThinkingLevel | undefined,
     workspace: agent.workspacePath ?? undefined,
+    heartbeat: agent.heartbeatEvery ? { every: agent.heartbeatEvery } : undefined,
   };
 }
 
@@ -315,6 +323,7 @@ export async function resolveAgentConfig(id: string): Promise<ResolvedAgentConfi
     model: agent.model || defaultAgent.model || "anthropic/claude-sonnet-4-5",
     thinkingLevel: agent.thinkingLevel || defaultAgent.thinkingLevel || "medium",
     workspace: agent.workspace,
+    heartbeat: agent.heartbeat,
   };
 }
 

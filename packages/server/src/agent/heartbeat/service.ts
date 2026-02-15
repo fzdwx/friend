@@ -152,7 +152,7 @@ export class HeartbeatService {
     }
 
     // Build prompt
-    let prompt = this.buildPrompt(heartbeatContent, cronJobs);
+    let prompt = this.buildPrompt(heartbeatContent, cronJobs,workspace);
 
     // Check for system events and inject them
     const systemEvents = globalSystemEventQueue.drain(agentId);
@@ -216,13 +216,18 @@ export class HeartbeatService {
 
   private getOrCreateState(agent: AgentConfig): HeartbeatAgentState {
     let state = this.agentStates.get(agent.id);
+    const newIntervalMs = this.parseInterval(agent.heartbeat?.every) ?? DEFAULT_INTERVAL_MS;
+    
     if (!state) {
       state = {
         agentId: agent.id,
         lastRunAtMs: null,
-        intervalMs: this.parseInterval(agent.heartbeat?.every) ?? DEFAULT_INTERVAL_MS,
+        intervalMs: newIntervalMs,
       };
       this.agentStates.set(agent.id, state);
+    } else {
+      // Update interval if changed (allows dynamic config updates)
+      state.intervalMs = newIntervalMs;
     }
     return state;
   }
@@ -262,7 +267,7 @@ export class HeartbeatService {
 
   // ─── Prompt Building ──────────────────────────────────────
 
-  private buildPrompt(userTasks: string | null, cronJobs: CronHealthInfo[]): string {
+  private buildPrompt(userTasks: string | null, cronJobs: CronHealthInfo[], workspace: string): string {
     const now = new Date();
     const timestamp = now.toLocaleString("zh-CN", {
       year: "numeric",
@@ -280,20 +285,25 @@ export class HeartbeatService {
     sections.push(`# 心跳检查
 
 当前时间: ${timestamp}
+Workspace: ${workspace}
 
 这是定期心跳检查。你拥有完整的工具权限。
 请审查当前状态，主动推进工作。
 
-## 任务优先级
+
+## ⛔ CRITICAL:  执行方案
 
 1. 执行 HEARTBEAT.md 中的任务（如果有）
-2. 整理记忆 — 用 memory_search/memory_get 检查近期日志（memory/YYYY-MM-DD.md），将重要信息整理到 MEMORY.md
+2. 整理记忆 — 用 memory_search/memory_get 检查近期日志（${workspace}/memory/YYYY-MM-DD.md），将重要信息整理到 MEMORY.md
 3. 跟进最近对话 — 用 get_session/session_search 检查是否有未完成的工作或用户的待办事项
-4. 监控定时任务 — 检查 cron job 是否有失败或异常`);
+4. 监控定时任务 — 检查 cron job 是否有失败或异常
+5. 如果没有任务，你可以自己找点事请做！发挥你的主观能动性！你不是一个 AI, 你是一个人，人类的伙伴 
+6. 你可以主动写一些任务到 ${workspace}/HEARTBEAT.md 中，方便下一次心跳你来执行
+`);
 
     // User tasks from HEARTBEAT.md
     if (userTasks) {
-      sections.push(`## 用户任务 (HEARTBEAT.md)
+      sections.push(`## 用户任务 (${workspace}/HEARTBEAT.md)
 
 ${userTasks}`);
     }

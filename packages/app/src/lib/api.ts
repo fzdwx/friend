@@ -35,6 +35,9 @@ export interface AgentInfo {
   model?: string;
   thinkingLevel?: string;
   workspace?: string;
+  heartbeat?: {
+    every?: string;
+  };
 }
 
 export interface AgentDetail extends AgentInfo {
