@@ -142,7 +142,35 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   commandResult: null,
 
   setActiveTurnIndex: (index) => set({ activeTurnIndex: index }),
-  setSessions: (sessions) => set({ sessions }),
+  setSessions: (sessions) => {
+    set({ sessions });
+    
+    // Restore currentModel from active session after sessions are loaded
+    const activeSessionId = get().activeSessionId;
+    if (activeSessionId) {
+      const session = sessions.find((s: SessionInfo) => s.id === activeSessionId);
+      if (session?.model) {
+        const [provider, modelId] = session.model.split("/");
+        if (provider && modelId) {
+          const model = get().availableModels.find(
+            (m: ModelInfo) => m.provider === provider && m.id === modelId,
+          );
+          if (model) {
+            set({ currentModel: model });
+          } else {
+            // Model not in available list, create a fallback
+            const fallbackModel: ModelInfo = {
+              provider,
+              id: modelId,
+              name: `${provider}/${modelId}`,
+              available: false,
+            };
+            set({ currentModel: fallbackModel });
+          }
+        }
+      }
+    }
+  },
   addSession: (session) => set((s) => ({ sessions: [...s.sessions, session] })),
   setSseConnected: (connected) => set({ sseConnected: connected }),
   removeSession: (id) =>
@@ -230,6 +258,32 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     const res = await api.getModels();
     if (res.ok && res.data) {
       set({ availableModels: res.data });
+      
+      // Try to restore currentModel from active session
+      const activeSessionId = get().activeSessionId;
+      if (activeSessionId) {
+        const session = get().sessions.find((s: SessionInfo) => s.id === activeSessionId);
+        if (session?.model) {
+          const [provider, modelId] = session.model.split("/");
+          if (provider && modelId) {
+            const model = res.data.find(
+              (m: ModelInfo) => m.provider === provider && m.id === modelId,
+            );
+            if (model) {
+              set({ currentModel: model });
+            } else {
+              // Model not in available list, create a fallback
+              const fallbackModel: ModelInfo = {
+                provider,
+                id: modelId,
+                name: `${provider}/${modelId}`,
+                available: false,
+              };
+              set({ currentModel: fallbackModel });
+            }
+          }
+        }
+      }
     }
   },
   setCurrentModel: async (sessionId: string, provider: string, modelId: string) => {

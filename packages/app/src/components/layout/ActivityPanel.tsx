@@ -1,10 +1,13 @@
 import { useMemo, useRef, useEffect } from "react";
-import { Activity, Circle, Radio } from "lucide-react";
+import { Activity, Radio } from "lucide-react";
 import { useSessionStore } from "@/stores/sessionStore";
 import type { Message, UserMessage, AssistantMessage, ToolResultMessage } from "@friend/shared";
 import { TurnGroup, type Turn } from "@/components/activity/TurnGroup";
-import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+
+interface ActivityPanelProps {
+  hideHeader?: boolean;
+}
 
 function groupByTurns(messages: Message[]): Turn[] {
   const turns: Turn[] = [];
@@ -29,11 +32,10 @@ function groupByTurns(messages: Message[]): Turn[] {
   return turns;
 }
 
-export function ActivityPanel() {
+export function ActivityPanel({ hideHeader = false }: ActivityPanelProps) {
   const { t } = useTranslation();
   const messages = useSessionStore((s) => s.messages);
   const isStreaming = useSessionStore((s) => s.isStreaming);
-  const sseConnected = useSessionStore((s) => s.sseConnected);
   const topRef = useRef<HTMLDivElement>(null);
 
   const turns = useMemo(() => groupByTurns(messages), [messages]);
@@ -53,14 +55,16 @@ export function ActivityPanel() {
   return (
     <div className="flex flex-col h-full bg-card">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border/50">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <div className="flex items-center justify-center w-6 h-6 rounded-md bg-primary/10 text-primary">
-            <Activity className="w-3.5 h-3.5" />
+      {!hideHeader && (
+        <div className="px-4 py-3 border-b border-border/50">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <div className="flex items-center justify-center w-6 h-6 rounded-md bg-primary/10 text-primary">
+              <Activity className="w-3.5 h-3.5" />
+            </div>
+            <span>{t("activity.title")}</span>
           </div>
-          <span>{t("activity.title")}</span>
         </div>
-      </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
@@ -85,34 +89,6 @@ export function ActivityPanel() {
             ))}
           </div>
         )}
-      </div>
-
-      {/* SSE Connection Status Footer */}
-      <div className="px-4 py-2.5 border-t border-border/50 bg-muted/20">
-        <div className="flex items-center gap-2 text-xs">
-          <Circle
-            className={cn(
-              "w-2 h-2",
-              isStreaming
-                ? "fill-yellow-500 text-yellow-500 animate-pulse"
-                : sseConnected
-                  ? "fill-emerald-500 text-emerald-500"
-                  : "fill-red-500 text-red-500",
-            )}
-          />
-          <span
-            className={cn(
-              "font-medium",
-              isStreaming
-                ? "text-yellow-500"
-                : sseConnected
-                  ? "text-emerald-500"
-                  : "text-red-500",
-            )}
-          >
-            {isStreaming ? t("activity.streaming") : sseConnected ? t("activity.connected") : t("activity.disconnected")}
-          </span>
-        </div>
       </div>
     </div>
   );

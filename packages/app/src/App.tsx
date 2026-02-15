@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { ResizableLayout } from "@/components/layout/ResizableLayout";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ChatPanel } from "@/components/layout/ChatPanel";
-import { ActivityPanel } from "@/components/layout/ActivityPanel";
+import { RightPanel } from "@/components/layout/RightPanel";
 import { SettingsModal } from "@/components/config/SettingsModal";
 import { ToastContainer } from "@/components/ui/Toast";
 import { useGlobalSSE } from "@/hooks/useSSE";
@@ -44,7 +44,7 @@ export function App() {
             </div>
           </div>
         }
-        activity={<ActivityPanel />}
+        activity={<RightPanel />}
       />
       {isSettingsOpen && <SettingsModal />}
       <ToastContainer />
