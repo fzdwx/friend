@@ -44,8 +44,11 @@ import {
   createMemorySearchTool,
   createMemoryGetTool,
   createQuestionTool,
+  createCronTool,
 } from "./tools";
-import type { IAgentManager } from "./tools";
+import type { IAgentManager, ICronManager } from "./tools";
+import { HeartbeatService, type HeartbeatServiceDeps } from "./heartbeat/index.js";
+import { CronService, type CronServiceDeps, type CronSchedule, type CronJobInfo } from "./cron/index.js";
 import { GLOBAL_SKILLS_DIR, SkillWatcher, ensureSkillsDir } from "./skills.js";
 import { ensureAgentWorkspace } from "./bootstrap.js";
 import { loadAgentBootstrapFiles, buildWorkspacePrompt } from "./context.js";
@@ -162,6 +165,8 @@ export class AgentManager implements IAgentManager {
   private readonly authStorage: AuthStorage;
   private readonly modelRegistry: ModelRegistry;
   private skillWatcher: SkillWatcher | null = null;
+  private heartbeatService: HeartbeatService | null = null;
+  private cronService: CronService | null = null;
   private config: AppConfig = {
     thinkingLevel: "medium",
     customProviders: [],
@@ -281,6 +286,7 @@ export class AgentManager implements IAgentManager {
       type: "plan_mode_state_changed",
       enabled: state.enabled,
       executing: state.executing,
+      modifying: state.modifying,
       todos: state.todos,
     });
   }
@@ -305,6 +311,17 @@ export class AgentManager implements IAgentManager {
       type: "plan_mode_progress",
       completed,
       total: todos.length,
+    });
+  }
+
+  private handlePlanComplete(sessionId: string, todos: TodoItem[]): void {
+    const managed = this.managedSessions.get(sessionId);
+    if (!managed) return;
+
+    // Broadcast completion event to frontend
+    this.broadcast(managed, {
+      type: "plan_mode_complete",
+      todos,
     });
   }
 
@@ -342,6 +359,8 @@ export class AgentManager implements IAgentManager {
       createMemoryGetTool(agentWorkspace, { agentId }),
       // Question tool for asking user questions
       createQuestionTool(this),
+      // Cron tool for scheduling tasks
+      createCronTool(this, agentId),
     ];
 
     const resourceLoader = new DefaultResourceLoader({
@@ -439,6 +458,11 @@ export class AgentManager implements IAgentManager {
           onProgress: (sdkSessionId: string, todos: TodoItem[]) => {
             const dbSessionId = this.resolveDbSessionId(sdkSessionId);
             if (dbSessionId) this.handlePlanProgress(dbSessionId, todos);
+          },
+          // All tasks completed
+          onComplete: (sdkSessionId: string, todos: TodoItem[]) => {
+            const dbSessionId = this.resolveDbSessionId(sdkSessionId);
+            if (dbSessionId) this.handlePlanComplete(dbSessionId, todos);
           },
           // Continue with next task
           onContinue: async (sdkSessionId: string, nextTask: TodoItem) => {
@@ -687,6 +711,100 @@ export class AgentManager implements IAgentManager {
       }
     });
     this.skillWatcher.start(agentIds);
+
+    // 6. Initialize Heartbeat and Cron services
+    this.initHeartbeatAndCron();
+  }
+
+  // ─── Heartbeat and Cron Services ───────────────────────────────────────
+
+  private initHeartbeatAndCron(): void {
+    // Initialize HeartbeatService
+    const heartbeatDeps: HeartbeatServiceDeps = {
+      getAgents: async () => {
+        const agents = await listAgents();
+        return agents;
+      },
+      getAgentWorkspace: (agentId: string) => resolveAgentWorkspaceDir(agentId),
+      executeAgentTask: async (agentId: string, prompt: string) => {
+        const result = await this.executeAgentTask(agentId, prompt);
+        return result;
+      },
+      broadcastEvent: (event) => {
+        this.broadcastGlobal(event as unknown as ConfigUpdatedEvent);
+      },
+    };
+    this.heartbeatService = new HeartbeatService(heartbeatDeps);
+    this.heartbeatService.start();
+
+    // Initialize CronService
+    const cronDeps: CronServiceDeps = {
+      getAgentSession: async (agentId: string) => {
+        return this.getOrCreateSessionForAgent(agentId);
+      },
+      createAgentSession: async (agentId: string) => {
+        return this.createSessionForAgent(agentId);
+      },
+      broadcastEvent: (event) => {
+        this.broadcastGlobal(event as unknown as ConfigUpdatedEvent);
+      },
+    };
+    this.cronService = new CronService(cronDeps);
+    this.cronService.start();
+
+    console.log("[AgentManager] Heartbeat and Cron services started");
+  }
+
+  private async executeAgentTask(agentId: string, prompt: string): Promise<string> {
+    const { prompt: promptFn } = await this.getOrCreateSessionForAgent(agentId);
+    // Use prompt to send message and wait for response
+    await promptFn(prompt);
+    // Return a simple status - the actual response will be streamed
+    return "Task executed";
+  }
+
+  private async getOrCreateSessionForAgent(agentId: string): Promise<{
+    id: string;
+    prompt: (msg: string) => Promise<void>;
+  }> {
+    // Find the most recent session for this agent
+    let managed: ManagedSession | undefined;
+    let newestTime = 0;
+    
+    for (const session of this.managedSessions.values()) {
+      if (session.agentId === agentId) {
+        const updatedAt = new Date(session.updatedAt).getTime();
+        if (updatedAt > newestTime) {
+          newestTime = updatedAt;
+          managed = session;
+        }
+      }
+    }
+
+    if (managed) {
+      return {
+        id: managed.id,
+        prompt: (msg: string) => this.prompt(managed!.id, msg),
+      };
+    }
+
+    // Create a new session for this agent
+    return this.createSessionForAgent(agentId);
+  }
+
+  private async createSessionForAgent(agentId: string): Promise<{
+    id: string;
+    prompt: (msg: string) => Promise<void>;
+  }> {
+    const session = await this.createSession({ agentId });
+    const managed = this.managedSessions.get(session.id);
+    if (!managed) {
+      throw new Error(`Failed to create session for agent ${agentId}`);
+    }
+    return {
+      id: session.id,
+      prompt: (msg: string) => this.prompt(session.id, msg),
+    };
   }
 
   // Custom provider management
@@ -1746,7 +1864,7 @@ Your output must be:
   }
 
   private broadcastGlobal(event: ConfigUpdatedEvent | SessionCreatedEvent): void {
-    const globalEvent: GlobalSSEEvent = { ...event, sessionId: "__system__" };
+    const globalEvent: GlobalSSEEvent = { ...event, sessionId: "__system__" } as GlobalSSEEvent;
     for (const sub of this.globalSubscribers) {
       sub.push(globalEvent);
     }
@@ -1850,6 +1968,53 @@ Your output must be:
     if (newName === oldName) return;
 
     await this.renameSession(managed.id, newName);
+  }
+
+  // ─── ICronManager Implementation ────────────────────────────────────────
+
+  async addCronJob(
+    agentId: string,
+    name: string,
+    schedule: CronSchedule,
+    message: string,
+  ): Promise<{ id: string; nextRunAt?: Date }> {
+    if (!this.cronService) {
+      throw new Error("CronService not initialized");
+    }
+
+    const job = await this.cronService.addJob({
+      agentId,
+      name,
+      schedule,
+      payload: { kind: "agentTurn", message },
+    });
+
+    return {
+      id: job.id,
+      nextRunAt: job.state.nextRunAtMs ? new Date(job.state.nextRunAtMs) : undefined,
+    };
+  }
+
+  async listCronJobs(agentId?: string): Promise<CronJobInfo[]> {
+    if (!this.cronService) {
+      return [];
+    }
+    return this.cronService.listJobs({ agentId, includeDisabled: true });
+  }
+
+  async removeCronJob(jobId: string): Promise<boolean> {
+    if (!this.cronService) {
+      return false;
+    }
+    return this.cronService.removeJob(jobId);
+  }
+
+  async updateCronJob(jobId: string, enabled: boolean): Promise<boolean> {
+    if (!this.cronService) {
+      return false;
+    }
+    const job = await this.cronService.updateJob(jobId, { enabled });
+    return job !== null;
   }
 }
 

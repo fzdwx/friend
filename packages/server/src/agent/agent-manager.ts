@@ -30,6 +30,11 @@ export interface AgentConfig {
   model?: string;
   thinkingLevel?: ThinkingLevel;
   workspace?: string;
+  /** Heartbeat configuration */
+  heartbeat?: {
+    /** Interval for heartbeat checks (e.g., "30m", "1h") */
+    every?: string;
+  };
 }
 
 export interface ResolvedAgentConfig extends AgentConfig {

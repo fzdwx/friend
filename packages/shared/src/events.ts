@@ -66,6 +66,7 @@ export interface PlanModeStateChangedEvent {
   type: "plan_mode_state_changed";
   enabled: boolean;
   executing: boolean;
+  modifying?: boolean;
   todos: TodoItem[];
 }
 
@@ -170,6 +171,34 @@ export interface NotificationEvent {
   notificationType?: "info" | "warning" | "error";
 }
 
+// ─── Heartbeat Events ─────────────────────────────────────────────────────
+
+/** Heartbeat execution event */
+export interface HeartbeatEvent {
+  type: "heartbeat";
+  /** Agent that executed the heartbeat */
+  agentId: string;
+  /** Status of the heartbeat */
+  status: "started" | "completed" | "skipped" | "error";
+  /** Optional message from the heartbeat */
+  message?: string;
+}
+
+// ─── Cron Job Events ──────────────────────────────────────────────────────
+
+/** Cron job execution event */
+export interface CronJobEvent {
+  type: "cron_job";
+  /** Job ID */
+  jobId: string;
+  /** Agent that owns this job */
+  agentId: string;
+  /** Status of the job execution */
+  status: "started" | "completed" | "error" | "skipped";
+  /** Optional message or error */
+  message?: string;
+}
+
 export type SSEEvent =
   | AgentSessionEvent
   | ErrorEvent
@@ -183,7 +212,9 @@ export type SSEEvent =
   | PlanModeCompleteEvent
   | QuestionRequestEvent
   | CommandResultEvent
-  | NotificationEvent;
+  | NotificationEvent
+  | HeartbeatEvent
+  | CronJobEvent;
 
 /** Wire format: every event carries a sessionId for multiplexing */
 export type GlobalSSEEvent = SSEEvent & { sessionId: string };

@@ -52,6 +52,7 @@ interface SessionState {
   // Plan mode state
   planModeEnabled: boolean;
   planModeExecuting: boolean;
+  planModeModifying: boolean;
   planModeTodos: TodoItem[];
   planModeProgress: { completed: number; total: number } | null;
 
@@ -99,7 +100,7 @@ interface SessionState {
   setCompacting: (compacting: boolean) => void;
 
   // Plan mode actions
-  setPlanModeState: (enabled: boolean, executing: boolean, todos: TodoItem[]) => void;
+  setPlanModeState: (enabled: boolean, executing: boolean, todos: TodoItem[], modifying?: boolean) => void;
   setPlanModeProgress: (completed: number, total: number) => void;
   clearPlanMode: () => void;
 
@@ -135,6 +136,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   isCompacting: false,
   planModeEnabled: false,
   planModeExecuting: false,
+  planModeModifying: false,
   planModeTodos: [],
   planModeProgress: null,
   pendingQuestion: null,
@@ -332,10 +334,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   setCompacting: (compacting) => set({ isCompacting: compacting }),
 
   // Plan mode actions
-  setPlanModeState: (enabled, executing, todos) =>
+  setPlanModeState: (enabled, executing, todos, modifying = false) =>
     set({
       planModeEnabled: enabled,
       planModeExecuting: executing,
+      planModeModifying: modifying,
       planModeTodos: todos,
       planModeProgress: null,
     }),
@@ -345,6 +348,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     set({
       planModeEnabled: false,
       planModeExecuting: false,
+      planModeModifying: false,
       planModeTodos: [],
       planModeProgress: null,
     }),

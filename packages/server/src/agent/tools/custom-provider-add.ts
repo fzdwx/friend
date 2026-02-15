@@ -73,6 +73,20 @@ export interface IAgentManager {
   executeCommand?(id: string, name: string, args?: string): Promise<void>;
 }
 
+// ─── Cron Manager Interface (for CronTool) ───────────────────────────────
+
+export interface ICronManager {
+  addCronJob(
+    agentId: string,
+    name: string,
+    schedule: import("../cron/types.js").CronSchedule,
+    message: string,
+  ): Promise<{ id: string; nextRunAt?: Date }>;
+  listCronJobs(agentId?: string): Promise<import("../cron/types.js").CronJobInfo[]>;
+  removeCronJob(jobId: string): Promise<boolean>;
+  updateCronJob(jobId: string, enabled: boolean): Promise<boolean>;
+}
+
 // ─── Tool Definition ───────────────────────────────────────
 
 export function createAddProviderTool(manager: IAgentManager): ToolDefinition {

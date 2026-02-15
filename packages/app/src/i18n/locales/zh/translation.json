@@ -199,7 +199,9 @@
     "dragToReorder": "拖拽排序",
     "clickToEdit": "点击编辑",
     "executing": "执行计划中",
-    "stepProgress": "{{completed}}/{{total}} 步骤"
+    "stepProgress": "{{completed}}/{{total}} 步骤",
+    "modifying": "正在修改计划...",
+    "modifyingHint": "在对话框中输入您的修改意见"
   },
   "tools": {
     "read": "读取",

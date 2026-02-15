@@ -221,6 +221,7 @@ export function useGlobalSSE() {
               activeSessionId: useSessionStore.getState().activeSessionId,
               enabled: event.enabled,
               executing: event.executing,
+              modifying: event.modifying,
               todosCount: event.todos?.length,
             });
             if (event.sessionId && event.sessionId !== useSessionStore.getState().activeSessionId) {
@@ -231,6 +232,7 @@ export function useGlobalSSE() {
               event.enabled,
               event.executing,
               event.todos,
+              event.modifying,
             );
             break;
 
@@ -301,6 +303,41 @@ export function useGlobalSSE() {
                 toast.warning(event.message);
               } else {
                 toast.info(event.message);
+              }
+            });
+            break;
+
+          case "heartbeat":
+            // Heartbeat events are global, show toast for any agent
+            import("sonner").then(({ toast }) => {
+              if (event.status === "started") {
+                toast.info(`💓 Heartbeat: ${event.agentId}`, {
+                  description: "Checking for tasks...",
+                });
+              } else if (event.status === "error") {
+                toast.error(`💓 Heartbeat error: ${event.agentId}`, {
+                  description: event.message,
+                });
+              }
+              // "completed" and "skipped" are silent
+            });
+            break;
+
+          case "cron_job":
+            // Cron job events are global, show toast for any agent
+            import("sonner").then(({ toast }) => {
+              if (event.status === "started") {
+                toast.info(`⏰ Cron: ${event.agentId}`, {
+                  description: `Job ${event.jobId.slice(0, 8)} started`,
+                });
+              } else if (event.status === "completed") {
+                toast.success(`⏰ Cron: ${event.agentId}`, {
+                  description: `Job ${event.jobId.slice(0, 8)} completed`,
+                });
+              } else if (event.status === "error") {
+                toast.error(`⏰ Cron error: ${event.agentId}`, {
+                  description: event.message,
+                });
               }
             });
             break;

@@ -1,5 +1,55 @@
 # HEARTBEAT.md
 
-# Keep this file empty (or with only comments) to skip heartbeat API calls.
+This file defines tasks that the agent will check periodically during heartbeat cycles.
 
-# Add tasks below when you want the agent to check something periodically.
+**How it works:**
+- The agent reads this file on each heartbeat (configurable interval, default 30 minutes)
+- If there are actionable tasks, the agent executes them
+- If no tasks or all completed, the agent responds with `HEARTBEAT_OK`
+
+**Keep this file empty (or with only comments) to skip heartbeat execution.**
+
+---
+
+## 📋 Active Tasks
+
+<!-- Add your periodic tasks below. The agent will check and execute them. -->
+
+### Example Task Templates
+
+<!-- Uncomment and customize these examples: -->
+
+<!-- 
+- **Check for important emails**  
+  Scan inbox for unread messages marked important and summarize them.
+
+- **Review today's calendar**  
+  Check if there are any upcoming meetings or events in the next 2 hours.
+
+- **Monitor system status**  
+  Check disk space, memory usage, and report any warnings.
+
+- **Check GitHub notifications**  
+  Look for new mentions, PR reviews, or issues that need attention.
+
+- **Daily standup reminder**  
+  If it's 9:00 AM on a weekday, remind about standup meeting.
+
+- **Water break reminder**  
+  If it's been more than 2 hours since last reminder, suggest taking a break.
+-->
+
+---
+
+## ✅ Completed Tasks
+
+<!-- Move completed tasks here. They will be ignored in future heartbeats. -->
+
+---
+
+## 💡 Tips
+
+- Use `cron` tool for one-time reminders or precise scheduling
+- Keep tasks lightweight - heartbeats should be quick checks
+- Remove or comment out tasks you no longer need
+- Check `memory/YYYY-MM-DD.md` for recent activity logs

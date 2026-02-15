@@ -39,6 +39,7 @@ export function useSessions() {
               sessionRes.data.planModeState.enabled,
               sessionRes.data.planModeState.executing,
               sessionRes.data.planModeState.todos,
+              sessionRes.data.planModeState.modifying,
             );
           }
           // Restore pending question if exists
@@ -83,9 +84,10 @@ export function useSessions() {
             res.data.planModeState.enabled,
             res.data.planModeState.executing,
             res.data.planModeState.todos,
+            res.data.planModeState.modifying,
           );
         } else {
-          setPlanModeState(false, false, []);
+          setPlanModeState(false, false, [], false);
         }
         // Restore pending question if exists
         if (res.data.pendingQuestion) {

@@ -78,3 +78,20 @@ model CustomTheme {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model CronJob {
+  id             String   @id @default(uuid())
+  agentId        String   @default("main")
+  name           String
+  description    String?
+  enabled        Boolean  @default(true)
+  deleteAfterRun Boolean  @default(false)
+  schedule       String   // JSON: { kind: "at"|"every"|"cron", atMs?, everyMs?, expr?, tz? }
+  payload        String   // JSON: { kind: "agentTurn", message, ... }
+  state          String   @default("{}") // JSON: { nextRunAtMs?, lastRunAtMs?, lastStatus?, lastError?, consecutiveErrors? }
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([agentId])
+  @@index([enabled])
+}

@@ -69,7 +69,9 @@ export interface AgentConfig {
   
   /** Heartbeat config */
   heartbeat?: {
-    every?: string;  // e.g., "30m", "2h"
+    /** Interval for heartbeat checks (e.g., "30m", "1h", "2h") */
+    every?: string;
+    /** Where to send heartbeat results (default: "last" - last active session) */
     target?: "last" | "whatsapp" | "telegram" | "discord" | "none";
   };
   
@@ -209,6 +211,10 @@ export const DEFAULT_FRIEND_CONFIG: FriendConfig = {
       model: "anthropic/claude-sonnet-4-5",
       thinkingLevel: "medium",
       identity: DEFAULT_IDENTITY,
+      heartbeat: {
+        every: "30m",
+        target: "last",
+      },
     },
     list: [
       {

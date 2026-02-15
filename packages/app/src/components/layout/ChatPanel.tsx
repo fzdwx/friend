@@ -3,7 +3,7 @@ import { useSessionStore } from "@/stores/sessionStore";
 import { MessageList } from "@/components/chat/MessageList";
 import { InputArea } from "@/components/chat/InputArea";
 import { StreamingTurn } from "@/components/activity/StreamingTurn";
-import { PlanEditor, PlanProgress } from "@/components/plan/PlanEditor";
+import { PlanEditor, PlanProgress, PlanModifying } from "@/components/plan/PlanEditor";
 import { QuestionnaireCard } from "@/components/tools/QuestionnaireCard";
 import { MessageSquarePlus, Zap } from "lucide-react";
 import { api } from "@/lib/api";
@@ -50,6 +50,7 @@ function PlanModePanel() {
   const sessionId = useSessionStore((s) => s.activeSessionId);
   const planModeEnabled = useSessionStore((s) => s.planModeEnabled);
   const planModeExecuting = useSessionStore((s) => s.planModeExecuting);
+  const planModeModifying = useSessionStore((s) => s.planModeModifying);
   const planModeTodos = useSessionStore((s) => s.planModeTodos);
   const planModeProgress = useSessionStore((s) => s.planModeProgress);
   const isStreaming = useSessionStore((s) => s.isStreaming);
@@ -75,6 +76,11 @@ function PlanModePanel() {
         />
       </div>
     );
+  }
+
+  // Show modifying indicator when user is modifying the plan
+  if (planModeModifying) {
+    return <PlanModifying onCancel={handleCancel} />;
   }
 
   // Show editor when plan is ready

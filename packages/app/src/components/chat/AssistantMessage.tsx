@@ -14,12 +14,13 @@ export const AssistantMessage = memo(function AssistantMessage({
 }: AssistantMessageProps) {
   const [copied, setCopied] = useState(false);
   const textBlocks = message.content.filter((b) => b.type === "text" && b.text.trim() !== "");
-  if (textBlocks.length === 0) return null;
 
+  // Calculate fullText before any early returns
   const fullText = textBlocks
     .map((b) => (b.type === "text" ? b.text : ""))
     .join("\n\n");
 
+  // Define handleCopy before early return (hooks must be called in same order every render)
   const handleCopy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(fullText);
@@ -37,6 +38,9 @@ export const AssistantMessage = memo(function AssistantMessage({
       setTimeout(() => setCopied(false), 2000);
     }
   }, [fullText]);
+
+  // Early return after all hooks are called
+  if (textBlocks.length === 0) return null;
 
   return (
     <div className="flex justify-start group">

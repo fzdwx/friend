@@ -1,5 +1,10 @@
 {
   "name": "friend",
   "private": true,
-  "workspaces": ["packages/*"]
+  "workspaces": ["packages/*"],
+  "dependencies": {
+    "@mariozechner/pi-agent-core": "^0.52.12",
+    "@mariozechner/pi-ai": "^0.52.12",
+    "@mariozechner/pi-coding-agent": "^0.52.12"
+  }
 }

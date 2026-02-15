@@ -199,7 +199,9 @@
     "dragToReorder": "Drag to reorder",
     "clickToEdit": "Click to edit",
     "executing": "Executing Plan",
-    "stepProgress": "{{completed}}/{{total}} steps"
+    "stepProgress": "{{completed}}/{{total}} steps",
+    "modifying": "Modifying Plan...",
+    "modifyingHint": "Enter your changes in the chat"
   },
   "tools": {
     "read": "Read",
