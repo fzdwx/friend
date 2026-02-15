@@ -777,6 +777,16 @@ export class AgentManager implements IAgentManager {
       broadcastEvent: (event) => {
         this.broadcastGlobal(event as unknown as ConfigUpdatedEvent);
       },
+      getCronJobs: async (agentId: string) => {
+        if (!this.cronService) return [];
+        const jobs = await this.cronService.listJobs({ agentId, includeDisabled: true });
+        return jobs.map(j => ({
+          name: j.name,
+          enabled: j.enabled,
+          lastStatus: j.lastStatus,
+          lastRunAt: j.lastRunAt?.toLocaleString(),
+        }));
+      },
     };
     this.heartbeatService = new HeartbeatService(heartbeatDeps);
     this.heartbeatService.start();

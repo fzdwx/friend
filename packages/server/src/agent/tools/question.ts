@@ -13,7 +13,7 @@
  * 3. The Promise is resolved when the user answers (via /sessions/:id/answer-question API)
  */
 
-import { Type } from "@sinclair/typebox";
+import { Type, type Static } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
 import type { Question, QuestionAnswer, QuestionnaireResult } from "@friend/shared";
 
@@ -75,7 +75,7 @@ export function createQuestionTool(manager: IQuestionManager): ToolDefinition {
       "Supports single-select, multi-select, and custom text input.",
     parameters: QuestionParams,
 
-    async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+    async execute(_toolCallId, params: Static<typeof QuestionParams>, signal, _onUpdate, ctx) {
       const sessionId = ctx.sessionManager.getSessionId();
 
       if (!sessionId) {

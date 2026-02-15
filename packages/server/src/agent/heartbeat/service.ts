@@ -1,13 +1,13 @@
 /**
  * Heartbeat Service
- * 
- * Periodically checks HEARTBEAT.md files for each agent and executes tasks.
- * Inspired by PicoClaw and OpenClaw implementations.
+ *
+ * Periodically fires for each agent with proactive directives.
+ * Always fires — HEARTBEAT.md tasks are just one section of the prompt.
+ * Inspired by PicoClaw, OpenClaw, and nanobot implementations.
  */
 
 import { readFile, appendFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { existsSync } from "node:fs";
 import type { AgentConfig } from "../agent-manager.js";
 import { globalSystemEventQueue, SystemEventQueue } from "../system-events.js";
 
@@ -17,6 +17,7 @@ const MIN_INTERVAL_MS = 5 * 60 * 1000;  // 5 minutes minimum
 const DEFAULT_INTERVAL_MS = 30 * 60 * 1000;  // 30 minutes default
 const CHECK_INTERVAL_MS = 60 * 1000;  // Check every 1 minute
 const HEARTBEAT_TOKEN = "HEARTBEAT_OK";
+const HEARTBEAT_OK_THRESHOLD = 300;  // chars — below this, treat as "nothing happened"
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -33,11 +34,19 @@ export interface HeartbeatResult {
   error?: string;
 }
 
+export interface CronHealthInfo {
+  name: string;
+  enabled: boolean;
+  lastStatus?: string;
+  lastRunAt?: string;
+}
+
 export interface HeartbeatServiceDeps {
   getAgents: () => Promise<AgentConfig[]>;
   getAgentWorkspace: (agentId: string) => string;
   executeAgentTask: (agentId: string, prompt: string) => Promise<string>;
   broadcastEvent?: (event: { type: string; agentId: string; status: string; message?: string }) => void;
+  getCronJobs?: (agentId: string) => Promise<CronHealthInfo[]>;
 }
 
 // ─── HeartbeatService ────────────────────────────────────────
@@ -69,7 +78,7 @@ export class HeartbeatService {
 
     this.timer = setInterval(() => this.checkAllAgents(), CHECK_INTERVAL_MS);
     console.log("[Heartbeat] Service started");
-    
+
     // Run initial check after a short delay
     setTimeout(() => this.checkAllAgents(), 5000);
   }
@@ -95,7 +104,7 @@ export class HeartbeatService {
 
       for (const agent of agents) {
         const state = this.getOrCreateState(agent);
-        
+
         // Check if it's time to run for this agent
         if (state.lastRunAtMs !== null) {
           const elapsed = now - state.lastRunAtMs;
@@ -120,27 +129,31 @@ export class HeartbeatService {
   private async executeHeartbeat(agentId: string): Promise<HeartbeatResult> {
     const workspace = this.deps.getAgentWorkspace(agentId);
     const heartbeatPath = join(workspace, "HEARTBEAT.md");
-    
-    // Read HEARTBEAT.md
-    let content: string;
+
+    // Read HEARTBEAT.md (optional — heartbeat always fires)
+    let heartbeatContent: string | null = null;
     try {
-      content = await readFile(heartbeatPath, "utf-8");
-    } catch (err: any) {
-      if (err.code === "ENOENT") {
-        // File doesn't exist, skip
-        return { agentId, status: "skipped", message: "HEARTBEAT.md not found" };
+      const raw = await readFile(heartbeatPath, "utf-8");
+      if (!isContentEmpty(raw)) {
+        heartbeatContent = raw;
       }
-      throw err;
+    } catch {
+      // File doesn't exist — that's fine, heartbeat still fires
     }
 
-    // Check if content is effectively empty
-    if (isContentEmpty(content)) {
-      return { agentId, status: "skipped", message: "HEARTBEAT.md is empty" };
+    // Fetch cron health (optional)
+    let cronJobs: CronHealthInfo[] = [];
+    if (this.deps.getCronJobs) {
+      try {
+        cronJobs = await this.deps.getCronJobs(agentId);
+      } catch {
+        // Non-critical — skip cron health
+      }
     }
 
     // Build prompt
-    let prompt = this.buildPrompt(content);
-    
+    let prompt = this.buildPrompt(heartbeatContent, cronJobs);
+
     // Check for system events and inject them
     const systemEvents = globalSystemEventQueue.drain(agentId);
     if (systemEvents.length > 0) {
@@ -148,42 +161,43 @@ export class HeartbeatService {
       prompt = `${eventsContext}\n\n${prompt}`;
       this.log("INFO", agentId, `Injected ${systemEvents.length} system events into heartbeat`);
     }
-    
+
     this.log("INFO", agentId, "Executing heartbeat");
 
     try {
       const response = await this.deps.executeAgentTask(agentId, prompt);
-      
+
       // Update state
       const state = this.agentStates.get(agentId);
       if (state) {
         state.lastRunAtMs = Date.now();
       }
 
-      // Check response
-      const trimmedResponse = response.trim();
-      if (trimmedResponse === HEARTBEAT_TOKEN || trimmedResponse.includes(HEARTBEAT_TOKEN)) {
+      // Smart HEARTBEAT_OK handling (OpenClaw pattern)
+      const meaningful = stripHeartbeatOk(response);
+
+      if (!meaningful) {
+        // Pure HEARTBEAT_OK or empty after stripping
         this.log("INFO", agentId, "Heartbeat OK");
         return { agentId, status: "executed", message: "HEARTBEAT_OK" };
       }
 
-      // Non-empty response - log and potentially broadcast
-      this.log("INFO", agentId, `Heartbeat response: ${trimmedResponse.slice(0, 200)}...`);
-      
-      // Broadcast to frontend if there's meaningful content
-      if (this.deps.broadcastEvent && trimmedResponse && trimmedResponse !== HEARTBEAT_TOKEN) {
+      // Agent did work — log and broadcast
+      this.log("INFO", agentId, `Heartbeat response: ${meaningful.slice(0, 200)}...`);
+
+      if (this.deps.broadcastEvent) {
         this.deps.broadcastEvent({
           type: "heartbeat",
           agentId,
           status: "completed",
-          message: trimmedResponse.slice(0, 500),
+          message: meaningful.slice(0, 500),
         });
       }
 
-      return { agentId, status: "executed", message: trimmedResponse.slice(0, 200) };
+      return { agentId, status: "executed", message: meaningful.slice(0, 200) };
     } catch (err: any) {
       this.log("ERROR", agentId, `Heartbeat error: ${err.message}`);
-      
+
       // Broadcast error
       if (this.deps.broadcastEvent) {
         this.deps.broadcastEvent({
@@ -215,26 +229,26 @@ export class HeartbeatService {
 
   private parseInterval(every?: string): number | null {
     if (!every) return null;
-    
+
     // Parse formats like "30m", "1h", "2h30m"
     const match = every.match(/^(\d+)(h|m)?(\d+)?(m|h)?$/);
     if (!match) return null;
 
     let ms = 0;
     const str = every.toLowerCase();
-    
+
     // Hours
     const hoursMatch = str.match(/(\d+)h/);
     if (hoursMatch) {
       ms += parseInt(hoursMatch[1]) * 60 * 60 * 1000;
     }
-    
+
     // Minutes
     const minutesMatch = str.match(/(\d+)m/);
     if (minutesMatch) {
       ms += parseInt(minutesMatch[1]) * 60 * 1000;
     }
-    
+
     // Just a number - assume minutes
     if (!hoursMatch && !minutesMatch) {
       const num = parseInt(every);
@@ -248,7 +262,7 @@ export class HeartbeatService {
 
   // ─── Prompt Building ──────────────────────────────────────
 
-  private buildPrompt(content: string): string {
+  private buildPrompt(userTasks: string | null, cronJobs: CronHealthInfo[]): string {
     const now = new Date();
     const timestamp = now.toLocaleString("zh-CN", {
       year: "numeric",
@@ -260,17 +274,43 @@ export class HeartbeatService {
       hour12: false,
     });
 
-    return `# Heartbeat Check
+    const sections: string[] = [];
 
-Current time: ${timestamp}
+    // Header
+    sections.push(`# 心跳检查
 
-You are a proactive AI assistant. This is a scheduled heartbeat check.
-Review the following tasks and execute any necessary actions.
-If there is nothing that requires attention, respond ONLY with: ${HEARTBEAT_TOKEN}
+当前时间: ${timestamp}
 
----
+这是定期心跳检查。你拥有完整的工具权限。
+请审查当前状态，主动推进工作。
 
-${content}`;
+## 任务优先级
+
+1. 执行 HEARTBEAT.md 中的任务（如果有）
+2. 整理记忆 — 用 memory_search/memory_get 检查近期日志（memory/YYYY-MM-DD.md），将重要信息整理到 MEMORY.md
+3. 跟进最近对话 — 用 get_session/session_search 检查是否有未完成的工作或用户的待办事项
+4. 监控定时任务 — 检查 cron job 是否有失败或异常`);
+
+    // User tasks from HEARTBEAT.md
+    if (userTasks) {
+      sections.push(`## 用户任务 (HEARTBEAT.md)
+
+${userTasks}`);
+    }
+
+    // Cron health — only inject when there are failed/stale jobs
+    const cronHealthSection = buildCronHealthSection(cronJobs);
+    if (cronHealthSection) {
+      sections.push(cronHealthSection);
+    }
+
+    // Output rules
+    sections.push(`## 输出规则
+
+- 执行了操作：简要描述（1-3句话）
+- 无需任何操作：仅回复 HEARTBEAT_OK`);
+
+    return sections.join("\n\n");
   }
 
   // ─── Logging ──────────────────────────────────────────────
@@ -278,13 +318,13 @@ ${content}`;
   private async logToFile(agentId: string, level: string, message: string): Promise<void> {
     const workspace = this.deps.getAgentWorkspace(agentId);
     const logPath = join(workspace, "heartbeat.log");
-    
+
     // Ensure workspace exists
     await mkdir(workspace, { recursive: true }).catch(() => {});
-    
+
     const timestamp = new Date().toISOString();
     const line = `[${timestamp}] [${level}] ${message}\n`;
-    
+
     await appendFile(logPath, line).catch((err) => {
       console.error(`[Heartbeat] Failed to write log for ${agentId}:`, err);
     });
@@ -315,22 +355,69 @@ ${content}`;
  */
 function isContentEmpty(content: string): boolean {
   const lines = content.split("\n");
-  
+
   for (const line of lines) {
     const trimmed = line.trim();
-    
+
     // Skip empty lines
     if (!trimmed) continue;
-    
+
     // Skip markdown headers (# followed by space or EOL)
     if (/^#+(\s|$)/.test(trimmed)) continue;
-    
+
     // Skip empty markdown list items
     if (/^[-*+]\s*(\[[\sXx]?\]\s*)?$/.test(trimmed)) continue;
-    
+
     // Found non-empty content
     return false;
   }
-  
+
   return true;
+}
+
+/**
+ * Strip HEARTBEAT_OK from response and determine if there's meaningful content.
+ * Returns the meaningful content, or null if response is effectively just HEARTBEAT_OK.
+ */
+function stripHeartbeatOk(response: string): string | null {
+  let text = response.trim();
+
+  // Strip HEARTBEAT_OK from start and end (case-insensitive position, exact token)
+  text = text.replace(new RegExp(`^${HEARTBEAT_TOKEN}\\s*`, "g"), "");
+  text = text.replace(new RegExp(`\\s*${HEARTBEAT_TOKEN}$`, "g"), "");
+  text = text.trim();
+
+  // If nothing left or too short, treat as "nothing happened"
+  if (!text || text.length <= HEARTBEAT_OK_THRESHOLD) {
+    return null;
+  }
+
+  return text;
+}
+
+/**
+ * Build cron health section for prompt injection.
+ * Only returns content when there are failed or problematic jobs.
+ */
+function buildCronHealthSection(cronJobs: CronHealthInfo[]): string | null {
+  if (cronJobs.length === 0) return null;
+
+  // Filter to only problematic jobs (failed status)
+  const failedJobs = cronJobs.filter(j => j.lastStatus === "error");
+
+  if (failedJobs.length === 0) return null;
+
+  const lines = failedJobs.map(j => {
+    const parts = [`- **${j.name}**`];
+    parts.push(`状态: ${j.lastStatus}`);
+    if (j.lastRunAt) parts.push(`上次运行: ${j.lastRunAt}`);
+    if (!j.enabled) parts.push("(已禁用)");
+    return parts.join(" | ");
+  });
+
+  return `## 定时任务异常
+
+以下定时任务存在问题，请检查：
+
+${lines.join("\n")}`;
 }

@@ -291,7 +291,7 @@ export const fileRoutes = new Elysia({ prefix: "/api/files" })
       const workingPath = await getSessionWorkingPath(sessionId);
 
       // Use Bun's built-in Glob (available globally in Bun runtime)
-      const globPattern = new globalThis.Glob(pattern);
+      const globPattern = new (globalThis as any).Glob(pattern);
       const files: string[] = [];
       
       for await (const file of globPattern.scan({

@@ -68,7 +68,7 @@ export function createCommandsExtension(
         const usage = ctx.getContextUsage();
 
         if (usage) {
-          const message = `Tokens: ${usage.tokens.toLocaleString()} / ${usage.contextWindow.toLocaleString()} (${usage.percent.toFixed(1)}%)`;
+          const message = `Tokens: ${(usage.tokens ?? 0).toLocaleString()} / ${usage.contextWindow.toLocaleString()} (${(usage.percent ?? 0).toFixed(1)}%)`;
           callbacks.onCommandResult(dbSessionId, "stats", true, message);
         } else {
           callbacks.onCommandResult(dbSessionId, "stats", false, "Statistics not available");

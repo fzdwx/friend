@@ -192,6 +192,7 @@ export function createSessionSearchTool(manager: any): ToolDefinition {
               type: "text" as const,
               text: "Please provide a search query.",
             }],
+            details: { query: "", results: [] },
           };
         }
 
