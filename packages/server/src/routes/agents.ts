@@ -3,7 +3,7 @@
  */
 
 import { Elysia, t } from "elysia";
-import type { ThinkingLevel } from "@friend/shared";
+import type { ThinkingLevel, AgentIdentity } from "@friend/shared";
 import {
   listAgents,
   getAgent,
@@ -19,6 +19,25 @@ import { ensureAgentWorkspace } from "../agent/bootstrap.js";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
+
+/**
+ * Clean identity object by converting null values to undefined.
+ * This is needed because the API accepts null but AgentIdentity type expects undefined.
+ */
+function cleanIdentity(identity?: { 
+  name: string; 
+  emoji?: string | null; 
+  vibe?: string | null; 
+  avatar?: string | null;
+}): AgentIdentity | undefined {
+  if (!identity) return undefined;
+  return {
+    name: identity.name,
+    emoji: identity.emoji ?? undefined,
+    vibe: identity.vibe ?? undefined,
+    avatar: identity.avatar ?? undefined,
+  };
+}
 
 export const agentsRoutes = new Elysia({ prefix: "/api/agents" })
 
@@ -90,7 +109,7 @@ export const agentsRoutes = new Elysia({ prefix: "/api/agents" })
         id: body.id || body.name?.toLowerCase().replace(/\s+/g, "-") || crypto.randomUUID(),
         name: body.name || body.identity?.name || "New Agent",
         isDefault: body.default,
-        identity: body.identity,
+        identity: cleanIdentity(body.identity),
         model: body.model ?? undefined,
         thinkingLevel: (body.thinkingLevel ?? undefined) as ThinkingLevel | undefined,
         workspace: body.workspace,
@@ -135,7 +154,7 @@ export const agentsRoutes = new Elysia({ prefix: "/api/agents" })
       await updateAgent(params.id, {
         name: body.name,
         isDefault: body.default,
-        identity: body.identity,
+        identity: cleanIdentity(body.identity),
         model: body.model ?? undefined,
         thinkingLevel: (body.thinkingLevel ?? undefined) as ThinkingLevel | undefined,
         workspace: body.workspace,

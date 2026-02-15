@@ -412,19 +412,36 @@ export class AgentManager implements IAgentManager {
           diagnostics: [...globalResult.diagnostics, ...agentResult.diagnostics],
         };
       },
-      // Inject full context via before_agent_start on first message only
+      // Inject full context via before_agent_start on first message or when refresh requested
       extensionFactories: [
         (pi) => {
           pi.on("before_agent_start", async (_event, ctx) => {
+            // Map SDK session ID to DB session ID
+            const sdkSessionId = ctx.sessionManager.getSessionId();
+            const dbSessionId = this.resolveDbSessionId(sdkSessionId);
+            const managed = dbSessionId ? this.managedSessions.get(dbSessionId) : null;
+
             // Check if context already injected
             const entries = ctx.sessionManager.getEntries();
-            const hasContext = entries.some(
+            const contextEntries = entries.filter(
               (e) =>
                 e.type === "message" &&
                 e.message.role === "user" &&
                 (e.message as any).customType === "friend_context"
             );
-            if (hasContext) return; // Already injected, skip
+
+            // Determine if we need to inject/refresh context
+            const needsRefresh = managed?.needContextRefresh;
+            const hasNoContext = contextEntries.length === 0;
+
+            if (!hasNoContext && !needsRefresh) {
+              return; // Already injected and no refresh requested
+            }
+
+            // Clear refresh flag
+            if (managed?.needContextRefresh) {
+              managed.needContextRefresh = false;
+            }
 
             // Reload files fresh each turn (ensures latest content)
             const freshFiles = await loadAgentBootstrapFiles(agentWorkspace);
@@ -443,7 +460,7 @@ export class AgentManager implements IAgentManager {
               description: t.description,
             }));
 
-            // First message - inject full workspace context
+            // Inject workspace context
             const systemPrompt = buildWorkspacePrompt(
                 cwd,
                 freshFiles,
@@ -453,6 +470,12 @@ export class AgentManager implements IAgentManager {
                 skillSummaries,  // skills
                 toolSummaries,   // tools
             );
+
+            // If refreshing, add a note about it
+            const refreshNote = needsRefresh
+              ? "\n\n[Context has been refreshed with the latest workspace files]"
+              : "";
+
             return {
               systemPrompt:`
               You are friend agent.
@@ -460,7 +483,7 @@ export class AgentManager implements IAgentManager {
               message: {
                 role: "developer",
                 customType: "friend_context",
-                content: systemPrompt,
+                content: systemPrompt + refreshNote,
                 display: false,
               } ,
             };
@@ -1603,6 +1626,17 @@ Your output must be:
     const managed = this.managedSessions.get(id);
     if (!managed) throw new Error(`Session ${id} not found`);
     await managed.session.compact();
+  }
+
+  /**
+   * Refresh context for a session.
+   * Sets a flag to reload workspace files on the next turn.
+   */
+  refreshContext(id: string): boolean {
+    const managed = this.managedSessions.get(id);
+    if (!managed) return false;
+    managed.needContextRefresh = true;
+    return true;
   }
 
   getStats(id: string): SessionStats | null {

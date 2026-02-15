@@ -88,6 +88,12 @@ export const sessionRoutes = new Elysia({ prefix: "/api/sessions" })
     }
   })
 
+  .post("/:id/refresh-context", ({ params: { id } }) => {
+    const ok = getAgentManager().refreshContext(id);
+    if (!ok) return { ok: false, error: "Session not found" };
+    return { ok: true };
+  })
+
   .get("/:id/stats", ({ params: { id } }) => {
     const stats = getAgentManager().getStats(id);
     if (!stats) return { ok: false, error: "Session not found" };

@@ -37,6 +37,9 @@
     "msgs": "{{count}} msgs",
     "context": "Context",
     "compacting": "Compacting context...",
+    "refreshContext": "Refresh context from workspace files",
+    "contextRefreshed": "Context refreshed",
+    "contextRefreshFailed": "Failed to refresh context",
     "streaming": {
       "thinking": "Thinking...",
       "generating": "Generating...",

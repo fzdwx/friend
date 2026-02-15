@@ -133,6 +133,7 @@ export const api = {
     }),
   abort: (id: string) => request<void>(`/sessions/${id}/abort`, { method: "POST" }),
   compact: (id: string) => request<void>(`/sessions/${id}/compact`, { method: "POST" }),
+  refreshContext: (id: string) => request<void>(`/sessions/${id}/refresh-context`, { method: "POST" }),
   getStats: (id: string) => request<any>(`/sessions/${id}/stats`),
   getContextUsage: (id: string) =>
     request<{ tokens: number; contextWindow: number; percent: number } | null>(

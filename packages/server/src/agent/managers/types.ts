@@ -22,6 +22,7 @@ export interface ManagedSession {
   autoRenamed?: boolean;
   memoryFlushPending?: boolean;
   planModeState?: PlanModeState;
+  needContextRefresh?: boolean; // Flag to force context reload on next turn
 }
 
 // ─── Provider Manager Interface ───────────────────────────

@@ -37,6 +37,9 @@
     "msgs": "{{count}} 条消息",
     "context": "上下文",
     "compacting": "压缩上下文中...",
+    "refreshContext": "从工作区文件刷新上下文",
+    "contextRefreshed": "上下文已刷新",
+    "contextRefreshFailed": "刷新上下文失败",
     "streaming": {
       "thinking": "思考中",
       "generating": "生成中",

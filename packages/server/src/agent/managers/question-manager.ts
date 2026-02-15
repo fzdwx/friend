@@ -99,7 +99,8 @@ export class QuestionManager implements IQuestionManager {
    */
   restorePendingQuestion(sessionId: string, question: PendingQuestion): void {
     // Re-create the Promise that will be resolved when user answers
-    const questionPromise = new Promise<{ questionId: string; answers: any[]; cancelled: boolean }>((resolve) => {
+    // Note: The promise is created to set up the resolver, but we don't need to await it
+    void new Promise<{ questionId: string; answers: any[]; cancelled: boolean }>((resolve) => {
       this.pendingQuestions.set(sessionId, {
         resolve,
         questionId: question.questionId,
@@ -107,7 +108,6 @@ export class QuestionManager implements IQuestionManager {
       });
     });
     console.log(`[QuestionManager] Restored pendingQuestion for session ${sessionId}`);
-    // Note: The promise is stored but we don't await it here
   }
 
   /**

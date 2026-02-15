@@ -49,6 +49,7 @@
         "@prisma/client": "^6.9.0",
       },
       "devDependencies": {
+        "@types/node": "^25.2.3",
         "prisma": "^6.9.0",
       },
     },

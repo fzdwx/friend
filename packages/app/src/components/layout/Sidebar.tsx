@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { useSessions } from "@/hooks/useSessions";
 import { useConfigStore } from "@/stores/configStore";
 import { useSessionStore, type StreamingPhase } from "@/stores/sessionStore";
-import { Plus, MessageSquare, Trash2, Settings, Folder, Bot, Hash, Coins, Loader2, Sparkles, Wrench } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Settings, Folder, Bot, Hash, Coins, Loader2, Sparkles, Wrench, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { selectDirectory, isTauri } from "@/lib/tauri";
 import { AgentSelector } from "@/components/agents/AgentSelector";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 // Streaming status indicator component
 function StreamingIndicator({ phase }: { phase: StreamingPhase }) {
@@ -209,6 +211,7 @@ function SessionStatsBar() {
   const isStreaming = useSessionStore((s) => s.isStreaming);
   const isCompacting = useSessionStore((s) => s.isCompacting);
   const refreshSessionStats = useSessionStore((s) => s.refreshSessionStats);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Refresh stats periodically when streaming
   useEffect(() => {
@@ -222,6 +225,23 @@ function SessionStatsBar() {
       return () => clearInterval(interval);
     }
   }, [activeSessionId, isStreaming, refreshSessionStats]);
+
+  const handleRefreshContext = async () => {
+    if (!activeSessionId || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      const result = await api.refreshContext(activeSessionId);
+      if (result.ok) {
+        toast.success(t("sidebar.contextRefreshed"));
+      } else {
+        toast.error(result.error || t("sidebar.contextRefreshFailed"));
+      }
+    } catch (err) {
+      toast.error(t("sidebar.contextRefreshFailed"));
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   if (!activeSessionId) return null;
 
@@ -247,9 +267,22 @@ function SessionStatsBar() {
         <div className="space-y-0.5">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground/70">{t("sidebar.context")}</span>
-            <span>
-              {((contextUsage.tokens / 1000) | 0)}k / {((contextUsage.contextWindow / 1000) | 0)}k
-            </span>
+            <div className="flex items-center gap-1">
+              <span>
+                {((contextUsage.tokens / 1000) | 0)}k / {((contextUsage.contextWindow / 1000) | 0)}k
+              </span>
+              <button
+                onClick={handleRefreshContext}
+                disabled={isRefreshing || isStreaming}
+                className={cn(
+                  "p-0.5 rounded hover:bg-accent/50 transition-colors",
+                  (isRefreshing || isStreaming) && "opacity-50 cursor-not-allowed"
+                )}
+                title={t("sidebar.refreshContext")}
+              >
+                <RefreshCw className={cn("w-3 h-3", isRefreshing && "animate-spin")} />
+              </button>
+            </div>
           </div>
           <div className="h-1 bg-secondary rounded-full overflow-hidden">
             <div
