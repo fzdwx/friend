@@ -171,9 +171,10 @@ export function extractTodoItems(message: string): TodoItem[] {
   
   // Enhanced Plan header matching - support ## Plan, ### Plan:, ## Implementation Plan:, etc.
   // Also supports Chinese equivalents: 计划, 方案, 实现步骤, 实施计划, 实现方案, 实施阶段, 步骤
+  // 方案/步骤 must NOT be followed by a digit (to avoid matching "方案 1：" meaning "Option 1:")
   // Optional Chinese section numbering prefix: 一、 二、 etc.
   // Optional emoji prefix
-  const headerMatch = message.match(/^[ \t]*(?:#{1,4}\s+)?(?:[一二三四五六七八九十]+、\s*)?(?:\d+\.\s+)?(?:\p{Emoji_Presentation}\s*)?(?:\*{0,2})(?:Implementation\s+)?(?:Plan|计划|方案|实现步骤|实施计划|实现方案|实施阶段|步骤)(?![a-zA-Z])[^\n]*\r?\n/imu);
+  const headerMatch = message.match(/^[ \t]*(?:#{1,4}\s+)?(?:[一二三四五六七八九十]+、\s*)?(?:\d+\.\s+)?(?:\p{Emoji_Presentation}\s*)?(?:\*{0,2})(?:Implementation\s+)?(?:Plan|计划|方案(?!\s*\d)|实现步骤|实施计划|实现方案|实施阶段|步骤(?!\s*\d))(?![a-zA-Z])[^\n]*\r?\n/imu);
   if (!headerMatch) {
     console.log('[PlanParser] No Plan: header found in message');
     return items;
@@ -399,7 +400,7 @@ The system uses a parser to extract your plan into a todo list. You MUST follow 
 1. Start with "Plan:" on its own line (the parser looks for this header)
 2. Use ONLY numbered list format: "1. Task" for main tasks, "   1.1. Subtask" for subtasks
 3. End your response at the last numbered step — NO text after the plan
-4. If you need user input, use the question tool BEFORE writing the plan
+4. If you need user input (choosing between approaches, clarifying requirements), you MUST use the question tool — do NOT present options as text in your response
 5. Use the same language as the user
 
 FORBIDDEN formats (parser CANNOT parse these):
@@ -517,6 +518,8 @@ export interface PlanModeExtensionCallbacks {
   onPlanReady: (sessionId: string, todos: TodoItem[]) => void;
   /** Called when progress is made during execution */
   onProgress: (sessionId: string, todos: TodoItem[]) => void;
+  /** Called when all tasks are completed */
+  onComplete: (sessionId: string, todos: TodoItem[]) => void;
   /** Called when next task should be executed */
   onContinue?: (sessionId: string, nextTask: TodoItem) => void;
 }
@@ -710,9 +713,11 @@ IMPORTANT: Use ONLY numbered list format (1. / 1.1.) — do NOT use markdown hea
       // Check if execution is complete
       if (state.executing && state.todos.length > 0) {
         if (state.todos.every((t) => t.completed)) {
-          // All done - clear state
+          // All done - notify frontend and clear state
+          const completedTodos = [...state.todos];
           setState(sessionId, { enabled: false, executing: false, modifying: false, todos: [] });
           pi.setActiveTools(NORMAL_MODE_TOOLS);
+          callbacks.onComplete(sessionId, completedTodos);
           return;
         }
         

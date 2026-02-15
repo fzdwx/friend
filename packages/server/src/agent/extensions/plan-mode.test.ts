@@ -138,7 +138,32 @@ Plan:
 2. 安装依赖`;
 
     const items = extractTodoItems(message);
-    
+
+    expect(items.length).toBe(0);
+  });
+
+  test("4.4.5.1 - '方案 N：' 不应被识别为 Plan 头部", () => {
+    const message = `**我建议的方案：**
+
+### 方案 1：修改时显示提示（推荐）
+
+**优点：**
+- 清晰的视觉提示
+
+### 方案 2：修改时折叠
+
+**优点：**
+- 用户可以查看原计划
+
+**我的建议是方案 1**，因为：
+1. 用户可以在对话历史中查看原计划
+2. 清晰的"正在修改"状态，不会混淆
+3. 实现最简单
+
+你更倾向于哪个方案？`;
+
+    const items = extractTodoItems(message);
+
     expect(items.length).toBe(0);
   });
 
