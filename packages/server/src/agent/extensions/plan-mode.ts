@@ -378,23 +378,36 @@ You are in plan mode — read-only exploration for analysis and planning.
 
 Explore the codebase, then output a plan. Your response MUST end with a "Plan:" section.
 
-## Output Format
+## Output Format — STRICT
 
-1. Brief analysis: key files, patterns, dependencies
-2. End with Plan: section in this EXACT format:
+1. Brief analysis (optional, 2-3 lines max): key files, patterns found
+2. End with "Plan:" section using ONLY this format:
 
+\`\`\`
 Plan:
 1. Action verb + what to do + where (file path)
    1.1. Specific subtask
    1.2. Specific subtask
 2. Next step description
 3. Simple step (subtasks optional)
+\`\`\`
 
-## Rules
-- The "Plan:" header is REQUIRED for the system to parse your plan
-- End your response at the last numbered step — NO text after the plan
-- If you need user input, use the question tool BEFORE writing the plan
-- Use the same language as the user`;
+## Format Rules — CRITICAL (parser will fail if violated)
+
+The system uses a parser to extract your plan into a todo list. You MUST follow these rules exactly:
+
+1. Start with "Plan:" on its own line (the parser looks for this header)
+2. Use ONLY numbered list format: "1. Task" for main tasks, "   1.1. Subtask" for subtasks
+3. End your response at the last numbered step — NO text after the plan
+4. If you need user input, use the question tool BEFORE writing the plan
+5. Use the same language as the user
+
+FORBIDDEN formats (parser CANNOT parse these):
+- ❌ Markdown headers as steps: "### Phase 1: ..." or "### Step 1: ..."
+- ❌ Bold-wrapped numbers: "**1.1 Title**" or "**Step 1: ...**"
+- ❌ Bullet points as steps: "- Step one" or "• Do this"
+- ❌ Tables, code blocks, or any non-numbered-list format in the plan
+- ❌ Text/questions/commentary after the last numbered step`;
 
 export function getExecutionContextPrompt(todos: TodoItem[]): string {
   const remaining = todos.filter((t) => !t.completed);
@@ -466,15 +479,22 @@ ${userMessage}
 3. Update the plan to incorporate their feedback
 4. Output the COMPLETE updated plan (not just the changes)
 
-## Output Format - CRITICAL
+## Output Format — STRICT (parser will fail if violated)
 
-You MUST output the complete updated plan in this exact format:
+You MUST output the complete updated plan in ONLY this format:
 
 Plan:
 1. Main task description here
    1.1. Subtask one description here
    1.2. Subtask two description here
 2. Next main task description here
+
+FORBIDDEN formats (parser CANNOT parse these):
+- ❌ Markdown headers as steps: "### Phase 1: ..." or "### Step 1: ..."
+- ❌ Bold-wrapped numbers: "**1.1 Title**" or "**Step 1: ...**"
+- ❌ Bullet points as steps: "- Step one" or "• Do this"
+- ❌ Tables, code blocks, or any non-numbered-list format in the plan
+- ❌ Text/questions/commentary after the last numbered step
 
 ## Guidelines
 
@@ -483,7 +503,7 @@ Plan:
 - Remove or modify steps based on user feedback
 - Re-number steps if order changes
 - Maintain the same detailed, actionable style
-- End your response with the last step — do NOT add commentary, tables, or explanations after the plan`;
+- End your response with the last step — do NOT add anything after the plan`;
 }
 
 // ─── Plan Mode Extension Factory ──────────────────────────────────────────
@@ -592,7 +612,8 @@ Don't use when: single-file edits, quick fixes, or straightforward changes.`,
 Task: ${params.task_description}
 Reason for planning: ${params.reason}
 
-Explore the codebase, then output a plan ending with a "Plan:" section with numbered steps.`,
+Explore the codebase, then output a plan ending with a "Plan:" section.
+IMPORTANT: Use ONLY numbered list format (1. / 1.1.) — do NOT use markdown headers, bold numbers, or bullet points as steps. The parser cannot handle other formats.`,
           }],
           details: { enabled: true, task: params.task_description },
         };
