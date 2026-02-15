@@ -7,7 +7,6 @@
 
 import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
 import type { IAgentManager } from "../tools";
-import { discoverSubagents, formatSubagentList } from "../subagents/index.js";
 
 export interface CommandsExtensionCallbacks {
   /** Called when a command produces a result */
@@ -137,88 +136,6 @@ export function createCommandsExtension(
           callbacks.onCommandResult(dbSessionId, "abort", true, "Aborting current operation...");
         } else {
           callbacks.onCommandResult(dbSessionId, "abort", false, "No operation in progress");
-        }
-      },
-    });
-
-    // /subagents - List available subagents
-    pi.registerCommand("subagents", {
-      description: "List available subagents",
-      handler: async (args, ctx) => {
-        const dbSessionId = getDbSessionId(ctx);
-        if (!dbSessionId) return;
-
-        try {
-          // Parse scope from args (default to "user")
-          const scopeArg = args?.trim().toLowerCase();
-          let scope: "user" | "workspace" | "both" = "user";
-          
-          if (scopeArg === "workspace") {
-            scope = "workspace";
-          } else if (scopeArg === "both") {
-            scope = "both";
-          } else if (scopeArg && scopeArg !== "user") {
-            callbacks.onCommandResult(
-              dbSessionId, 
-              "subagents", 
-              false, 
-              "Invalid scope. Use: user, workspace, or both"
-            );
-            return;
-          }
-
-          // Get workspace path from context
-          const workspacePath = (ctx as any).workspacePath as string | undefined;
-          
-          // Discover subagents
-          const discovery = discoverSubagents(workspacePath, scope);
-          
-          if (discovery.agents.length === 0) {
-            const scopeMsg = scope === "user" 
-              ? "user-level (~/.config/friend/subagents/)" 
-              : scope === "workspace"
-              ? "workspace-level"
-              : "any scope";
-            callbacks.onCommandResult(
-              dbSessionId, 
-              "subagents", 
-              true, 
-              `No subagents found in ${scopeMsg}`
-            );
-            return;
-          }
-
-          // Format output
-          const lines: string[] = [];
-          lines.push(`Available Subagents (${scope} scope):`);
-          lines.push("");
-          
-          for (const agent of discovery.agents) {
-            lines.push(`  ${agent.name} (${agent.source})`);
-            lines.push(`    ${agent.description}`);
-            if (agent.tools) {
-              lines.push(`    Tools: ${agent.tools.join(", ")}`);
-            }
-            if (agent.model) {
-              lines.push(`    Model: ${agent.model}`);
-            }
-            lines.push("");
-          }
-
-          // Add scope info
-          if (scope === "both" && discovery.workspaceAgentsDir) {
-            lines.push(`Workspace agents directory: ${discovery.workspaceAgentsDir}`);
-          }
-
-          callbacks.onCommandResult(
-            dbSessionId, 
-            "subagents", 
-            true, 
-            lines.join("\n")
-          );
-        } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : String(error);
-          callbacks.onCommandResult(dbSessionId, "subagents", false, `Error: ${errorMsg}`);
         }
       },
     });

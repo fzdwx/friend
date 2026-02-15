@@ -170,7 +170,10 @@ export function extractTodoItems(message: string): TodoItem[] {
   const items: TodoItem[] = [];
   
   // Enhanced Plan header matching - support ## Plan, ### Plan:, ## Implementation Plan:, etc.
-  const headerMatch = message.match(/^[ \t]*(?:#{1,4}\s+)?\*{0,2}(?:Implementation\s+)?Plan:?\*{0,2}\s*\r?\n/im);
+  // Also supports Chinese equivalents: 计划, 方案, 实现步骤, 实施计划, 实现方案, 实施阶段, 步骤
+  // Optional Chinese section numbering prefix: 一、 二、 etc.
+  // Optional emoji prefix
+  const headerMatch = message.match(/^[ \t]*(?:#{1,4}\s+)?(?:[一二三四五六七八九十]+、\s*)?(?:\d+\.\s+)?(?:\p{Emoji_Presentation}\s*)?(?:\*{0,2})(?:Implementation\s+)?(?:Plan|计划|方案|实现步骤|实施计划|实现方案|实施阶段|步骤)(?![a-zA-Z])[^\n]*\r?\n/imu);
   if (!headerMatch) {
     console.log('[PlanParser] No Plan: header found in message');
     return items;
@@ -196,10 +199,13 @@ export function extractTodoItems(message: string): TodoItem[] {
     if (!trimmedLine || trimmedLine === '---') continue;
     
     // Stop parsing if we hit markdown content that's not part of the plan
-    // (tables or bold-only lines like "**Why...?**")
-    if (trimmedLine.startsWith('|') ||
-        (trimmedLine.startsWith('**') && trimmedLine.endsWith('**'))) {
+    // (tables only — bold lines like "**后端部分**：" may contain plan sections)
+    if (trimmedLine.startsWith('|')) {
       break;
+    }
+    // Skip bold-only section labels (e.g., "**后端部分**：")
+    if (trimmedLine.startsWith('**') && !trimmedLine.match(/^\*\*.*\d/)) {
+      continue;
     }
     // Skip markdown headers within the plan (e.g., "### Phase 1")
     if (trimmedLine.startsWith('#')) {
@@ -207,9 +213,11 @@ export function extractTodoItems(message: string): TodoItem[] {
     }
     
     // Check for main task: "1. Task" or "1) Task" (not "1.1" or "1.2")
-    // More flexible pattern - capture everything after the number and separator
-    const mainMatch = line.match(/^\s*(\d+)[.)]\s+(.+)/);
-    const isSubtaskLine = line.match(/^\s*\d+\.\d+/);
+    // Also supports Chinese format: "阶段 1：Task" or "- ✅ 阶段 1：Task" or "步骤 1：Task"
+    const mainMatch = line.match(/^\s*(\d+)[.)]\s+(.+)/)
+      || line.match(/^\s*[-•]?\s*(?:✅\s*)?(?:阶段|步骤|Phase|Step)\s*(\d+)[：:.)]\s*(.+)/i);
+    const isSubtaskLine = line.match(/^\s*\d+\.\d+/)
+      || line.match(/^\s*[-•]?\s*(?:✅\s*)?(?:步骤|Step)\s*\d+\.\d+/i);
     
     if (mainMatch && !isSubtaskLine) {
       const rawText = mainMatch[2].trim();
@@ -233,9 +241,10 @@ export function extractTodoItems(message: string): TodoItem[] {
         }
       }
     }
-    // Check for subtask: "1.1. Subtask"
+    // Check for subtask: "1.1. Subtask" or "步骤 1.1：Subtask"
     else if (currentMainTask && isSubtaskLine) {
-      const subMatch = line.match(/^\s*(\d+)\.(\d+)[.)]\s+(.+)/);
+      const subMatch = line.match(/^\s*(\d+)\.(\d+)[.)]\s+(.+)/)
+        || line.match(/^\s*[-•]?\s*(?:✅\s*)?(?:步骤|Step)\s*(\d+)\.(\d+)[：:.)]\s*(.+)/i);
       if (subMatch) {
         const rawText = subMatch[3].trim();
         const text = rawText.replace(/\*{1,2}$/, "").trim();
@@ -365,31 +374,14 @@ You are in plan mode — read-only exploration for analysis and planning.
 - Disabled tools: edit, write
 - Bash is restricted to read-only commands
 
-## Phase 1: Explore
+## Your Task
 
-Thoroughly investigate the codebase before writing any plan. Use this checklist:
+Explore the codebase, then output a plan. Your response MUST end with a "Plan:" section.
 
-- [ ] Read the files directly related to the task
-- [ ] Identify existing patterns and conventions to follow
-- [ ] Trace dependencies: what imports/calls/uses the code you'll change?
-- [ ] Find similar implementations in the codebase to reference
-- [ ] Check for tests, types, and configs that will need updates
-- [ ] Note potential risks or edge cases
+## Output Format
 
-Take your time — read more files rather than fewer. The plan quality depends on exploration depth.
-
-## Phase 2: Report & Plan
-
-After exploring, output your response in two parts:
-
-### Part 1 — Analysis (markdown)
-Brief summary of your findings:
-- Key files and their roles
-- Existing patterns you'll follow
-- Dependencies and impact scope
-
-### Part 2 — Plan (CRITICAL - MUST BE INCLUDED)
-End your response with the actionable plan in this EXACT format:
+1. Brief analysis: key files, patterns, dependencies
+2. End with Plan: section in this EXACT format:
 
 Plan:
 1. Action verb + what to do + where (file path)
@@ -398,13 +390,11 @@ Plan:
 2. Next step description
 3. Simple step (subtasks optional)
 
-## Important Rules
-
-1. **ALWAYS output a Plan section** - even if you have questions
-2. **If you need user input** - use the \`question\` tool BEFORE writing the plan
-3. **Do NOT write "待确认" or ask questions in text** - use the question tool or proceed with reasonable defaults
-4. **End with the last plan step** - no commentary after the plan
-5. **Use the same language as the user**`;
+## Rules
+- The "Plan:" header is REQUIRED for the system to parse your plan
+- End your response at the last numbered step — NO text after the plan
+- If you need user input, use the question tool BEFORE writing the plan
+- Use the same language as the user`;
 
 export function getExecutionContextPrompt(todos: TodoItem[]): string {
   const remaining = todos.filter((t) => !t.completed);
@@ -547,7 +537,7 @@ export function createPlanModeExtension(callbacks: PlanModeExtensionCallbacks): 
 
         if (newState.enabled) {
           pi.setActiveTools(PLAN_MODE_TOOLS);
-          ctx.ui.notify("📋 Plan mode enabled. Read-only tools only. Use planner subagent for complex tasks.");
+          ctx.ui.notify("📋 Plan mode enabled. Read-only tools only.");
 
           // If there are args, send them as a user message to trigger AI processing
           if (args && args.trim()) {
@@ -594,7 +584,6 @@ Don't use when: single-file edits, quick fixes, or straightforward changes.`,
         pi.setActiveTools(PLAN_MODE_TOOLS);
         ctx.ui.notify("📋 Plan mode enabled via tool call.");
 
-        // Return message telling agent to start planning
         return {
           content: [{
             type: "text" as const,
@@ -603,12 +592,7 @@ Don't use when: single-file edits, quick fixes, or straightforward changes.`,
 Task: ${params.task_description}
 Reason for planning: ${params.reason}
 
-Instructions:
-1. Use read-only tools to explore the codebase
-2. Create a detailed implementation plan
-3. Output the plan in the specified format
-
-You can now proceed with your analysis.`,
+Explore the codebase, then output a plan ending with a "Plan:" section with numbered steps.`,
           }],
           details: { enabled: true, task: params.task_description },
         };

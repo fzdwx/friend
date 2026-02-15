@@ -7,4 +7,3 @@ import "./grep.js";
 import "./find.js";
 import "./ls.js";
 import "./question.js";
-import "./subagent.js";

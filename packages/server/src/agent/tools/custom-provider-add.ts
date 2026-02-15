@@ -71,15 +71,6 @@ export interface IAgentManager {
   getSession?(id: string): Promise<SessionDetail | null>;
   getCommands?(id: string): import("@mariozechner/pi-coding-agent").SlashCommandInfo[];
   executeCommand?(id: string, name: string, args?: string): Promise<void>;
-  createSubagentSession?(config: {
-    cwd: string;
-    systemPrompt: string;
-    tools?: string[];
-    model?: string;
-  }): Promise<{
-    session: import("@mariozechner/pi-coding-agent").AgentSession;
-    cleanup: () => Promise<void>;
-  }>;
 }
 
 // ─── Tool Definition ───────────────────────────────────────

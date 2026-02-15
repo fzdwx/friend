@@ -55,8 +55,7 @@
       "providers": "Providers",
       "memory": "Memory",
       "appearance": "Appearance",
-      "skills": "Skills",
-      "subagents": "Subagents"
+      "skills": "Skills"
     }
   },
   "agents": {
@@ -192,28 +191,6 @@
     "manualOnly": "Manual only",
     "file": "File:"
   },
-  "subagents": {
-    "title": "Subagents",
-    "description": "Manage specialized agents for task delegation",
-    "create": "Create Subagent",
-    "createNew": "Create New Subagent",
-    "edit": "Edit Subagent",
-    "empty": "No subagents found",
-    "emptyHint": "Create a subagent to delegate specialized tasks",
-    "helpTitle": "Subagent Files",
-    "helpText": "Subagents are defined in markdown files with YAML frontmatter",
-    "form": {
-      "name": "Name",
-      "description": "Description",
-      "model": "Model",
-      "defaultModel": "Use default model",
-      "tools": "Allowed Tools",
-      "toolsHint": "Select tools this subagent can use, or leave empty for all tools",
-      "systemPrompt": "System Prompt",
-      "selectAll": "Select All",
-      "clearAll": "Clear All"
-    }
-  },
   "plan": {
     "title": "Plan Mode",
     "steps": "{{count}} steps",
@@ -276,5 +253,20 @@
   "commands": {
     "title": "Commands",
     "noResults": "No commands found"
+  },
+  "files": {
+    "title": "Files",
+    "loading": "Loading...",
+    "loadingFile": "Loading file...",
+    "noFiles": "No files",
+    "noSession": "Select a session first",
+    "noResults": "No results",
+    "searching": "Searching...",
+    "searchPlaceholder": "Search files...",
+    "selectToView": "Select a file to view",
+    "refresh": "Refresh file tree",
+    "close": "Close file",
+    "showTree": "Show file tree",
+    "hideTree": "Hide file tree"
   }
 }

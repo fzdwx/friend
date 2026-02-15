@@ -26,6 +26,3 @@ export { createMemorySearchTool, createMemoryGetTool, MemorySearchParams, Memory
 
 // Question Tool
 export { createQuestionTool } from "./question.js";
-
-// Subagent Tool
-export { createSubagentTool } from "./subagent.js";

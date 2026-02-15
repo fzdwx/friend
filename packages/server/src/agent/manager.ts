@@ -10,13 +10,6 @@ import {
   type SessionStats,
   type Skill,
   type SlashCommandInfo,
-  type ToolDefinition,
-  createReadTool,
-  createBashTool,
-  createEditTool,
-  createWriteTool,
-  createFindTool,
-  createLsTool,
 } from "@mariozechner/pi-coding-agent";
 import {completeSimple, Model} from "@mariozechner/pi-ai";
 import type {
@@ -34,7 +27,7 @@ import type {
 import { BUILT_IN_THEMES, DEFAULT_AGENT_ID } from "@friend/shared";
 import type { SSEEvent, GlobalSSEEvent, ConfigUpdatedEvent, SessionCreatedEvent, PlanModeStateChangedEvent, PlanModeRequestChoiceEvent, TodoItem as SharedTodoItem } from "@friend/shared";
 import { prisma } from "@friend/db";
-import { stat, unlink, mkdir, rm } from "node:fs/promises";
+import { stat, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import {
   createAddProviderTool,
@@ -51,11 +44,9 @@ import {
   createMemorySearchTool,
   createMemoryGetTool,
   createQuestionTool,
-  createSubagentTool,
 } from "./tools";
 import type { IAgentManager } from "./tools";
 import { GLOBAL_SKILLS_DIR, SkillWatcher, ensureSkillsDir } from "./skills.js";
-import { SESSIONS_DIR } from "./paths.js";
 import { ensureAgentWorkspace } from "./bootstrap.js";
 import { loadAgentBootstrapFiles, buildWorkspacePrompt } from "./context.js";
 import {
@@ -439,10 +430,10 @@ export class AgentManager implements IAgentManager {
           onContinue: async (sdkSessionId: string, nextTask: TodoItem) => {
             const dbSessionId = this.resolveDbSessionId(sdkSessionId);
             if (!dbSessionId) return;
-            
+
             const managed = this.managedSessions.get(dbSessionId);
             if (!managed) return;
-            
+
             // Use setTimeout to avoid blocking
             setTimeout(async () => {
               try {
@@ -501,8 +492,6 @@ export class AgentManager implements IAgentManager {
         createMemoryGetTool(agentWorkspace, { agentId }),
         // Question tool for asking user questions
         createQuestionTool(this),
-        // Subagent tool for delegating tasks
-        createSubagentTool(this),
       ],
     });
 
@@ -1043,138 +1032,6 @@ export class AgentManager implements IAgentManager {
       name: sessionInfo.name,
       agentId: sessionInfo.agentId!,
       workingPath: sessionInfo.workingPath,
-    };
-  }
-
-  /**
-   * Create an isolated session for subagent execution
-   * This is used internally by the subagent tool
-   */
-  async createSubagentSession(config: {
-    cwd: string;
-    systemPrompt: string;
-    tools?: string[];
-    model?: string;
-  }): Promise<{ session: AgentSession; cleanup: () => Promise<void> }> {
-    const { cwd, systemPrompt, tools, model } = config;
-
-    // Create temporary session manager (no persistence)
-    const tempSessionDir = join(
-      SESSIONS_DIR,
-      "subagents",
-      `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    );
-    await mkdir(tempSessionDir, { recursive: true });
-
-    const sessionManager = SessionManager.create(cwd, tempSessionDir);
-
-    // Create resource loader with custom system prompt
-    const resourceLoader = new DefaultResourceLoader({
-      cwd,
-      noSkills: true,
-      noExtensions: true,
-      noPromptTemplates: true,
-      noThemes: true,
-      systemPromptOverride: () => systemPrompt,
-    });
-
-    // Resolve model if specified
-    let resolvedModel: Model<any> | undefined;
-    if (model) {
-      const slashIdx = model.indexOf("/");
-      if (slashIdx !== -1) {
-        const provider = model.substring(0, slashIdx);
-        const modelId = model.substring(slashIdx + 1);
-        resolvedModel = this.modelRegistry.find(provider, modelId);
-      }
-    }
-
-    // Create the session with only the specified tools
-    // Build tool lists based on subagent configuration
-
-    // 1. Determine which tools the subagent can use
-    let requestedToolNames = tools;
-
-    // If no tools specified, subagent gets all tools (default behavior)
-    if (!requestedToolNames || requestedToolNames.length === 0) {
-      requestedToolNames = [
-        // SDK core tools (7 available)
-        "read", "bash", "edit", "write", "grep", "find", "ls",
-        // Custom tools (essential ones for subagents, including subagent for nesting)
-        "glob", "get_session", "memory_search", "memory_get", "question", "subagent",
-      ];
-    }
-
-    // 2. Create SDK tools individually based on request
-    // All SDK tools require the cwd parameter
-    const sdkTools: ToolDefinition[] = [];
-
-    if (requestedToolNames.includes("read")) {
-      sdkTools.push(createReadTool(cwd));
-    }
-    if (requestedToolNames.includes("bash")) {
-      sdkTools.push(createBashTool(cwd));
-    }
-    if (requestedToolNames.includes("edit")) {
-      sdkTools.push(createEditTool(cwd));
-    }
-    if (requestedToolNames.includes("write")) {
-      sdkTools.push(createWriteTool(cwd));
-    }
-    if (requestedToolNames.includes("grep")) {
-      sdkTools.push(createGrepTool());
-    }
-    if (requestedToolNames.includes("find")) {
-      sdkTools.push(createFindTool(cwd));
-    }
-    if (requestedToolNames.includes("ls")) {
-      sdkTools.push(createLsTool(cwd));
-    }
-
-    // 3. Create custom tools
-    const customToolCreators: Record<string, () => ToolDefinition> = {
-      glob: () => createGlobTool(),
-      get_session: () => createGetSessionTool(this),
-      memory_search: () => createMemorySearchTool(cwd, {
-        agentId: "subagent",
-        getOpenaiApiKey: () => this.authStorage.getApiKey("openai"),
-        getGeminiApiKey: () => this.authStorage.getApiKey("google"),
-        getVoyageApiKey: () => this.authStorage.getApiKey("voyage"),
-      }),
-      memory_get: () => createMemoryGetTool(cwd, { agentId: "subagent" }),
-      question: () => createQuestionTool(this),
-      subagent: () => createSubagentTool(this),  // Allow nested subagent calls
-    };
-
-    const customTools = requestedToolNames
-      .filter(name => customToolCreators[name])
-      .map(name => customToolCreators[name]());
-
-    const result = await createAgentSession({
-      cwd,
-      sessionManager,
-      resourceLoader,
-      authStorage: this.authStorage,
-      modelRegistry: this.modelRegistry,
-      model: resolvedModel,
-      thinkingLevel: "medium",
-      tools:[],
-      customTools: [...sdkTools, ...customTools],  // All tools go into customTools
-    });
-
-    // Cleanup function
-    const cleanup = async () => {
-      try {
-        result.session.dispose();
-        await rm(tempSessionDir, { recursive: true, force: true });
-      } catch (error) {
-        console.error("[AgentManager] Subagent session cleanup error:", error);
-      }
-    };
-
-    return {
-      session: result.session,
-      cleanup,
     };
   }
 

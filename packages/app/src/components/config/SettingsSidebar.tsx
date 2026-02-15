@@ -1,8 +1,8 @@
-import { Server, Palette, Sparkles, Bot, Brain, Users } from "lucide-react";
+import { Server, Palette, Sparkles, Bot, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
-type SettingsSection = "agents" | "appearance" | "providers" | "memory" | "skills" | "subagents";
+type SettingsSection = "agents" | "appearance" | "providers" | "memory" | "skills";
 
 interface SettingsSidebarProps {
   activeSection: SettingsSection;
@@ -16,7 +16,6 @@ export function SettingsSidebar({ activeSection, onSectionChange }: SettingsSide
     { id: "agents", labelKey: "settings.sections.agents", icon: Bot },
     { id: "appearance", labelKey: "settings.sections.appearance", icon: Palette },
     { id: "providers", labelKey: "settings.sections.providers", icon: Server },
-    { id: "subagents", labelKey: "settings.sections.subagents", icon: Users },
     { id: "memory", labelKey: "settings.sections.memory", icon: Brain },
     { id: "skills", labelKey: "settings.sections.skills", icon: Sparkles },
   ];
