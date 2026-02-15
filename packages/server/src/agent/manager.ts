@@ -2,6 +2,7 @@ import {
   type AgentSession,
   type AgentSessionEvent,
   AuthStorage,
+  codingTools,
   createAgentSession,
   DefaultResourceLoader,
   loadSkillsFromDir,
@@ -428,11 +429,12 @@ export class AgentManager implements IAgentManager {
             // Reload files fresh each turn (ensures latest content)
             const freshFiles = await loadAgentBootstrapFiles(agentWorkspace);
 
-            // Get loaded skills summaries
+            // Get loaded skills summaries (with location for XML format)
             const { skills } = resourceLoader.getSkills();
             const skillSummaries = skills.map(s => ({
               name: s.name,
               description: s.description,
+              location: s.filePath,
             }));
 
             // Get custom tools summaries

@@ -5,10 +5,10 @@ import type { AgentIdentity } from "@friend/shared";
 // All bootstrap files loaded directly into context (like picoclaw's context.go)
 // Order: identity → soul → user preferences → workspace rules → tool notes → memory
 const WORKSPACE_FILES = [
+  "AGENTS.md",
   "IDENTITY.md",
   "SOUL.md",
   "USER.md",
-  "AGENTS.md",
   "TOOLS.md",
   "MEMORY.md",
 ] as const;
@@ -138,14 +138,38 @@ export function buildSelfSchedulingPrompt(): string {
  * @param skills - Loaded skills summaries
  * @param tools - Custom tools summaries
  */
+export type SkillSummary = {
+  name: string;
+  description: string;
+  location: string;
+};
+
+export type ToolSummary = {
+  name: string;
+  description: string;
+};
+
+/**
+ * Built-in tools from SDK (read, bash, edit, write, grep, find, ls)
+ * These are always available and don't need to be registered.
+ */
+export const BUILT_IN_TOOLS: Array<ToolSummary> = [
+  { name: "read", description: "Read the contents of a file. Supports text files and images (jpg, png, gif, webp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete." },
+  { name: "bash", description: "Execute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds." },
+  { name: "edit", description: "Edit a file by replacing exact text. The oldText must match exactly (including whitespace). Use this for precise, surgical edits." },
+  { name: "write", description: "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories." },
+  { name: "grep", description: "Search file contents using regular expressions through the ripgrep engine. Provides fast, parallelized content search with result limiting and error handling." },
+  { name: "glob", description: "Find files matching a glob pattern. Supports wildcards like '*', '**', '?', and path separators. Returns a list of matching file paths sorted by modification time (most recently changed first). Useful for finding all files of a certain type or in a specific directory structure." },
+];
+
 export function buildWorkspacePrompt(
     cwd: string,
     files: WorkspaceFile[],
     identity?: AgentIdentity,
     workspaceDir?: string,
     includeMemoryRecall: boolean = true,
-    skills: Array<{ name: string; description: string }> = [],
-    tools: Array<{ name: string; description: string }> = [],
+    skills: Array<SkillSummary> = [],
+    customTools: Array<ToolSummary> = [],
 ): string {
   const sections: string[] = [];
 
@@ -174,26 +198,46 @@ export function buildWorkspacePrompt(
     sections.push(`<!-- ${name} -->\n${file.content}`);
   }
 
-  // 5. Skills summary (name + description for each loaded skill)
+  // 5. Skills in XML format (per Agent Skills standard)
   if (skills.length > 0) {
-    const skillLines = skills.map(s => `- **${s.name}**: ${s.description}`);
-    sections.push([
-      "## Available Skills",
+    const skillsXml = [
+      "The following skills provide specialized instructions for specific tasks.",
+      "Use the read tool to load a skill's file when the task matches its description.",
+      "When a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.",
       "",
-      "The following skills are loaded. Use them when relevant:",
-      "",
-      ...skillLines,
-    ].join("\n"));
+      "<available_skills>",
+      ...skills.map(s => [
+        "<skill>",
+        `<name>${s.name}</name>`,
+        `<description>${s.description}</description>`,
+        `<location>${s.location}</location>`,
+        "</skill>",
+      ].join("\n")),
+      "</available_skills>",
+    ].join("\n");
+    sections.push(skillsXml);
   }
 
-  // 6. Custom tools summary (name + description)
-  if (tools.length > 0) {
-    const toolLines = tools.map(t => `- **${t.name}**: ${t.description}`);
-    sections.push([
+  // 6. Built-in tools (always available)
+  const builtInToolsXml = [
+    "## Built-in Tools",
+    "",
+    "The following tools are always available:",
+    "",
+    ...BUILT_IN_TOOLS.map(t => `- **${t.name}**: ${t.description}`),
+  ].join("\n");
+  sections.push(builtInToolsXml);
+
+  // 7. Custom tools (project/agent specific)
+  if (customTools.length > 0) {
+    const customToolsXml = [
       "## Custom Tools",
       "",
-      ...toolLines,
-    ].join("\n"));
+      "In addition to the built-in tools above, the following custom tools are available:",
+      "",
+      ...customTools.map(t => `- **${t.name}**: ${t.description}`),
+    ].join("\n");
+    sections.push(customToolsXml);
   }
 
   return sections.join("\n\n---\n\n");
