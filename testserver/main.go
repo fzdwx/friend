@@ -17,8 +17,8 @@ func main() {
 		fmt.Fprintf(w, "Hello from Go HTTP Server!", s)
 	})
 
-	fmt.Println("Server starting on http://localhost:8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	fmt.Println("Server starting on http://localhost:8888")
+	if err := http.ListenAndServe(":8888", nil); err != nil {
 		fmt.Printf("Server error: %v\n", err)
 	}
 }

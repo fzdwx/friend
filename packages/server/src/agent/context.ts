@@ -127,19 +127,25 @@ export function buildSelfSchedulingPrompt(): string {
  * 2. Memory Recall instructions
  * 3. Self-Scheduling guidance
  * 4. Bootstrap files (IDENTITY.md, SOUL.md, USER.md, AGENTS.md, TOOLS.md, MEMORY.md)
+ * 5. Skills summary
+ * 6. Custom tools summary
  *
  * @param cwd - Working directory (project path)
  * @param files - Workspace files (all bootstrap files)
  * @param identity - Agent identity for name
  * @param workspaceDir - Workspace directory path
  * @param includeMemoryRecall - Whether to include memory recall instructions
+ * @param skills - Loaded skills summaries
+ * @param tools - Custom tools summaries
  */
 export function buildWorkspacePrompt(
-  cwd: string,
-  files: WorkspaceFile[],
-  identity?: AgentIdentity,
-  workspaceDir?: string,
-  includeMemoryRecall: boolean = true,
+    cwd: string,
+    files: WorkspaceFile[],
+    identity?: AgentIdentity,
+    workspaceDir?: string,
+    includeMemoryRecall: boolean = true,
+    skills: Array<{ name: string; description: string }> = [],
+    tools: Array<{ name: string; description: string }> = [],
 ): string {
   const sections: string[] = [];
 
@@ -167,5 +173,28 @@ export function buildWorkspacePrompt(
     const name = file.path.split("/").pop() || file.path;
     sections.push(`<!-- ${name} -->\n${file.content}`);
   }
+
+  // 5. Skills summary (name + description for each loaded skill)
+  if (skills.length > 0) {
+    const skillLines = skills.map(s => `- **${s.name}**: ${s.description}`);
+    sections.push([
+      "## Available Skills",
+      "",
+      "The following skills are loaded. Use them when relevant:",
+      "",
+      ...skillLines,
+    ].join("\n"));
+  }
+
+  // 6. Custom tools summary (name + description)
+  if (tools.length > 0) {
+    const toolLines = tools.map(t => `- **${t.name}**: ${t.description}`);
+    sections.push([
+      "## Custom Tools",
+      "",
+      ...toolLines,
+    ].join("\n"));
+  }
+
   return sections.join("\n\n---\n\n");
 }

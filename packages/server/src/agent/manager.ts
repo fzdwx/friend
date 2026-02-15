@@ -384,16 +384,16 @@ export class AgentManager implements IAgentManager {
       noExtensions: true,
       noPromptTemplates: true,
       noThemes: true,
-      systemPromptOverride:(base)=>{
-        // First message - inject full workspace context
-        return buildWorkspacePrompt(
-            cwd,
-            freshFiles,
-            resolvedConfig.identity,
-            agentWorkspace,
-            true,           // includeMemoryRecall
-        )
-      },
+      // systemPromptOverride:(base)=>{
+      //   // First message - inject full workspace context
+      //   return buildWorkspacePrompt(
+      //       cwd,
+      //       freshFiles,
+      //       resolvedConfig.identity,
+      //       agentWorkspace,
+      //       true,           // includeMemoryRecall
+      //   )
+      // },
       skillsOverride: () => {
         // Load global skills
         const globalResult = loadSkillsFromDir({ dir: GLOBAL_SKILLS_DIR, source: "user" });
@@ -413,39 +413,57 @@ export class AgentManager implements IAgentManager {
       },
       // Inject full context via before_agent_start on first message only
       extensionFactories: [
-        // (pi) => {
-        //   pi.on("before_agent_start", async (_event, ctx) => {
-        //     // Check if context already injected
-        //     const entries = ctx.sessionManager.getEntries();
-        //     const hasContext = entries.some(
-        //       (e) =>
-        //         e.type === "message" &&
-        //         e.message.role === "user" &&
-        //         (e.message as any).customType === "friend_context"
-        //     );
-        //     if (hasContext) return; // Already injected, skip
-        //
-        //     // Reload files fresh each turn (ensures latest content)
-        //     const freshFiles = await loadAgentBootstrapFiles(agentWorkspace);
-        //
-        //
-        //     // First message - inject full workspace context
-        //     const systemPrompt = buildWorkspacePrompt(
-        //       cwd,
-        //       freshFiles,
-        //       resolvedConfig.identity,
-        //       agentWorkspace,
-        //       true,           // includeMemoryRecall
-        //     );
-        //     return {
-        //       message: {
-        //         customType: "friend_context",
-        //         content: systemPrompt,
-        //         display: false,
-        //       },
-        //     };
-        //   });
-        // },
+        (pi) => {
+          pi.on("before_agent_start", async (_event, ctx) => {
+            // Check if context already injected
+            const entries = ctx.sessionManager.getEntries();
+            const hasContext = entries.some(
+              (e) =>
+                e.type === "message" &&
+                e.message.role === "user" &&
+                (e.message as any).customType === "friend_context"
+            );
+            if (hasContext) return; // Already injected, skip
+
+            // Reload files fresh each turn (ensures latest content)
+            const freshFiles = await loadAgentBootstrapFiles(agentWorkspace);
+
+            // Get loaded skills summaries
+            const { skills } = resourceLoader.getSkills();
+            const skillSummaries = skills.map(s => ({
+              name: s.name,
+              description: s.description,
+            }));
+
+            // Get custom tools summaries
+            const toolSummaries = customToolsList.map(t => ({
+              name: t.name,
+              description: t.description,
+            }));
+
+            // First message - inject full workspace context
+            const systemPrompt = buildWorkspacePrompt(
+                cwd,
+                freshFiles,
+                resolvedConfig.identity,
+                agentWorkspace,
+                true,           // includeMemoryRecall
+                skillSummaries,  // skills
+                toolSummaries,   // tools
+            );
+            return {
+              systemPrompt:`
+              You are friend agent.
+              `,
+              message: {
+                role: "developer",
+                customType: "friend_context",
+                content: systemPrompt,
+                display: false,
+              } ,
+            };
+          });
+        },
         // Plan mode extension - handles /plan command and plan execution tracking
         createPlanModeExtension({
           // Get current plan mode state (using SDK sessionId, internally maps to DB sessionId)
@@ -1268,7 +1286,12 @@ Your output must be:
 
   private async generateSessionName(managed: ManagedSession): Promise<string> {
     const model = managed.session.model;
-    if (!model) return this.fallbackSessionName(managed);
+    console.log(`[AutoRename] Generating name for session ${managed.id}, model: ${model}`);
+    
+    if (!model) {
+      console.log(`[AutoRename] No model, using fallback`);
+      return this.fallbackSessionName(managed);
+    }
 
     // Collect user messages as context for title generation
     const userMessages = managed.session.messages
@@ -1285,10 +1308,17 @@ Your output must be:
       })
       .filter(Boolean);
 
-    if (userMessages.length === 0) return this.fallbackSessionName(managed);
+    if (userMessages.length === 0) {
+      console.log(`[AutoRename] No user messages, using fallback`);
+      return this.fallbackSessionName(managed);
+    }
+
+    console.log(`[AutoRename] User messages count: ${userMessages.length}`);
 
     try {
       const apiKey = await this.modelRegistry.getApiKey(model);
+      console.log(`[AutoRename] API key available: ${!!apiKey}`);
+      
       const result = await completeSimple(
         model,
         {
@@ -1304,6 +1334,8 @@ Your output must be:
         { maxTokens: 60, apiKey: apiKey || undefined },
       );
 
+      console.log(`[AutoRename] AI result content blocks: ${result.content.length}`);
+      
       const title = result.content
         .filter((c) => c.type === "text")
         .map((c) => (c as { type: "text"; text: string }).text)
@@ -1311,9 +1343,10 @@ Your output must be:
         .trim()
         .replace(/^["']|["']$/g, ""); // strip surrounding quotes
 
+      console.log(`[AutoRename] Generated title: "${title}"`);
       return title || this.fallbackSessionName(managed);
     } catch (err) {
-      console.warn("AI title generation failed, using fallback:", err);
+      console.warn("[AutoRename] AI title generation failed, using fallback:", err);
       return this.fallbackSessionName(managed);
     }
   }
