@@ -49,6 +49,7 @@ import {
 import type { IAgentManager, ICronManager } from "./tools";
 import { HeartbeatService, type HeartbeatServiceDeps } from "./heartbeat/index.js";
 import { CronService, type CronServiceDeps, type CronSchedule, type CronJobInfo } from "./cron/index.js";
+import { SystemEventQueue, globalSystemEventQueue } from "./system-events.js";
 import { GLOBAL_SKILLS_DIR, SkillWatcher, ensureSkillsDir } from "./skills.js";
 import { ensureAgentWorkspace } from "./bootstrap.js";
 import { loadAgentBootstrapFiles, buildWorkspacePrompt } from "./context.js";
@@ -167,6 +168,7 @@ export class AgentManager implements IAgentManager {
   private skillWatcher: SkillWatcher | null = null;
   private heartbeatService: HeartbeatService | null = null;
   private cronService: CronService | null = null;
+  private systemEventQueue: SystemEventQueue = globalSystemEventQueue;
   private config: AppConfig = {
     thinkingLevel: "medium",
     customProviders: [],
@@ -744,6 +746,9 @@ export class AgentManager implements IAgentManager {
       },
       createAgentSession: async (agentId: string) => {
         return this.createSessionForAgent(agentId);
+      },
+      enqueueSystemEvent: (agentId: string, text: string) => {
+        this.systemEventQueue.enqueue(agentId, text);
       },
       broadcastEvent: (event) => {
         this.broadcastGlobal(event as unknown as ConfigUpdatedEvent);
@@ -1354,6 +1359,17 @@ Your output must be:
     managed.updatedAt = new Date().toISOString();
     prisma.session.update({ where: { id }, data: { updatedAt: new Date() } }).catch(() => {});
 
+    // Check for pending system events and inject them
+    const agentId = managed.agentId;
+    const systemEvents = this.systemEventQueue.drain(agentId);
+    let enhancedMessage = message;
+    
+    if (systemEvents.length > 0) {
+      const eventsContext = SystemEventQueue.formatAsContext(systemEvents);
+      enhancedMessage = `${eventsContext}\n\n用户消息：${message}`;
+      console.log(`[AgentManager] Injected ${systemEvents.length} system events for agent ${agentId}`);
+    }
+
     // Check current plan mode state
     const currentState = this.getPlanModeState(id);
 
@@ -1366,7 +1382,7 @@ Your output must be:
         modifyMessage: message,
       });
       // Use prompt to start a new agent turn (followUp only works during streaming)
-      managed.session.prompt(message).catch((err) => {
+      managed.session.prompt(enhancedMessage).catch((err) => {
         this.broadcast(managed, { type: "error", message: String(err) });
       });
       return;
@@ -1375,7 +1391,7 @@ Your output must be:
     // Run prompt (non-blocking - returns after agent finishes)
     // SDK session automatically tracks user + assistant messages
     // Note: Agent can use enter_plan_mode tool if task is complex
-    managed.session.prompt(message).catch((err) => {
+    managed.session.prompt(enhancedMessage).catch((err) => {
       this.broadcast(managed, { type: "error", message: String(err) });
     });
   }

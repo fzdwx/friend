@@ -9,6 +9,7 @@ import { readFile, appendFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import type { AgentConfig } from "../agent-manager.js";
+import { globalSystemEventQueue, SystemEventQueue } from "../system-events.js";
 
 // ─── Constants ──────────────────────────────────────────────
 
@@ -129,7 +130,15 @@ export class HeartbeatService {
     }
 
     // Build prompt
-    const prompt = this.buildPrompt(content);
+    let prompt = this.buildPrompt(content);
+    
+    // Check for system events and inject them
+    const systemEvents = globalSystemEventQueue.drain(agentId);
+    if (systemEvents.length > 0) {
+      const eventsContext = SystemEventQueue.formatAsContext(systemEvents);
+      prompt = `${eventsContext}\n\n${prompt}`;
+      this.log("INFO", agentId, `Injected ${systemEvents.length} system events into heartbeat`);
+    }
     
     this.log("INFO", agentId, "Executing heartbeat");
 

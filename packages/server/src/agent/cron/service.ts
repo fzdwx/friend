@@ -8,7 +8,7 @@
 import { prisma } from "@friend/db";
 import type { CronJob, CronJobCreate, CronJobUpdate, CronJobInfo, CronServiceDeps, CronSchedule, CronPayload, CronJobState } from "./types.js";
 import { computeNextRunAtMs, describeSchedule } from "./schedule.js";
-import { MAX_TIMER_DELAY_MS, MAX_SCHEDULE_ERRORS, getErrorBackoffMs } from "./types.js";
+import { MAX_TIMER_DELAY_MS, MAX_SCHEDULE_ERRORS, JOB_TIMEOUT_MS, getErrorBackoffMs } from "./types.js";
 
 // ─── CronService ─────────────────────────────────────────────
 
@@ -109,9 +109,9 @@ export class CronService {
 
   private async executeJob(job: CronJob): Promise<void> {
     console.log(`[Cron] Executing job ${job.id} (${job.name})`);
-    
+
     const startedAt = Date.now();
-    
+
     // Mark as running
     await this.updateJobState(job.id, {
       runningAtMs: startedAt,
@@ -122,17 +122,38 @@ export class CronService {
     let resultMessage: string | undefined;
 
     try {
-      // Get or create agent session
-      let session = await this.deps.getAgentSession(job.agentId);
-      if (!session) {
-        session = await this.deps.createAgentSession(job.agentId);
-      }
-
-      // Execute the payload
-      if (job.payload.kind === "agentTurn") {
-        await session.prompt(job.payload.message);
-        resultMessage = `Job "${job.name}" executed`;
+      if (job.payload.kind === "systemEvent") {
+        // System event - enqueue silently, no session needed
+        const timestamp = new Date(startedAt).toLocaleString();
+        const text = `[cron:${job.id} ${job.name}] ${job.payload.text}\n${timestamp}`;
+        this.deps.enqueueSystemEvent(job.agentId, text);
+        resultMessage = `System event "${job.name}" enqueued`;
         status = "ok";
+        console.log(`[Cron] Job ${job.id} enqueued system event for agent ${job.agentId}`);
+
+      } else if (job.payload.kind === "agentTurn") {
+        // Agent turn - needs a session to prompt
+        const session = await this.deps.getAgentSession(job.agentId);
+        if (session) {
+          const timestamp = new Date(startedAt).toLocaleString();
+          const message = `[cron:${job.id} ${job.name}] ${job.payload.message}\n${timestamp}`;
+
+          // Wrap in timeout
+          await Promise.race([
+            session.prompt(message),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error(`Job timed out after ${JOB_TIMEOUT_MS}ms`)), JOB_TIMEOUT_MS),
+            ),
+          ]);
+
+          resultMessage = `Job "${job.name}" executed`;
+          status = "ok";
+          console.log(`[Cron] Job ${job.id} executed for agent ${job.agentId}`);
+        } else {
+          console.warn(`[Cron] Job ${job.id}: no session available, skipping`);
+          status = "skipped";
+          errorMessage = "No session available";
+        }
       }
     } catch (err: any) {
       console.error(`[Cron] Job ${job.id} error:`, err);

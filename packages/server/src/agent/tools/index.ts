@@ -30,3 +30,6 @@ export { createQuestionTool } from "./question.js";
 // Cron Tool
 export { createCronTool, CronParams } from "./cron.js";
 export type { ICronManager } from "./custom-provider-add";
+
+// Notify Tool
+export { notifyTool } from "./notify.js";

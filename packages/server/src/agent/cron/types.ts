@@ -34,15 +34,40 @@ export interface CronExpressionSchedule {
 
 export type CronSchedule = AtSchedule | EverySchedule | CronExpressionSchedule;
 
+// ─── Session Target Types ───────────────────────────────────
+
+/**
+ * Session target determines how cron jobs are executed.
+ * 
+ * - "main": Uses system event queue, injected into next prompt context
+ *   (Does NOT add user message to chat history)
+ * 
+ * - "isolated": Creates temporary session for execution (future feature)
+ */
+export type CronSessionTarget = "main" | "isolated";
+
 // ─── Payload Types ──────────────────────────────────────────
 
-export interface AgentTurnPayload {
-  kind: "agentTurn";
-  message: string;          // Message to send to the agent
-  deliver?: boolean;        // Whether to deliver result to user
+/**
+ * System event payload - adds event to queue for next prompt context.
+ * Best for simple reminders and notifications.
+ */
+export interface SystemEventPayload {
+  kind: "systemEvent";
+  text: string;              // Event text to inject into context
 }
 
-export type CronPayload = AgentTurnPayload;
+/**
+ * Agent turn payload - triggers agent execution.
+ */
+export interface AgentTurnPayload {
+  kind: "agentTurn";
+  message: string;           // Message to send to the agent
+  sessionTarget?: CronSessionTarget;  // Default: "main"
+  deliver?: boolean;         // Whether to deliver result to user
+}
+
+export type CronPayload = SystemEventPayload | AgentTurnPayload;
 
 // ─── Job State Types ────────────────────────────────────────
 
@@ -98,6 +123,7 @@ export interface CronJobUpdate {
 export interface CronServiceDeps {
   getAgentSession: (agentId: string) => Promise<{ id: string; prompt: (msg: string) => Promise<void> } | null>;
   createAgentSession: (agentId: string) => Promise<{ id: string; prompt: (msg: string) => Promise<void> }>;
+  enqueueSystemEvent: (agentId: string, text: string) => void;
   broadcastEvent?: (event: { type: string; jobId: string; agentId: string; status: string; message?: string }) => void;
 }
 
@@ -136,3 +162,4 @@ export function getErrorBackoffMs(consecutiveErrors: number): number {
 
 export const MAX_TIMER_DELAY_MS = 60_000;  // Maximum timer delay (1 minute)
 export const MAX_SCHEDULE_ERRORS = 3;       // Auto-disable after this many schedule errors
+export const JOB_TIMEOUT_MS = 10 * 60_000; // Job execution timeout (10 minutes)

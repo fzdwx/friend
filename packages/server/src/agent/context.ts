@@ -23,9 +23,6 @@ export type WorkspaceFile = { path: string; content: string };
 export async function loadWorkspaceFiles(workspaceDir: string): Promise<WorkspaceFile[]> {
   const results: WorkspaceFile[] = [];
 
-  // Get today's date for {today} variable
-  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-
   for (const name of WORKSPACE_FILES) {
     try {
       const path = join(workspaceDir, name);
@@ -33,7 +30,6 @@ export async function loadWorkspaceFiles(workspaceDir: string): Promise<Workspac
       if (content.trim()) {
         // Replace variables with actual values
         content = content.replace(/{workspace}/g, workspaceDir);
-        content = content.replace(/{today}/g, today);
         results.push({ path, content });
       }
     } catch {
