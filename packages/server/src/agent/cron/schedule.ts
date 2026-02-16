@@ -82,7 +82,11 @@ function computeCronNextRun(
   nowMs: number
 ): number | undefined {
   try {
-    const options: any = {
+    // Use inline type import to avoid namespace issues
+    const options: {
+      currentDate: Date;
+      tz?: string;
+    } = {
       currentDate: new Date(nowMs),
     };
     

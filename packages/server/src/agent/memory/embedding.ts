@@ -29,6 +29,28 @@ const VOYAGE_DIMENSIONS: Record<string, number> = {
   "voyage-2": 1024,
 };
 
+// ─── API Response Types ───────────────────────────────────────
+
+interface OpenAIEmbeddingResponse {
+  data: Array<{
+    index: number;
+    embedding: number[];
+  }>;
+}
+
+interface GeminiEmbeddingResponse {
+  embedding: {
+    values: number[];
+  };
+}
+
+interface VoyageEmbeddingResponse {
+  data: Array<{
+    index: number;
+    embedding: number[];
+  }>;
+}
+
 // ─── OpenAI Embedding Provider ───────────────────────────────
 
 export class OpenAIEmbeddingProvider implements EmbeddingProvider {
@@ -67,10 +89,10 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
       throw new Error(`OpenAI embedding failed: ${response.status} - ${error}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as OpenAIEmbeddingResponse;
     const embeddings: number[][] = data.data
-      .sort((a: any, b: any) => a.index - b.index)
-      .map((item: any) => item.embedding);
+      .sort((a, b) => a.index - b.index)
+      .map((item) => item.embedding);
 
     return embeddings;
   }
@@ -167,10 +189,10 @@ export class VoyageEmbeddingProvider implements EmbeddingProvider {
       throw new Error(`Voyage embedding failed: ${response.status} - ${error}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as VoyageEmbeddingResponse;
     const embeddings: number[][] = data.data
-      .sort((a: any, b: any) => a.index - b.index)
-      .map((item: any) => item.embedding);
+      .sort((a, b) => a.index - b.index)
+      .map((item) => item.embedding);
 
     return embeddings;
   }

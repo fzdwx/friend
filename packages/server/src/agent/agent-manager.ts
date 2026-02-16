@@ -34,6 +34,11 @@ export interface AgentConfig {
   heartbeat?: {
     /** Interval for heartbeat checks (e.g., "30m", "1h") */
     every?: string;
+    /** Optional: Specific session ID to use for heartbeat execution.
+     * If set, heartbeat messages will be sent to this session instead of
+     * the most recent session for this agent.
+     */
+    sessionId?: string;
   };
   skills?: string[];
 }

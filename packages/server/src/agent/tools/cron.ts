@@ -6,7 +6,8 @@
 
 import { Type } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
-import type { CronService, CronSchedule, CronJobInfo } from "../cron/index.js";
+import type { CronSchedule, CronJobInfo } from "../cron/index.js";
+import type { ICronManager } from "../managers/types.js";
 
 // ─── Tool Parameters Schema ───────────────────────────────────
 
@@ -66,8 +67,6 @@ export const CronParams = Type.Object({
 
 // ─── Manager Interface ───────────────────────────────────────
 
-import type { ICronManager } from "./custom-provider-add.js";
-
 // ─── Tool Definition ───────────────────────────────────────
 
 export function createCronTool(manager: ICronManager, agentId: string): ToolDefinition {
@@ -113,9 +112,10 @@ export function createCronTool(manager: ICronManager, agentId: string): ToolDefi
               details: undefined,
             };
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
         return {
-          content: [{ type: "text" as const, text: `Error: ${err.message || String(err)}` }],
+          content: [{ type: "text" as const, text: `Error: ${errorMsg}` }],
           details: undefined,
         };
       }

@@ -4,13 +4,13 @@
  * Handles the question tool's pending questions and answers.
  */
 
-import type { PendingQuestion } from "@friend/shared";
+import type { PendingQuestion, Question, QuestionAnswer, QuestionnaireResolveValue } from "@friend/shared";
 import type { IQuestionManager, QuestionManagerDeps } from "./types.js";
 
 interface PendingQuestionEntry {
-  resolve: (value: { questionId: string; answers: any[]; cancelled: boolean }) => void;
+  resolve: (value: QuestionnaireResolveValue) => void;
   questionId: string;
-  questions: any[];
+  questions: Question[];
 }
 
 export class QuestionManager implements IQuestionManager {
@@ -24,8 +24,8 @@ export class QuestionManager implements IQuestionManager {
   async askQuestions(
     sessionId: string,
     questionId: string,
-    questions: any[],
-  ): Promise<{ questionId: string; answers: any[]; cancelled: boolean }> {
+    questions: Question[],
+  ): Promise<QuestionnaireResolveValue> {
     // sessionId might be SDK sessionId, resolve to DB sessionId
     const dbSessionId = this.deps.resolveDbSessionId(sessionId) ?? sessionId;
 
@@ -59,7 +59,7 @@ export class QuestionManager implements IQuestionManager {
 
   resolveQuestionnaire(
     sessionId: string,
-    answers: any[],
+    answers: QuestionAnswer[],
     cancelled: boolean,
   ): boolean {
     const pending = this.pendingQuestions.get(sessionId);
@@ -85,7 +85,7 @@ export class QuestionManager implements IQuestionManager {
     return true;
   }
 
-  getPendingQuestion(sessionId: string): { questionId: string; questions: any[] } | null {
+  getPendingQuestion(sessionId: string): PendingQuestion | null {
     const pending = this.pendingQuestions.get(sessionId);
     if (!pending) return null;
     return {
@@ -100,7 +100,7 @@ export class QuestionManager implements IQuestionManager {
   restorePendingQuestion(sessionId: string, question: PendingQuestion): void {
     // Re-create the Promise that will be resolved when user answers
     // Note: The promise is created to set up the resolver, but we don't need to await it
-    void new Promise<{ questionId: string; answers: any[]; cancelled: boolean }>((resolve) => {
+    void new Promise<QuestionnaireResolveValue>((resolve) => {
       this.pendingQuestions.set(sessionId, {
         resolve,
         questionId: question.questionId,

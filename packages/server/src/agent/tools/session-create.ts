@@ -1,5 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
+import type { IAgentManager } from "../managers/types.js";
 
 // ─── Tool Parameters Schema ───────────────────────────────────
 
@@ -16,18 +17,9 @@ export const CreateSessionParams = Type.Object({
   ),
 });
 
-// ─── AgentManager Interface ─────────────────────────────────
-
-export interface ICreateSessionManager {
-  createSessionWithAgent(
-    agentId: string,
-    opts?: { name?: string; workingPath?: string },
-  ): Promise<{ id: string; name: string; agentId: string; workingPath?: string }>;
-}
-
 // ─── Tool Definition ───────────────────────────────────────
 
-export function createCreateSessionTool(manager: ICreateSessionManager, agentId: string): ToolDefinition {
+export function createCreateSessionTool(manager: IAgentManager, agentId: string): ToolDefinition {
   return {
     name: "create_session",
     label: "Create Session",
@@ -43,6 +35,18 @@ export function createCreateSessionTool(manager: ICreateSessionManager, agentId:
       };
 
       try {
+        if (!manager.createSessionWithAgent) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: "Session creation is not available in the current environment.",
+              },
+            ],
+            details: undefined,
+          };
+        }
+
         const result = await manager.createSessionWithAgent(agentId, { name, workingPath });
 
         return {

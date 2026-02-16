@@ -7,6 +7,7 @@
 
 import { Type } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
+import type { SessionInfo, SessionDetail } from "@friend/shared";
 
 // ─── Tool Parameters Schema ───────────────────────────────────
 
@@ -31,12 +32,20 @@ export const SessionSearchParams = Type.Object({
 interface SearchResult {
   sessionId: string;
   sessionName: string;
-  agentId: string;
+  agentId: string | undefined;
   messageIndex: number;
   role: "user" | "assistant" | "toolResult";
   content: string;
-  timestamp?: string;
+  timestamp?: number;
   score: number;
+}
+
+/**
+ * Interface for the manager dependency
+ */
+interface ISessionSearchManager {
+  listSessions(): Promise<SessionInfo[]>;
+  getSession(id: string): Promise<SessionDetail | null>;
 }
 
 // ─── BM25 Search Implementation ─────────────────────────────────
@@ -88,7 +97,7 @@ function bm25Score(
  * Search messages across all sessions
  */
 async function searchSessions(
-  manager: any,
+  manager: ISessionSearchManager,
   query: string,
   agentId?: string,
   maxResults = 10,
@@ -105,7 +114,7 @@ async function searchSessions(
   
   // Filter by agentId if specified
   const filteredSessions = agentId 
-    ? sessions.filter((s: any) => s.agentId === agentId)
+    ? sessions.filter((s) => s.agentId === agentId)
     : sessions;
 
   // Calculate average message length for BM25
@@ -173,7 +182,7 @@ async function searchSessions(
 
 // ─── Tool Definition ──────────────────────────────────────────
 
-export function createSessionSearchTool(manager: any): ToolDefinition {
+export function createSessionSearchTool(manager: ISessionSearchManager): ToolDefinition {
   return {
     name: "session_search",
     label: "Search Sessions",

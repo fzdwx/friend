@@ -3,7 +3,7 @@ import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
 import type { ThemeConfig } from "@friend/shared";
 import { prisma } from "@friend/db";
 import { getAllBuiltInThemes } from "./theme-utils";
-import type { IAgentManager } from "./custom-provider-add";
+import type { IAgentManager } from "../managers/types.js";
 
 // ─── Tool Parameters Schema ────────────────────────────────
 

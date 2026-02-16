@@ -75,7 +75,12 @@ export class CronManager implements ICronManager {
       return false;
     }
 
-    const updateInput: any = {};
+    const updateInput: {
+      name?: string;
+      enabled?: boolean;
+      schedule?: CronSchedule;
+      payload?: { kind: "agentTurn"; message: string } | { kind: "systemEvent"; text: string };
+    } = {};
     if (updates.name !== undefined) updateInput.name = updates.name;
     if (updates.enabled !== undefined) updateInput.enabled = updates.enabled;
     if (updates.schedule !== undefined) updateInput.schedule = updates.schedule;

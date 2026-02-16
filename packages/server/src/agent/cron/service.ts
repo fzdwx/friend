@@ -6,9 +6,28 @@
  */
 
 import { prisma } from "@friend/db";
+import type { DbCronJob } from "@friend/shared";
 import type { CronJob, CronJobCreate, CronJobUpdate, CronJobInfo, CronServiceDeps, CronSchedule, CronPayload, CronJobState } from "./types.js";
 import { computeNextRunAtMs, describeSchedule } from "./schedule.js";
 import { MAX_TIMER_DELAY_MS, MAX_SCHEDULE_ERRORS, JOB_TIMEOUT_MS, getErrorBackoffMs } from "./types.js";
+import { cronLogger as logger } from "../utils/logger.js";
+import { getErrorMessage, isCancelledError } from "../utils/errors.js";
+
+// Re-export Prisma types for use in this file
+type CronJobWhereInput = {
+  agentId?: string;
+  enabled?: boolean;
+};
+
+type CronJobUpdateInput = {
+  name?: string;
+  description?: string | null;
+  enabled?: boolean;
+  deleteAfterRun?: boolean;
+  schedule?: string;
+  payload?: string;
+  state?: string;
+};
 
 // ─── CronService ─────────────────────────────────────────────
 
@@ -24,7 +43,7 @@ export class CronService {
   // ─── Lifecycle ─────────────────────────────────────────────
 
   async start(): Promise<void> {
-    console.log("[Cron] Service starting...");
+    logger.debug("Service starting...");
     
     // Initialize next run times for jobs without them
     await this.initializeNextRunTimes();
@@ -32,7 +51,7 @@ export class CronService {
     // Arm the timer
     await this.armTimer();
     
-    console.log("[Cron] Service started");
+    logger.debug("Service started");
   }
 
   stop(): void {
@@ -40,7 +59,7 @@ export class CronService {
       clearTimeout(this.timer);
       this.timer = null;
     }
-    console.log("[Cron] Service stopped");
+    logger.debug("Service stopped");
   }
 
   // ─── Timer Management ──────────────────────────────────────
@@ -57,14 +76,14 @@ export class CronService {
     const nextWakeAtMs = this.getNextWakeAtMs();
     
     if (!nextWakeAtMs) {
-      console.log("[Cron] No jobs scheduled, timer not armed");
+      logger.debug("No jobs scheduled, timer not armed");
       return;
     }
 
     const now = Date.now();
     const delay = Math.min(Math.max(nextWakeAtMs - now, 0), MAX_TIMER_DELAY_MS);
 
-    console.log(`[Cron] Timer armed, next check in ${delay}ms`);
+    logger.debug(`Timer armed, next check in ${delay}ms`);
 
     this.timer = setTimeout(() => this.onTimer(), delay);
   }
@@ -84,8 +103,8 @@ export class CronService {
       for (const job of dueJobs) {
         await this.executeJob(job);
       }
-    } catch (err) {
-      console.error("[Cron] Timer error:", err);
+    } catch (err: unknown) {
+      logger.error("Timer error", err);
     } finally {
       this.running = false;
       await this.armTimer();
@@ -108,7 +127,7 @@ export class CronService {
   }
 
   private async executeJob(job: CronJob): Promise<void> {
-    console.log(`[Cron] Executing job ${job.id} (${job.name})`);
+    logger.debug(`Executing job ${job.id} (${job.name})`);
 
     const startedAt = Date.now();
 
@@ -129,7 +148,7 @@ export class CronService {
         this.deps.enqueueSystemEvent(job.agentId, text);
         resultMessage = `System event "${job.name}" enqueued`;
         status = "ok";
-        console.log(`[Cron] Job ${job.id} enqueued system event for agent ${job.agentId}`);
+        logger.debug(`Job ${job.id} enqueued system event for agent ${job.agentId}`);
 
       } else if (job.payload.kind === "agentTurn") {
         // Agent turn - needs a session to prompt
@@ -148,17 +167,18 @@ export class CronService {
 
           resultMessage = `Job "${job.name}" executed`;
           status = "ok";
-          console.log(`[Cron] Job ${job.id} executed for agent ${job.agentId}`);
+          logger.info(`Job ${job.id} executed for agent ${job.agentId}`);
         } else {
-          console.warn(`[Cron] Job ${job.id}: no session available, skipping`);
+          logger.warn(`Job ${job.id}: no session available, skipping`);
           status = "skipped";
           errorMessage = "No session available";
         }
       }
-    } catch (err: any) {
-      console.error(`[Cron] Job ${job.id} error:`, err);
+    } catch (err: unknown) {
+      const errorMsg = getErrorMessage(err);
+      logger.error(`Job ${job.id} error: ${errorMsg}`, err);
       status = "error";
-      errorMessage = err.message || String(err);
+      errorMessage = errorMsg;
     }
 
     const endedAt = Date.now();
@@ -183,7 +203,7 @@ export class CronService {
       const normalNext = computeNextRunAtMs(job.schedule, endedAt);
       newState.nextRunAtMs = normalNext ? Math.max(normalNext, endedAt + backoffMs) : endedAt + backoffMs;
       
-      console.log(`[Cron] Job ${job.id} error #${consecutiveErrors}, backoff ${backoffMs}ms`);
+      logger.warn(`Job ${job.id} error #${consecutiveErrors}, backoff ${backoffMs}ms`);
       
       // Auto-disable after too many consecutive errors
       if (consecutiveErrors >= MAX_SCHEDULE_ERRORS) {
@@ -192,7 +212,7 @@ export class CronService {
           data: { enabled: false },
         });
         newState.nextRunAtMs = undefined;
-        console.log(`[Cron] Job ${job.id} auto-disabled after ${consecutiveErrors} consecutive errors`);
+        logger.warn(`Job ${job.id} auto-disabled after ${consecutiveErrors} consecutive errors`);
         
         // Broadcast auto-disable event
         if (this.deps.broadcastEvent) {
@@ -219,7 +239,7 @@ export class CronService {
       } else if (job.deleteAfterRun) {
         // Delete if marked
         await prisma.cronJob.delete({ where: { id: job.id } });
-        console.log(`[Cron] Job ${job.id} deleted after run`);
+        logger.debug(`Job ${job.id} deleted after run`);
       } else {
         // Compute next run time
         newState.nextRunAtMs = computeNextRunAtMs(job.schedule, endedAt);
@@ -269,7 +289,7 @@ export class CronService {
       },
     });
 
-    console.log(`[Cron] Job created: ${dbJob.id} (${dbJob.name}), next run: ${nextRunAtMs ? new Date(nextRunAtMs).toLocaleString() : 'none'}`);
+    logger.info(`Job created: ${dbJob.id} (${dbJob.name}), next run: ${nextRunAtMs ? new Date(nextRunAtMs).toLocaleString() : 'none'}`);
 
     // Re-arm timer in case this job is sooner
     await this.armTimer();
@@ -282,7 +302,7 @@ export class CronService {
     if (!existing) return null;
 
     const now = Date.now();
-    const updates: any = {};
+    const updates: CronJobUpdateInput = {};
 
     if (input.name !== undefined) updates.name = input.name;
     if (input.description !== undefined) updates.description = input.description;
@@ -321,7 +341,7 @@ export class CronService {
   async removeJob(id: string): Promise<boolean> {
     try {
       await prisma.cronJob.delete({ where: { id } });
-      console.log(`[Cron] Job removed: ${id}`);
+      logger.info(`Job removed: ${id}`);
       await this.armTimer();
       return true;
     } catch {
@@ -330,7 +350,7 @@ export class CronService {
   }
 
   async listJobs(opts?: { agentId?: string; includeDisabled?: boolean }): Promise<CronJobInfo[]> {
-    const where: any = {};
+    const where: CronJobWhereInput = {};
     
     if (opts?.agentId) {
       where.agentId = opts.agentId;
@@ -462,7 +482,7 @@ export class CronService {
     return JSON.parse(payloadJson) as CronPayload;
   }
 
-  private dbJobToJob(dbJob: any): CronJob {
+  private dbJobToJob(dbJob: DbCronJob): CronJob {
     return {
       id: dbJob.id,
       agentId: dbJob.agentId,

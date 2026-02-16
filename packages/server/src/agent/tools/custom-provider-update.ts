@@ -1,6 +1,7 @@
 import { Type } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
-import type { CustomProviderConfig, CustomModelConfig, SessionDetail, SessionInfo, ThemeConfig } from "@friend/shared";
+import type { CustomProviderConfig, CustomModelConfig } from "@friend/shared";
+import type { IAgentManager } from "../managers/types.js";
 
 // ─── Tool Parameters Schema ────────────────────────────────
 
@@ -29,21 +30,6 @@ export const UpdateCustomProviderParams = Type.Object({
   models: Type.Optional(Type.Array(ModelUpdateSchema, { description: "Models to update/add (partial update by model id)" })),
   removeModels: Type.Optional(Type.Array(Type.String(), { description: "Model IDs to remove from this provider" })),
 });
-
-// ─── AgentManager Interface ─────────────────────────────────
-
-export interface IAgentManager {
-  getCustomProviders(): CustomProviderConfig[];
-  addCustomProvider(provider: CustomProviderConfig): void;
-  setActiveTheme?(themeId: string): Promise<void>;
-  addCustomTheme?(theme: ThemeConfig): Promise<void>;
-  listSessions?(): Promise<SessionInfo[]>;
-  renameSession?(
-    id: string,
-    name: string,
-  ): Promise<{ success: boolean; oldName?: string; error?: "not_found" }>;
-  getSession?(id: string): Promise<SessionDetail | null>;
-}
 
 // ─── Default model config for new models ────────────────────
 

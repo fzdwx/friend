@@ -1,21 +1,7 @@
 import { Type } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
-import type { CustomProviderConfig, SessionDetail, SessionInfo, ThemeConfig } from "@friend/shared";
-
-// ─── AgentManager Interface ─────────────────────────────────
-
-export interface IAgentManager {
-  getCustomProviders(): CustomProviderConfig[];
-  addCustomProvider?(provider: CustomProviderConfig): void;
-  setActiveTheme?(themeId: string): Promise<void>;
-  addCustomTheme?(theme: ThemeConfig): Promise<void>;
-  listSessions?(): Promise<SessionInfo[]>;
-  renameSession?(
-    id: string,
-    name: string,
-  ): Promise<{ success: boolean; oldName?: string; error?: "not_found" }>;
-  getSession?(id: string): Promise<SessionDetail | null>;
-}
+import type { CustomProviderConfig } from "@friend/shared";
+import type { IAgentManager } from "../managers/types.js";
 
 // ─── Tool Definition ───────────────────────────────────────
 

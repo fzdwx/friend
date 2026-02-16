@@ -16,8 +16,8 @@ import defaultHeartbeatMd from "./defaults/HEARTBEAT.txt";
 async function ensureDefaultFile(targetPath: string, content: string): Promise<void> {
   try {
     await writeFile(targetPath, content, { flag: "wx" });
-  } catch (err: any) {
-    if (err.code !== "EEXIST") throw err;
+  } catch (err: unknown) {
+    if (err instanceof Error && (err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
   }
 }
 

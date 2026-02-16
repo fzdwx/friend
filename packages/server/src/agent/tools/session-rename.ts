@@ -1,5 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
+import type { IAgentManager } from "../managers/types.js";
 
 // ─── Tool Parameters Schema ───────────────────────────────────
 
@@ -15,15 +16,9 @@ export const RenameSessionParams = Type.Object({
   }),
 });
 
-// ─── AgentManager Interface ─────────────────────────────────
-
-export interface IRenameSessionManager {
-  renameSession(id: string, name: string): Promise<{ success: boolean }>;
-}
-
 // ─── Tool Definition ───────────────────────────────────────
 
-export function createRenameSessionTool(manager: IRenameSessionManager): ToolDefinition {
+export function createRenameSessionTool(manager: IAgentManager): ToolDefinition {
   return {
     name: "rename_session",
     label: "Rename Session",
@@ -52,6 +47,18 @@ export function createRenameSessionTool(manager: IRenameSessionManager): ToolDef
       }
 
       try {
+        if (!manager.renameSession) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: "Session renaming is not available in the current environment.",
+              },
+            ],
+            details: undefined,
+          };
+        }
+
         const result = await manager.renameSession(sessionId, newName);
 
         if (result.success) {

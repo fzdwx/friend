@@ -1,11 +1,13 @@
 // Custom tools for the agent
 // This directory contains all custom tools that extend the agent's capabilities
 
+// Re-export manager interfaces from centralized location
+export type { IAgentManager, ICronManager } from "../managers/types.js";
+
 // Custom Provider
 export { createAddProviderTool, AddCustomProviderParams } from "./custom-provider-add";
 export { createListProvidersTool } from "./custom-provider-list";
 export { createUpdateProviderTool, UpdateCustomProviderParams } from "./custom-provider-update";
-export type { IAgentManager } from "./custom-provider-add";
 
 // Theme Tools
 export { createGetThemesTool } from "./theme-get";
@@ -30,7 +32,11 @@ export { createQuestionTool } from "./question.js";
 
 // Cron Tool
 export { createCronTool, CronParams } from "./cron.js";
-export type { ICronManager } from "./custom-provider-add";
+
+// Skill Tools
+export { createSkillCreateTool, SkillCreateParams } from "./skill-create.js";
+export { createSkillUpdateTool, SkillUpdateParams } from "./skill-update.js";
+export { createSkillListTool, SkillListParams } from "./skill-list.js";
 
 // Notify Tool
 export { notifyTool } from "./notify.js";

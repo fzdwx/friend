@@ -131,6 +131,16 @@ export interface QuestionnaireResult {
   cancelled: boolean;
 }
 
+/** Promise resolve value for question tool - used by QuestionManager */
+export interface QuestionnaireResolveValue {
+  questionId: string;
+  answers: QuestionAnswer[];
+  cancelled: boolean;
+}
+
+/** Array of questions - convenience type for function parameters */
+export type QuestionArray = Question[];
+
 /** Agent is asking questions, waiting for user response */
 export interface QuestionRequestEvent {
   type: "question_request";

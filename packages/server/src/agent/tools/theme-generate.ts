@@ -1,7 +1,7 @@
 import { Type } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
 import { generateThemeFromColor } from "./theme-utils";
-import type { IAgentManager } from "./custom-provider-add";
+import type { IAgentManager } from "../managers/types.js";
 
 export const GenerateThemeParams = Type.Object({
   name: Type.Optional(Type.String({ description: "Optional name for the generated theme." })),

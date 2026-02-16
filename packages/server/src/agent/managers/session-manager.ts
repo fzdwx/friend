@@ -47,7 +47,7 @@ export class SessionManager implements ISessionManager {
     const planModeState: PlanModeState | undefined = undefined;
 
     // Get pending question - note: this should be fetched from QuestionManager
-    const pendingQuestion: { questionId: string; questions: any[] } | undefined = undefined;
+    const pendingQuestion: PendingQuestion | undefined = undefined;
 
     return {
       id: managed.id,

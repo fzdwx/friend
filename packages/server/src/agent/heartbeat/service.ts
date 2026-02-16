@@ -10,6 +10,8 @@ import { readFile, appendFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentConfig } from "../agent-manager.js";
 import { globalSystemEventQueue, SystemEventQueue } from "../system-events.js";
+import { agentLogger as logger } from "../utils/logger.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 // ─── Constants ──────────────────────────────────────────────
 
@@ -25,6 +27,8 @@ export interface HeartbeatAgentState {
   agentId: string;
   lastRunAtMs: number | null;
   intervalMs: number;
+  /** Current heartbeat session ID (may differ from config if session was recreated) */
+  heartbeatSessionId?: string;
 }
 
 export interface HeartbeatResult {
@@ -44,7 +48,11 @@ export interface CronHealthInfo {
 export interface HeartbeatServiceDeps {
   getAgents: () => Promise<AgentConfig[]>;
   getAgentWorkspace: (agentId: string) => string;
-  executeAgentTask: (agentId: string, prompt: string, streamingBehavior?: "steer" | "followUp") => Promise<string>;
+  executeAgentTask: (agentId: string, prompt: string, streamingBehavior?: "steer" | "followUp", sessionId?: string) => Promise<string>;
+  /** Check if a session exists */
+  sessionExists?: (sessionId: string) => Promise<boolean>;
+  /** Create a new session for an agent */
+  createSession?: (agentId: string, name?: string) => Promise<string>;
   broadcastEvent?: (event: { type: string; agentId: string; status: string; message?: string }) => void;
   getCronJobs?: (agentId: string) => Promise<CronHealthInfo[]>;
 }
@@ -61,8 +69,14 @@ export class HeartbeatService {
   constructor(deps: HeartbeatServiceDeps) {
     this.deps = deps;
     this.log = (level, agentId, msg) => {
-      // Print to console
-      console.log(`[Heartbeat] [${level}] [${agentId}] ${msg}`);
+      // Use structured logger
+      if (level === "ERROR") {
+        logger.error(`[${agentId}] ${msg}`);
+      } else if (level === "WARN") {
+        logger.warn(`[${agentId}] ${msg}`);
+      } else {
+        logger.info(`[${agentId}] ${msg}`);
+      }
       // Also write to file
       this.logToFile(agentId, level, msg);
     };
@@ -72,12 +86,12 @@ export class HeartbeatService {
 
   start(): void {
     if (this.timer) {
-      console.log("[Heartbeat] Service already running");
+      logger.debug("Service already running");
       return;
     }
 
     this.timer = setInterval(() => this.checkAllAgents(), CHECK_INTERVAL_MS);
-    console.log("[Heartbeat] Service started");
+    logger.debug("Service started");
 
     // Run initial check after a short delay
     setTimeout(() => this.checkAllAgents(), 5000);
@@ -88,7 +102,7 @@ export class HeartbeatService {
       clearInterval(this.timer);
       this.timer = null;
     }
-    console.log("[Heartbeat] Service stopped");
+    logger.debug("Service stopped");
   }
 
   // ─── Core Logic ───────────────────────────────────────────
@@ -100,7 +114,7 @@ export class HeartbeatService {
     try {
       const agents = await this.deps.getAgents();
       const now = Date.now();
-      console.log(`[Heartbeat] Checking ${agents.length} agent(s)...`);
+      logger.debug(`Checking ${agents.length} agent(s)...`);
 
       for (const agent of agents) {
         const state = this.getOrCreateState(agent);
@@ -110,25 +124,69 @@ export class HeartbeatService {
           const elapsed = now - state.lastRunAtMs;
           if (elapsed < state.intervalMs) {
             const remaining = Math.round((state.intervalMs - elapsed) / 60000);
-            console.log(`[Heartbeat] [${agent.id}] Skipping, next run in ~${remaining}min`);
+            logger.debug(`[${agent.id}] Skipping, next run in ~${remaining}min`);
             continue;  // Not yet time for this agent
           }
         }
 
         // Execute heartbeat for this agent
-        console.log(`[Heartbeat] [${agent.id}] Starting heartbeat execution...`);
-        await this.executeHeartbeat(agent.id);
+        logger.debug(`[${agent.id}] Starting heartbeat execution...`);
+        await this.executeHeartbeat(agent, state);
       }
-    } catch (err) {
-      console.error("[Heartbeat] Error checking agents:", err);
+    } catch (err: unknown) {
+      logger.error("Error checking agents", err);
     } finally {
       this.running = false;
     }
   }
 
-  private async executeHeartbeat(agentId: string): Promise<HeartbeatResult> {
+  private async executeHeartbeat(agent: AgentConfig, state: HeartbeatAgentState): Promise<HeartbeatResult> {
+    const agentId = agent.id;
     const workspace = this.deps.getAgentWorkspace(agentId);
     const heartbeatPath = join(workspace, "HEARTBEAT.md");
+
+    // Determine which session to use for heartbeat
+    let targetSessionId: string | undefined;
+    const configuredSessionId = agent.heartbeat?.sessionId;
+    
+    if (configuredSessionId && this.deps.sessionExists && this.deps.createSession) {
+      // Use configured session, but check if it exists
+      // First check state's cached session ID (in case we created one previously)
+      const cachedSessionId = state.heartbeatSessionId;
+      
+      if (cachedSessionId) {
+        // Check if cached session still exists
+        const exists = await this.deps.sessionExists(cachedSessionId);
+        if (exists) {
+          targetSessionId = cachedSessionId;
+        } else {
+          // Session was deleted, need to create new one
+          this.log("INFO", agentId, `Heartbeat session ${cachedSessionId} was deleted, creating new one`);
+        }
+      }
+      
+      if (!targetSessionId) {
+        // Check if the configured session ID exists
+        const configuredExists = await this.deps.sessionExists(configuredSessionId);
+        if (configuredExists) {
+          targetSessionId = configuredSessionId;
+          // Cache it in state
+          state.heartbeatSessionId = configuredSessionId;
+        } else {
+          // Need to create a new session
+          try {
+            targetSessionId = await this.deps.createSession(agentId, `Heartbeat Session`);
+            state.heartbeatSessionId = targetSessionId;
+            this.log("INFO", agentId, `Created new heartbeat session: ${targetSessionId}`);
+          } catch (err: unknown) {
+            const errorMsg = err instanceof Error ? err.message : String(err);
+            this.log("ERROR", agentId, `Failed to create heartbeat session: ${errorMsg}`);
+            // Fall back to default behavior (no specific session)
+            targetSessionId = undefined;
+          }
+        }
+      }
+    }
 
     // Read HEARTBEAT.md (optional — heartbeat always fires)
     let heartbeatContent: string | null = null;
@@ -166,7 +224,7 @@ export class HeartbeatService {
 
     try {
       // Use "followUp" to queue heartbeat even when agent is busy
-      const response = await this.deps.executeAgentTask(agentId, prompt, "followUp");
+      const response = await this.deps.executeAgentTask(agentId, prompt, "followUp", targetSessionId);
 
       // Update state
       const state = this.agentStates.get(agentId);
@@ -196,8 +254,9 @@ export class HeartbeatService {
       }
 
       return { agentId, status: "executed", message: meaningful.slice(0, 200) };
-    } catch (err: any) {
-      this.log("ERROR", agentId, `Heartbeat error: ${err.message}`);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      this.log("ERROR", agentId, `Heartbeat error: ${errorMsg}`);
 
       // Broadcast error
       if (this.deps.broadcastEvent) {
@@ -205,11 +264,11 @@ export class HeartbeatService {
           type: "heartbeat",
           agentId,
           status: "error",
-          message: err.message,
+          message: errorMsg,
         });
       }
 
-      return { agentId, status: "error", error: err.message };
+      return { agentId, status: "error", error: errorMsg };
     }
   }
 
@@ -417,8 +476,8 @@ HEARTBEAT_OK 💻
     const timestamp = new Date().toISOString();
     const line = `[${timestamp}] [${level}] ${message}\n`;
 
-    await appendFile(logPath, line).catch((err) => {
-      console.error(`[Heartbeat] Failed to write log for ${agentId}:`, err);
+    await appendFile(logPath, line).catch((err: unknown) => {
+      logger.error(`Failed to write log for ${agentId}`, err);
     });
   }
 
@@ -428,7 +487,14 @@ HEARTBEAT_OK 💻
    * Force run heartbeat for a specific agent immediately.
    */
   async runNow(agentId: string): Promise<HeartbeatResult> {
-    return this.executeHeartbeat(agentId);
+    // Get the agent config and state for force run
+    const agents = await this.deps.getAgents();
+    const agent = agents.find(a => a.id === agentId);
+    if (!agent) {
+      return { agentId, status: "error", error: `Agent ${agentId} not found` };
+    }
+    const state = this.getOrCreateState(agent);
+    return this.executeHeartbeat(agent, state);
   }
 
   /**

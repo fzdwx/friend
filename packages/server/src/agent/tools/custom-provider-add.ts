@@ -1,6 +1,10 @@
 import { Type } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
-import type { CustomProviderConfig, SessionDetail, SessionInfo, ThemeConfig } from "@friend/shared";
+import type { CustomProviderConfig } from "@friend/shared";
+import type { IAgentManager, ICronManager } from "../managers/types.js";
+
+// Re-export for backward compatibility
+export type { IAgentManager, ICronManager } from "../managers/types.js";
 
 // ─── Tool Parameters Schema ────────────────────────────────
 
@@ -56,45 +60,6 @@ export const AddCustomProviderParams = Type.Object({
     { description: "Models available from this provider" },
   ),
 });
-
-// ─── AgentManager Interface ─────────────────────────────────
-
-export interface IAgentManager {
-  addCustomProvider(provider: CustomProviderConfig): void;
-  setActiveTheme?(themeId: string): Promise<void>;
-  addCustomTheme?(theme: ThemeConfig): Promise<void>;
-  listSessions?(): Promise<SessionInfo[]>;
-  renameSession?(
-    id: string,
-    name: string,
-  ): Promise<{ success: boolean; oldName?: string; error?: "not_found" }>;
-  getSession?(id: string): Promise<SessionDetail | null>;
-  getCommands?(id: string): import("@mariozechner/pi-coding-agent").SlashCommandInfo[];
-  executeCommand?(id: string, name: string, args?: string): Promise<void>;
-}
-
-// ─── Cron Manager Interface (for CronTool) ───────────────────────────────
-
-export interface ICronManager {
-  addCronJob(
-    agentId: string,
-    name: string,
-    schedule: import("../cron/types.js").CronSchedule,
-    message: string,
-  ): Promise<{ id: string; nextRunAt?: Date }>;
-  listCronJobs(agentId?: string): Promise<import("../cron/types.js").CronJobInfo[]>;
-  removeCronJob(jobId: string): Promise<boolean>;
-  updateCronJob(jobId: string, enabled: boolean): Promise<boolean>;
-  updateCronJobFull(
-    jobId: string,
-    updates: {
-      name?: string;
-      message?: string;
-      schedule?: import("../cron/types.js").CronSchedule;
-      enabled?: boolean;
-    },
-  ): Promise<boolean>;
-}
 
 // ─── Tool Definition ───────────────────────────────────────
 

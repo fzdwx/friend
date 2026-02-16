@@ -17,15 +17,21 @@ import type {
   AppConfig,
   ConfigUpdatedEvent,
   CustomProviderConfig,
+  DbCustomModel,
+  DbCustomProvider,
   GlobalSSEEvent,
   Message,
   ModelInfo,
   PendingQuestion,
   PlanModeState,
+  Question,
+  QuestionAnswer,
+  QuestionnaireResolveValue,
   SessionCreatedEvent,
   SessionDetail,
   SessionInfo,
   SSEEvent,
+  TextContent,
   ThemeConfig,
   ThinkingLevel,
 } from "@friend/shared";
@@ -49,6 +55,9 @@ import {
   createRenameSessionTool,
   createSessionSearchTool,
   createSetThemeTool,
+  createSkillCreateTool,
+  createSkillListTool,
+  createSkillUpdateTool,
   createUpdateProviderTool,
 } from "./tools";
 import {HeartbeatService, type HeartbeatServiceDeps} from "./heartbeat/index.js";
@@ -76,31 +85,6 @@ import {createCommandsExtension} from "./extensions/commands.js";
 import type {EventSubscriber, ManagedSession} from "./managers/index.js";
 // Sub-managers (modular refactoring)
 import {CronManager, PlanModeManager, ProviderManager, QuestionManager, ThemeManager,} from "./managers/index.js";
-
-// ─── DB mapping types ──────────────────────────────────────
-
-type DbCustomProvider = {
-  name: string;
-  baseUrl: string;
-  apiKey: string | null;
-  api: string | null;
-  headers: string | null;
-  models: DbCustomModel[];
-};
-
-type DbCustomModel = {
-  id: string;
-  modelId: string;
-  name: string;
-  reasoning: boolean;
-  contextWindow: number;
-  maxTokens: number;
-  costInput: number;
-  costOutput: number;
-  costCacheRead: number;
-  costCacheWrite: number;
-  providerName: string;
-};
 
 // ─── DB ↔ App mapping functions ────────────────────────────
 
@@ -203,9 +187,9 @@ export class AgentManager implements IAgentManager {
   // ─── Question Tool Management ──────────────────────────────────────────
 
   private pendingQuestions = new Map<string, {
-    resolve: (value: { questionId: string; answers: any[]; cancelled: boolean }) => void;
+    resolve: (value: QuestionnaireResolveValue) => void;
     questionId: string;
-    questions: any[];
+    questions: Question[];
   }>();
 
   private getPlanModeState(sessionId: string): PlanModeState {
@@ -377,6 +361,10 @@ export class AgentManager implements IAgentManager {
       createQuestionTool(this),
       // Cron tool for scheduling tasks
       createCronTool(this, agentId),
+      // Skill tools for creating and managing skills
+      createSkillCreateTool(this, agentId),
+      createSkillUpdateTool(this, agentId),
+      createSkillListTool(this, agentId),
     ];
 
     // Reload files fresh each turn (ensures latest content)
@@ -533,7 +521,8 @@ export class AgentManager implements IAgentManager {
             setTimeout(async () => {
               try {
                 await managed.session.prompt(`Continue with: ${nextTask.text}`);
-              } catch (err: any) {
+              } catch (err: unknown) {
+                const errorMessage = err instanceof Error ? err.message : String(err);
                 console.error('[PlanMode] Failed to continue with next task:', err);
                 // Stop execution on error (e.g. context overflow)
                 this.setPlanModeState(dbSessionId, {
@@ -542,7 +531,7 @@ export class AgentManager implements IAgentManager {
                 });
                 this.broadcast(managed, {
                   type: "error",
-                  message: `Plan execution stopped: ${err.message || String(err)}`,
+                  message: `Plan execution stopped: ${errorMessage}`,
                 });
               }
             }, 100);
@@ -731,7 +720,7 @@ export class AgentManager implements IAgentManager {
         try {
           const restoredQuestion = JSON.parse(s.pendingQuestion) as PendingQuestion;
           // Re-create the Promise that will be resolved when user answers
-          const questionPromise = new Promise<{ questionId: string; answers: any[]; cancelled: boolean }>((resolve) => {
+          const questionPromise = new Promise<QuestionnaireResolveValue>((resolve) => {
             this.pendingQuestions.set(s.id, {
               resolve,
               questionId: restoredQuestion.questionId,
@@ -792,9 +781,17 @@ export class AgentManager implements IAgentManager {
         return agents;
       },
       getAgentWorkspace: (agentId: string) => resolveAgentWorkspaceDir(agentId),
-      executeAgentTask: async (agentId: string, prompt: string, streamingBehavior?: "steer" | "followUp") => {
-        const result = await this.executeAgentTask(agentId, prompt, streamingBehavior);
+      executeAgentTask: async (agentId: string, prompt: string, streamingBehavior?: "steer" | "followUp", sessionId?: string) => {
+        const result = await this.executeAgentTask(agentId, prompt, streamingBehavior, sessionId);
         return result;
+      },
+      sessionExists: async (sessionId: string) => {
+        const managed = this.managedSessions.get(sessionId);
+        return !!managed;
+      },
+      createSession: async (agentId: string, name?: string) => {
+        const session = await this.createSession({ agentId, name });
+        return session.id;
       },
       broadcastEvent: (event) => {
         this.broadcastGlobal(event as unknown as ConfigUpdatedEvent);
@@ -837,8 +834,15 @@ export class AgentManager implements IAgentManager {
     console.log("[AgentManager] Heartbeat and Cron services started");
   }
 
-  private async executeAgentTask(agentId: string, promptText: string, streamingBehavior?: "steer" | "followUp"): Promise<string> {
-    const managed = await this.getOrCreateSessionForAgent(agentId);
+  private async executeAgentTask(agentId: string, promptText: string, streamingBehavior?: "steer" | "followUp", sessionId?: string): Promise<string> {
+    const managed = sessionId 
+      ? this.managedSessions.get(sessionId) 
+      : await this.getOrCreateSessionForAgent(agentId);
+    
+    if (!managed) {
+      throw new Error(`Session ${sessionId} not found for agent ${agentId}`);
+    }
+    
     const agent = managed.session.agent;
 
     // Collect the last assistant message when agent finishes
@@ -1329,8 +1333,8 @@ Your output must be:
           typeof m.content === "string"
             ? m.content
             : m.content
-                .filter((c: any) => c.type === "text")
-                .map((c: any) => c.text)
+                .filter((c): c is TextContent => c.type === "text")
+                .map((c) => c.text)
                 .join("");
         return text;
       })
@@ -1387,8 +1391,8 @@ Your output must be:
       typeof lastUserMsg.content === "string"
         ? lastUserMsg.content
         : lastUserMsg.content
-            .filter((c: any) => c.type === "text")
-            .map((c: any) => c.text)
+            .filter((c): c is TextContent => c.type === "text")
+            .map((c) => c.text)
             .join("");
 
     const trimmed = text.trim();
@@ -1582,8 +1586,8 @@ Your output must be:
   async askQuestions(
     sessionId: string,
     questionId: string,
-    questions: any[],
-  ): Promise<{ questionId: string; answers: any[]; cancelled: boolean }> {
+    questions: Question[],
+  ): Promise<QuestionnaireResolveValue> {
     // sessionId might be SDK sessionId, resolve to DB sessionId
     const dbSessionId = this.resolveDbSessionId(sessionId) ?? sessionId;
     
@@ -1621,7 +1625,7 @@ Your output must be:
    */
   resolveQuestionnaire(
     sessionId: string,
-    answers: any[],
+    answers: QuestionAnswer[],
     cancelled: boolean,
   ): boolean {
     const pending = this.pendingQuestions.get(sessionId);
@@ -1650,7 +1654,7 @@ Your output must be:
   /**
    * Get pending questionnaire for a session (if any).
    */
-  getPendingQuestion(sessionId: string): { questionId: string; questions: any[] } | null {
+  getPendingQuestion(sessionId: string): PendingQuestion | null {
     const pending = this.pendingQuestions.get(sessionId);
     if (!pending) return null;
     return {
