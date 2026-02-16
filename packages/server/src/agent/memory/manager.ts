@@ -413,8 +413,16 @@ export class MemoryIndexManager {
       await this.indexFile(entry);
     }
 
-    // Clean up stale files
-    // TODO: Remove files that no longer exist
+    // Clean up stale files (files that no longer exist on disk)
+    const indexedPaths = this.storage.getAllFilePaths();
+    const currentPaths = new Set(fileEntries.map((e) => e.path));
+
+    for (const indexedPath of indexedPaths) {
+      if (!currentPaths.has(indexedPath)) {
+        console.log(`[MemoryIndex] Removing stale file: ${indexedPath}`);
+        this.storage.deleteFile(indexedPath);
+      }
+    }
 
     this.dirty = false;
   }

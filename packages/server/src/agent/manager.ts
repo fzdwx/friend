@@ -67,6 +67,9 @@ import {
   resolveAgentWorkspaceDir,
 } from "./agent-manager.js";
 import {DEFAULT_MEMORY_FLUSH_PROMPT, shouldRunMemoryFlush,} from "./memory-flush.js";
+import {
+  shouldCompressContext,
+} from "./context-compression.js";
 import {createPlanModeExtension, NORMAL_MODE_TOOLS, type TodoItem,} from "./extensions/plan-mode.js";
 import {createCommandsExtension} from "./extensions/commands.js";
 
@@ -1403,6 +1406,9 @@ Your output must be:
     managed.updatedAt = new Date().toISOString();
     prisma.session.update({ where: { id }, data: { updatedAt: new Date() } }).catch(() => {});
 
+    // Check if context compression is needed before processing user message
+    await this.checkAndCompressContext(managed);
+
     // Check for pending system events and inject them
     const agentId = managed.agentId;
     const systemEvents = this.systemEventQueue.drain(agentId);
@@ -1438,6 +1444,64 @@ Your output must be:
     managed.session.prompt(enhancedMessage).catch((err) => {
       this.broadcast(managed, { type: "error", message: String(err) });
     });
+  }
+
+  /**
+   * Check if context compression is needed and execute it
+   */
+  private async checkAndCompressContext(managed: ManagedSession): Promise<void> {
+    // Skip if session is already streaming
+    if (managed.session.isStreaming) {
+      return;
+    }
+
+    const usage = managed.session.getContextUsage();
+    if (!usage || usage.tokens === null) {
+      return;
+    }
+
+    const model = managed.session.model;
+    if (!model) {
+      return;
+    }
+
+    const checkResult = shouldCompressContext(usage.tokens, model.contextWindow);
+
+    console.log(
+      `[ContextCompression] Check: session=${managed.id}, tokens=${checkResult.currentTokens}, ` +
+      `usage=${(checkResult.percentUsed * 100).toFixed(1)}%, needsCompression=${checkResult.needsCompression}`
+    );
+
+    if (!checkResult.needsCompression) {
+      return;
+    }
+
+    // Use SDK's compact() API with custom instructions
+    console.log(`[ContextCompression] Triggering compaction for session ${managed.id}`);
+    
+    try {
+      // SDK's compact() handles summarization automatically
+      // It will also emit auto_compaction_start and auto_compaction_end events
+      const customInstructions = `
+请重点保留：
+1. 当前任务/讨论的核心主题
+2. 重要的决策和结论
+3. 未完成的工作项
+4. 用户最近的请求和你的回复
+5. 正在进行的代码修改
+
+可以省略：
+- 早期的调试过程（如果已解决）
+- 不再相关的代码片段
+- 已被取代的旧方案讨论
+`;
+      
+      await managed.session.compact(customInstructions);
+      
+      console.log(`[ContextCompression] Compaction completed for session ${managed.id}`);
+    } catch (error) {
+      console.error(`[ContextCompression] Failed:`, error);
+    }
   }
 
   /**

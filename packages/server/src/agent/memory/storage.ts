@@ -274,6 +274,16 @@ export class MemoryStorage {
     } catch {}
   }
 
+  /**
+   * Get all indexed file paths
+   * Used for cleanup of stale files
+   */
+  getAllFilePaths(): string[] {
+    const stmt = this.db.query<{ path: string }, []>("SELECT path FROM files");
+    const rows = stmt.all();
+    return rows.map((row) => row.path);
+  }
+
   // ─── Chunk Management ────────────────────────────────────────
 
   upsertChunk(chunk: MemoryChunk): void {
