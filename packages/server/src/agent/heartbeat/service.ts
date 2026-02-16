@@ -322,6 +322,7 @@ Workspace: ${workspace}
 - 📊 测试覆盖够吗？
 - 📝 最近修改有遗漏吗？
 - 🧠 怎么让项目更好？
+- 可以探索互联网，使用 agent-browser / fetch 等工具
 
 ### 步骤 5：行动
 
