@@ -1,0 +1,225 @@
+---
+name: agent-browser
+description: Browser automation CLI for AI agents using Vercel's agent-browser. Deterministic refs from accessibility trees for reliable automation. Optimized for LLMs with fast Rust CLI, JSON output, and purpose-built AI workflows.
+---
+
+# agent-browser Skill
+
+Browser automation that actually works for AI agents. Built by Vercel Labs specifically for LLM-driven workflows.
+
+## Prerequisites
+
+```bash
+# Install agent-browser globally
+npm install -g agent-browser
+
+# Install Chromium browser
+agent-browser install
+# Or on Linux if install fails:
+npx playwright install chromium
+```
+
+## Why This Works Better
+
+### 1. Deterministic Refs (The Game-Changer)
+
+**Traditional tools:**
+- CSS selectors break when websites change
+- XPath is brittle and unreadable
+- Coordinate-based clicking fails on responsive layouts
+
+**agent-browser solution:**
+```bash
+# 1. Get snapshot with stable refs
+agent-browser snapshot -i --json
+# Output: - button "Submit" [ref=e2]
+
+# 2. Use that ref — it points to the EXACT element
+agent-browser click @e2
+```
+
+### 2. Accessibility Trees > Screenshots/HTML
+
+agent-browser gives you the **accessibility tree** — a clean, semantic representation:
+
+```
+- heading "Billing" [level=1]
+- link "Make a payment" [ref=e10]
+- button "Submit" [ref=e2]
+- textbox "Email" [ref=e3]
+```
+
+## Core AI Workflow
+
+```bash
+# Step 1: Navigate
+agent-browser open https://example.com
+
+# Step 2: Get structured snapshot (the AI "sees" the page)
+agent-browser snapshot -i --json
+
+# Step 3: AI picks refs from JSON, execute actions
+agent-browser click @e2
+agent-browser fill @e3 "test@example.com"
+
+# Step 4: Re-snapshot after changes
+agent-browser snapshot -i --json
+
+# Step 5: Done
+agent-browser close
+```
+
+## Commands Reference
+
+### Navigation
+```bash
+agent-browser open example.com
+agent-browser open example.com --json            # JSON response
+agent-browser open example.com --headed          # Visible browser (for debugging)
+agent-browser back
+agent-browser forward
+agent-browser reload
+agent-browser close
+```
+
+### Snapshot (The Killer Feature)
+```bash
+agent-browser snapshot                           # Full accessibility tree
+agent-browser snapshot -i                        # Interactive only (recommended)
+agent-browser snapshot -i --json                 # JSON for AI parsing
+agent-browser snapshot -i -c -d 5 --json         # Compact, depth-limited
+```
+
+### Interaction (Using Deterministic Refs)
+```bash
+agent-browser click @e2                          # Click element
+agent-browser fill @e3 "text"                    # Fill and clear
+agent-browser type @e3 "text"                    # Type without clearing
+agent-browser press Enter                        # Press key
+agent-browser hover @e4                          # Hover
+agent-browser dblclick @e1                       # Double-click
+agent-browser check @e1                          # Check checkbox
+agent-browser uncheck @e1                        # Uncheck checkbox
+agent-browser select @e1 "value"                 # Select dropdown
+```
+
+### Extract Data
+```bash
+agent-browser get text @e1                       # Get element text
+agent-browser get html @e1                       # Get innerHTML
+agent-browser get value @e1                      # Get input value
+agent-browser get attr @e1 href                  # Get attribute
+agent-browser get title                          # Page title
+agent-browser get url                            # Current URL
+```
+
+### Wait
+```bash
+agent-browser wait @e1                           # Wait for element
+agent-browser wait 2000                          # Wait milliseconds
+agent-browser wait --text "Done"                 # Wait for text
+agent-browser wait --load networkidle            # Wait for network idle
+```
+
+### Screenshots
+```bash
+agent-browser screenshot /tmp/page.png           # Save screenshot
+agent-browser screenshot --full                  # Full page screenshot
+agent-browser pdf output.pdf                     # Save as PDF
+```
+
+### Sessions
+```bash
+agent-browser --session s1 open "https://site1.com"
+agent-browser --session s2 open "https://site2.com"
+agent-browser session list
+```
+
+### State (persist auth/cookies)
+```bash
+agent-browser state save auth.json               # Save session
+agent-browser state load auth.json               # Restore session
+```
+
+## Tips for AI Agents
+
+1. **Always use `--json`** — Structured output is easier to parse
+2. **Use `-i` flag** — Interactive-only snapshots are smaller, faster
+3. **Re-snapshot after actions** — Verify state changed as expected
+4. **Trust refs over selectors** — `@e2` from snapshot > `#id` that might change
+5. **Use `--headed` for debugging** — See what the browser is doing
+6. **Close when done** — `agent-browser close`
+
+## Standard Workflow
+
+```bash
+# 1. Open page
+agent-browser open "https://example.com"
+
+# 2. Snapshot to see what's on the page
+agent-browser snapshot -i
+
+# 3. Interact using @refs
+agent-browser fill @e1 "search query"
+agent-browser click @e2
+
+# 4. Wait for page load
+agent-browser wait --load networkidle
+
+# 5. Re-snapshot (refs change after navigation!)
+agent-browser snapshot -i
+
+# 6. Extract data
+agent-browser get text @e5
+
+# 7. Close
+agent-browser close
+```
+
+## Example: Login Flow
+
+```bash
+# Start
+agent-browser open https://portal.example.com --headed
+
+# Get page structure
+agent-browser snapshot -i --json
+# AI sees: textbox @e1 (Username), textbox @e2 (Password), button @e3 (Login)
+
+# Execute login
+agent-browser fill @e1 "username"
+agent-browser fill @e2 "password"
+agent-browser click @e3
+
+# Verify success
+sleep 2
+agent-browser snapshot -i --json
+
+# Save auth state for reuse
+agent-browser state save /tmp/auth.json
+
+# Done
+agent-browser close
+```
+
+## When to Use This Skill
+
+**Use agent-browser when:**
+- Automating multi-step web workflows
+- Filling complex forms
+- Need reliable, repeatable automation
+- Working with dynamic/modern web apps
+- Cost matters (no vision API calls)
+
+## Troubleshooting
+
+- **Element not found**: Re-run `snapshot -i` to get current refs
+- **Page not loaded**: Add `wait --load networkidle` after navigation
+- **CAPTCHA on search engines**: Use DuckDuckGo or web search instead
+- **Auth expired**: Re-login and `state save` again
+- **Want to see browser**: Add `--headed` flag
+
+## Resources
+
+- **Vercel Labs repo:** https://github.com/vercel-labs/agent-browser
+- **Commands reference:** Run `agent-browser --help`

@@ -19,6 +19,7 @@ import { GLOBAL_SKILLS_DIR } from "../paths.js";
 
 // Import skill content (inlined by Bun at build time)
 import skillCreatorMd from "./skill-creator/SKILL.md.txt";
+import agentBrowserMd from "./agent-browser/SKILL.md.txt";
 
 // Built-in skill definitions with their resources
 const BUILTIN_SKILLS = {
@@ -27,6 +28,9 @@ const BUILTIN_SKILLS = {
     // Add more files as needed:
     // "scripts/rotate.py": rotatePy,
     // "references/schema.md": schemaMd,
+  },
+  "agent-browser": {
+    "SKILL.md": agentBrowserMd,
   },
 } as const;
 
