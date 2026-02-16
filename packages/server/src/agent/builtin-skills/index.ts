@@ -4,65 +4,54 @@
  * Ensures built-in skills are created in the global skills directory
  * if they don't already exist.
  *
- * Each skill is a directory with SKILL.md and optional resources:
- * - builtin-skills/skill-name/SKILL.md.txt (required)
- * - builtin-skills/skill-name/references/*.md (optional)
- * - builtin-skills/skill-name/templates/*.sh (optional)
+ * Each skill is a directory with SKILL.md and optional resources.
+ * All files use .txt extension for bundling (Bun inlines them).
  *
- * Uses import to inline SKILL.md content (works after bundling).
- * Reference/template files are copied from source directory at runtime.
+ * At runtime, files are written with their actual names (without .txt).
  */
 
 import { join, dirname } from "node:path";
-import { existsSync, mkdirSync, writeFileSync, readdirSync, copyFileSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { GLOBAL_SKILLS_DIR } from "../paths.js";
 
 // Import skill content (inlined by Bun at build time)
 import skillCreatorMd from "./skill-creator/SKILL.md.txt";
 import agentBrowserMd from "./agent-browser/SKILL.md.txt";
 
-// Built-in skill definitions with their SKILL.md content
-const BUILTIN_SKILLS = {
+// Import agent-browser references
+import agentBrowserCommandsMd from "./agent-browser/references/commands.md.txt";
+import agentBrowserSnapshotRefsMd from "./agent-browser/references/snapshot-refs.md.txt";
+import agentBrowserSessionMgmtMd from "./agent-browser/references/session-management.md.txt";
+import agentBrowserAuthMd from "./agent-browser/references/authentication.md.txt";
+import agentBrowserVideoMd from "./agent-browser/references/video-recording.md.txt";
+import agentBrowserProxyMd from "./agent-browser/references/proxy-support.md.txt";
+
+// Import agent-browser templates
+import agentBrowserFormAutomationSh from "./agent-browser/templates/form-automation.sh.txt";
+import agentBrowserAuthSessionSh from "./agent-browser/templates/authenticated-session.sh.txt";
+import agentBrowserCaptureWorkflowSh from "./agent-browser/templates/capture-workflow.sh.txt";
+
+// Built-in skill definitions with their files
+// Key = output filename, Value = content (imported from .txt files)
+const BUILTIN_SKILLS: Record<string, Record<string, string>> = {
   "skill-creator": {
     "SKILL.md": skillCreatorMd,
   },
   "agent-browser": {
     "SKILL.md": agentBrowserMd,
+    // References
+    "references/commands.md": agentBrowserCommandsMd,
+    "references/snapshot-refs.md": agentBrowserSnapshotRefsMd,
+    "references/session-management.md": agentBrowserSessionMgmtMd,
+    "references/authentication.md": agentBrowserAuthMd,
+    "references/video-recording.md": agentBrowserVideoMd,
+    "references/proxy-support.md": agentBrowserProxyMd,
+    // Templates
+    "templates/form-automation.sh": agentBrowserFormAutomationSh,
+    "templates/authenticated-session.sh": agentBrowserAuthSessionSh,
+    "templates/capture-workflow.sh": agentBrowserCaptureWorkflowSh,
   },
-} as const;
-
-// Skills with additional resource directories to copy
-const SKILL_RESOURCES: Record<string, string[]> = {
-  "agent-browser": ["references", "templates"],
 };
-
-/**
- * Get the source directory for a skill's resources
- */
-function getSkillSourceDir(skillName: string): string {
-  return join(__dirname, skillName);
-}
-
-/**
- * Copy a directory recursively
- */
-function copyDir(src: string, dest: string): void {
-  if (!existsSync(src)) return;
-
-  mkdirSync(dest, { recursive: true });
-
-  for (const entry of readdirSync(src)) {
-    const srcPath = join(src, entry);
-    const destPath = join(dest, entry);
-    const stat = statSync(srcPath);
-
-    if (stat.isDirectory()) {
-      copyDir(srcPath, destPath);
-    } else {
-      copyFileSync(srcPath, destPath);
-    }
-  }
-}
 
 /**
  * Ensure all built-in skills exist in the global skills directory.
@@ -81,10 +70,7 @@ export function ensureBuiltinSkills(): void {
 
     // Only create if SKILL.md doesn't exist
     if (!existsSync(skillFile)) {
-      // Create skill directory
-      mkdirSync(skillDir, { recursive: true });
-
-      // Write SKILL.md
+      // Write all files
       for (const [filePath, content] of Object.entries(files)) {
         const fullPath = join(skillDir, filePath);
         const parentDir = dirname(fullPath);
@@ -95,17 +81,6 @@ export function ensureBuiltinSkills(): void {
         }
 
         writeFileSync(fullPath, content, "utf-8");
-      }
-
-      // Copy resource directories if they exist
-      const resourceDirs = SKILL_RESOURCES[skillName];
-      if (resourceDirs) {
-        const sourceDir = getSkillSourceDir(skillName);
-        for (const resourceDir of resourceDirs) {
-          const srcPath = join(sourceDir, resourceDir);
-          const destPath = join(skillDir, resourceDir);
-          copyDir(srcPath, destPath);
-        }
       }
 
       console.log(`✓ Created built-in skill: ${skillName}`);
