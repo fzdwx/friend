@@ -4,6 +4,8 @@
 
 **基于 Tauri + React 构建跨平台桌面应用，Bun + Elysia 构建高性能后端**
 
+> 🔄 **测试 file-tracker v2** - 2026-02-19 22:09
+
 <div align="center">
 
 ![Static Badge](https://img.shields.io/badge/Bun-1.0+-black?logo=bun)
@@ -23,6 +25,7 @@
 - **思维链可视化** - 独立 Activity 面板展示 AI 思考过程和工具调用
 - **会话管理** - 创建、切换、删除会话，自动持久化聊天记录
 - **Memory 系统** - Agent 拥有长期记忆和每日日志，支持语义搜索
+- **文件追踪** - 自动追踪并显示 Session 中修改的文件，支持持久化
 - **自定义工具** - 扩展 AI 能力，提供 15 个内置工具
 
 ### 🎨 主题系统
@@ -123,6 +126,10 @@ just build-tauri
 │   │       ├── agent/
 │   │       │   ├── manager.ts         # AgentManager 核心
 │   │       │   ├── memory-flush.ts    # 记忆自动保存 ⭐
+│   │       │   ├── file-tracker.ts    # Session 文件追踪 ⭐
+│   │       │   ├── extensions/        # Agent 扩展
+│   │       │   │   ├── plan-mode.ts   # 计划模式
+│   │       │   │   └── file-tracker.ts # 文件追踪扩展
 │   │       │   ├── memory/            # Memory 系统 ⭐
 │   │       │   │   ├── manager.ts     # MemoryIndexManager
 │   │       │   │   ├── embedding.ts   # OpenAI/Gemini/Voyage
@@ -164,6 +171,11 @@ just build-tauri
 │   └── db/                  # Prisma + SQLite
 │       └── prisma/
 │           └── schema.prisma     # 数据库模型定义
+│               - Session: id, name, model, workingPath, modifiedFiles, ...
+│               - Agent: id, name, emoji, vibe, defaultModel, ...
+│               - CustomProvider & CustomModel: 自定义模型配置
+│               - CustomTheme: 自定义主题存储
+│               - CronJob: 定时任务
 │
 ├── justfile                  # 任务命令定义
 └── package.json              # Bun workspaces 配置
@@ -502,6 +514,20 @@ applyThemeToDOM(themeConfig); // 应用到 :root
 ```
 
 ## 🎯 核心设计
+
+### Session 文件追踪
+
+自动追踪并显示当前 Session 中修改的文件：
+
+- **实时追踪** - 监听 `edit` 和 `write` 工具调用，记录修改的文件路径
+- **前端展示** - 文件面板顶部显示修改的文件列表，点击可查看
+- **持久化存储** - 文件修改记录保存到数据库，重启后保留
+- **数据流**：
+  ```
+  工具调用 → file-tracker 扩展 → ManagedSession.modifiedFiles → 数据库
+                                     ↓
+                              前端 FilePanel 显示
+  ```
 
 ### Turn-based Activity 系统
 

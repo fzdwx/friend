@@ -89,6 +89,12 @@ export function createGetSessionTool(manager: IAgentManager): ToolDefinition {
   - Created: ${new Date(session.createdAt).toLocaleString()}
   - Updated: ${new Date(session.updatedAt).toLocaleString()}`;
 
+        // Show modified files if any
+        if (session.modifiedFiles && session.modifiedFiles.length > 0) {
+          const filesList = session.modifiedFiles.map(f => `\n  - ${f}`).join("");
+          responseText += `\n\n📝 Modified Files (${session.modifiedFiles.length}):${filesList}`;
+        }
+
         if (includeMessages) {
           const messageSummary = messages
             .map((m, i) => {

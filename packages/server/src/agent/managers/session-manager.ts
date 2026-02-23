@@ -31,6 +31,7 @@ export class SessionManager implements ISessionManager {
       messageCount: s.session.messages.length,
       workingPath: s.workingPath,
       isStreaming: s.session.isStreaming,
+      modifiedFiles: s.modifiedFiles ? Array.from(s.modifiedFiles) : undefined,
     }));
   }
 
@@ -49,6 +50,9 @@ export class SessionManager implements ISessionManager {
     // Get pending question - note: this should be fetched from QuestionManager
     const pendingQuestion: PendingQuestion | undefined = undefined;
 
+    // Get modified files from the session
+    const modifiedFiles = managed.modifiedFiles ? Array.from(managed.modifiedFiles) : undefined;
+
     return {
       id: managed.id,
       name: managed.name,
@@ -64,6 +68,7 @@ export class SessionManager implements ISessionManager {
       isStreaming: managed.session.isStreaming,
       planModeState,
       pendingQuestion,
+      modifiedFiles,
     };
   }
 

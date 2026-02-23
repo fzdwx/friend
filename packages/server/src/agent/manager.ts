@@ -81,6 +81,7 @@ import {
 } from "./context-compression.js";
 import {createPlanModeExtension, NORMAL_MODE_TOOLS, type TodoItem,} from "./extensions/plan-mode.js";
 import {createCommandsExtension} from "./extensions/commands.js";
+import {createFileTrackerExtension} from "./extensions/file-tracker.js";
 
 import type {EventSubscriber, ManagedSession} from "./managers/index.js";
 // Sub-managers (modular refactoring)
@@ -551,6 +552,33 @@ export class AgentManager implements IAgentManager {
             }
           },
         }),
+        // File tracker extension - tracks modified files in session
+        createFileTrackerExtension({
+          getSessionId: (ctx) => {
+            const sdkSessionId = ctx.sessionManager.getSessionId();
+            const resolved = this.resolveDbSessionId(sdkSessionId);
+            console.log(`[FileTracker] getSessionId: sdkSessionId=${sdkSessionId}, resolved=${resolved}, dbSessionId=${dbSessionId}`);
+            return resolved ?? dbSessionId;
+          },
+          addModifiedFile: async (sessionId: string, filePath: string) => {
+            console.log(`[FileTracker] addModifiedFile called: sessionId=${sessionId}, filePath=${filePath}`);
+            const managed = this.managedSessions.get(sessionId);
+            if (managed) {
+              if (!managed.modifiedFiles) {
+                managed.modifiedFiles = new Set<string>();
+              }
+              managed.modifiedFiles.add(filePath);
+              // Persist to database
+              const files = Array.from(managed.modifiedFiles);
+              await prisma.session.update({
+                where: { id: sessionId },
+                data: { modifiedFiles: JSON.stringify(files) },
+              }).catch(err => console.error('[FileTracker] Failed to save modifiedFiles:', err));
+            } else {
+              console.log(`[FileTracker] No managed session found for ${sessionId}`);
+            }
+          },
+        }),
       ],
     });
     await resourceLoader.reload();
@@ -732,6 +760,17 @@ export class AgentManager implements IAgentManager {
           // The agent will continue waiting for user input
         } catch (err) {
           console.error(`[AgentManager] Failed to restore pendingQuestion:`, err);
+        }
+      }
+
+      // Restore modified files from database
+      if (s.modifiedFiles) {
+        try {
+          const files = JSON.parse(s.modifiedFiles) as string[];
+          managed.modifiedFiles = new Set(files);
+          console.log(`[AgentManager] Restored ${files.length} modified files for session ${s.id}`);
+        } catch (err) {
+          console.error(`[AgentManager] Failed to restore modifiedFiles:`, err);
         }
       }
 

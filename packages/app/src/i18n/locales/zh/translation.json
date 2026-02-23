@@ -281,7 +281,9 @@
     "refresh": "刷新文件树",
     "close": "关闭文件",
     "showTree": "显示文件树",
-    "hideTree": "隐藏文件树"
+    "hideTree": "隐藏文件树",
+    "modifiedFiles": "已修改文件 ({{count}})",
+    "clear": "清除"
   },
   "cron": {
     "title": "定时任务",

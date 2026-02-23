@@ -36,6 +36,7 @@ export interface ManagedSession {
   memoryFlushPending?: boolean;
   planModeState?: PlanModeState;
   needContextRefresh?: boolean; // Flag to force context reload on next turn
+  modifiedFiles?: Set<string>; // Track files modified during this session
 }
 
 // ─── Provider Manager Interface ───────────────────────────

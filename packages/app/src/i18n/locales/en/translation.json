@@ -281,7 +281,9 @@
     "refresh": "Refresh file tree",
     "close": "Close file",
     "showTree": "Show file tree",
-    "hideTree": "Hide file tree"
+    "hideTree": "Hide file tree",
+    "modifiedFiles": "Modified Files ({{count}})",
+    "clear": "Clear"
   },
   "cron": {
     "title": "Cron Jobs",

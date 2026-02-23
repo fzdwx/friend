@@ -13,6 +13,11 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  base: "/", // Base path for production (served from root)
+  build: {
+    outDir: "dist",
+    emptyDirBeforeWrite: true,
+  },
   server: {
     port: 5173,
     proxy: {

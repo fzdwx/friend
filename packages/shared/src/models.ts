@@ -26,6 +26,7 @@ export interface SessionInfo {
   messageCount: number;
   workingPath?: string;
   isStreaming?: boolean;  // Whether the session is currently streaming
+  modifiedFiles?: string[];  // Files modified during this session
 }
 
 export interface SessionDetail extends SessionInfo {

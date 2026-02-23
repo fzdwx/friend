@@ -16,6 +16,7 @@ model Session {
   sessionFile     String?
   planModeState   String?                    // JSON string of PlanModeState
   pendingQuestion String?                    // JSON string of pending question
+  modifiedFiles   String?                    // JSON string of string[] (files modified in this session)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

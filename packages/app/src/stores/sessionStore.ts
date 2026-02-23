@@ -120,6 +120,10 @@ interface SessionState {
   // Slash commands actions
   loadCommands: (sessionId: string) => Promise<void>;
   setCommandResult: (result: { command: string; success: boolean; message?: string } | null) => void;
+
+  // Modified files actions
+  getActiveSessionModifiedFiles: () => string[];
+  refreshSessionInfo: (sessionId: string) => Promise<void>;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -378,4 +382,22 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     }
   },
   setCommandResult: (result) => set({ commandResult: result }),
+
+  // Modified files
+  getActiveSessionModifiedFiles: () => {
+    const activeSessionId = get().activeSessionId;
+    if (!activeSessionId) return [];
+    const session = get().sessions.find((s) => s.id === activeSessionId);
+    return session?.modifiedFiles ?? [];
+  },
+  refreshSessionInfo: async (sessionId: string) => {
+    const res = await api.getSession(sessionId);
+    if (res.ok && res.data) {
+      set((s) => ({
+        sessions: s.sessions.map((sess) =>
+          sess.id === sessionId ? { ...sess, ...res.data } : sess
+        ),
+      }));
+    }
+  },
 }));

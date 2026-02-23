@@ -3,7 +3,7 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
-import { Search, X } from "lucide-react";
+import { Search, X, FileEdit } from "lucide-react";
 import { FileTree } from "./FileTree";
 import { FileViewer } from "./FileViewer";
 import { useFileStore, type SearchResult } from "@/stores/fileStore";
@@ -11,6 +11,62 @@ import { useSessionStore } from "@/stores/sessionStore";
 import { FileIcon } from "@/components/ui/FileIcon";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+
+// ─── Modified Files Component ────────────────────────────────────
+
+function ModifiedFiles({
+  files,
+  onSelect,
+  onClear,
+}: {
+  files: string[];
+  onSelect: (path: string) => void;
+  onClear?: () => void;
+}) {
+  const { t } = useTranslation();
+
+  if (files.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="border-b border-border">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-muted/30">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <FileEdit className="w-3 h-3" />
+          <span>{t("files.modifiedFiles", { count: files.length })}</span>
+        </div>
+        {onClear && (
+          <button
+            onClick={onClear}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            {t("files.clear")}
+          </button>
+        )}
+      </div>
+      <div className="max-h-32 overflow-y-auto">
+        {files.map((path) => {
+          const filename = path.split("/").pop() || path;
+          return (
+            <button
+              key={path}
+              onClick={() => onSelect(path)}
+              className={cn(
+                "w-full flex items-center gap-2 px-3 py-1 text-xs",
+                "hover:bg-accent/50 text-left"
+              )}
+              title={path}
+            >
+              <FileIcon filename={filename} size={12} />
+              <span className="truncate flex-1">{filename}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ─── Search Results Component ────────────────────────────────────
 
@@ -60,6 +116,8 @@ function SearchResults({
 export function FilePanel() {
   const { t } = useTranslation();
   const activeSessionId = useSessionStore((s) => s.activeSessionId);
+  const sessions = useSessionStore((s) => s.sessions);
+  const refreshSessionInfo = useSessionStore((s) => s.refreshSessionInfo);
   const {
     showFileTree,
     sidebarWidth,
@@ -76,6 +134,25 @@ export function FilePanel() {
 
   const [showSearch, setShowSearch] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
+
+  // Get modified files from active session
+  const activeSession = sessions.find((s) => s.id === activeSessionId);
+  const modifiedFiles = activeSession?.modifiedFiles ?? [];
+
+  // Refresh session info periodically to get updated modifiedFiles
+  useEffect(() => {
+    if (!activeSessionId) return;
+    
+    // Refresh on mount
+    refreshSessionInfo(activeSessionId);
+    
+    // Refresh every 10 seconds
+    const interval = setInterval(() => {
+      refreshSessionInfo(activeSessionId);
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }, [activeSessionId, refreshSessionInfo]);
 
   // Debounced search
   useEffect(() => {
@@ -222,8 +299,17 @@ export function FilePanel() {
             </div>
 
             {/* File tree */}
-            <div className="flex-1 overflow-hidden">
-              <FileTree />
+            <div className="flex-1 overflow-hidden flex flex-col">
+              {/* Modified files section */}
+              <ModifiedFiles
+                files={modifiedFiles}
+                onSelect={handleSearchSelect}
+              />
+              
+              {/* File tree */}
+              <div className="flex-1 overflow-hidden">
+                <FileTree />
+              </div>
             </div>
           </div>
         </>

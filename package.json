@@ -2,6 +2,16 @@
   "name": "friend",
   "private": true,
   "workspaces": ["packages/*"],
+  "scripts": {
+    "build": "bun run build:app",
+    "build:app": "cd packages/app && bun run build",
+    "build:binary": "bun run scripts/build-binary.ts",
+    "build:release": "bun run build:app && bun run build:binary",
+    "dev": "bun run dev:server & bun run dev:app",
+    "dev:server": "cd packages/server && bun run dev",
+    "dev:app": "cd packages/app && bun run dev",
+    "start": "cd packages/server && bun run start"
+  },
   "dependencies": {
     "@mariozechner/pi-agent-core": "^0.52.12",
     "@mariozechner/pi-ai": "^0.52.12",
