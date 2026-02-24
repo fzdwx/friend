@@ -19,7 +19,7 @@ setup:
         echo "[setup] Generating Prisma Client..."
         (cd packages/db && DATABASE_URL="file:dummy" bunx prisma generate)
     fi
-    DB_PATH="${XDG_CONFIG_HOME:-$HOME/.config}/friend/friend.db"
+    DB_PATH="${XDG_CONFIG_HOME:-$HOME/.config}/apex/apex.db"
     if [ ! -f "$DB_PATH" ]; then
         echo "[setup] Creating database..."
         (cd packages/db && DATABASE_URL="file:$DB_PATH" bunx prisma db push)
@@ -85,11 +85,11 @@ typecheck:
 
 # 类型检查 server
 typecheck-server:
-    bun run --filter @friend/server typecheck
+    bun run --filter @apex/server typecheck
 
 # 类型检查 app
 typecheck-app:
-    bun run --filter @friend/app typecheck
+    bun run --filter @apex/app typecheck
 
 # ── 数据库 ──────────────────────────────────────────
 
