@@ -41,6 +41,7 @@ import {stat, unlink} from "node:fs/promises";
 import type {IAgentManager} from "./tools";
 import {
   createAddProviderTool,
+  createCreateAgentTool,
   createCreateSessionTool,
   createCronTool,
   createGenerateThemeTool,
@@ -366,6 +367,8 @@ export class AgentManager implements IAgentManager {
       createSkillCreateTool(this, agentId),
       createSkillUpdateTool(this, agentId),
       createSkillListTool(this, agentId),
+      // Agent tool for creating new agents
+      createCreateAgentTool(this),
     ];
 
     // Reload files fresh each turn (ensures latest content)
@@ -874,9 +877,15 @@ export class AgentManager implements IAgentManager {
   }
 
   private async executeAgentTask(agentId: string, promptText: string, streamingBehavior?: "steer" | "followUp", sessionId?: string): Promise<string> {
-    const managed = sessionId 
-      ? this.managedSessions.get(sessionId) 
-      : await this.getOrCreateSessionForAgent(agentId);
+    // If sessionId is provided, get the full ManagedSession for compression check
+    const managedSession = sessionId ? this.managedSessions.get(sessionId) : undefined;
+    
+    // If we have a full ManagedSession, check compression before sending
+    if (managedSession) {
+      await this.checkAndCompressContext(managedSession);
+    }
+    
+    const managed = managedSession ?? await this.getOrCreateSessionForAgent(agentId);
     
     if (!managed) {
       throw new Error(`Session ${sessionId} not found for agent ${agentId}`);
@@ -1548,6 +1557,34 @@ Your output must be:
   }
 
   /**
+   * Internal method to send prompt with automatic compression check.
+   * All prompt/followUp/steer calls should go through this method.
+   */
+  private async _sendPrompt(
+    managed: ManagedSession,
+    message: string,
+    options?: {
+      streamingBehavior?: "steer" | "followUp";
+      skipCompression?: boolean;
+    }
+  ): Promise<void> {
+    // Check compression before sending (unless skipped)
+    if (!options?.skipCompression) {
+      await this.checkAndCompressContext(managed);
+    }
+
+    // Send the message using the appropriate method
+    const { streamingBehavior } = options ?? {};
+    if (streamingBehavior === "steer") {
+      await managed.session.steer(message);
+    } else if (streamingBehavior === "followUp") {
+      await managed.session.followUp(message);
+    } else {
+      await managed.session.prompt(message);
+    }
+  }
+
+  /**
    * Handle plan mode action from user.
    * Called when user clicks execute/cancel or sends modification.
    */
@@ -1582,9 +1619,9 @@ Your output must be:
         : "Execute the plan.";
 
       if (managed.session.isStreaming) {
-        await managed.session.followUp(execMessage);
+        await this._sendPrompt(managed, execMessage, { streamingBehavior: "followUp" });
       } else {
-        await managed.session.prompt(execMessage);
+        await this._sendPrompt(managed, execMessage);
       }
 
     } else if (action === "cancel") {
@@ -1602,7 +1639,7 @@ Your output must be:
           modifyMessage: options.message,
         });
         // Send the modification as a followUp - agent will refine the plan
-        await managed.session.followUp(options.message);
+        await this._sendPrompt(managed, options.message, { streamingBehavior: "followUp" });
       }
     }
   }
@@ -1705,13 +1742,13 @@ Your output must be:
   async steer(id: string, message: string): Promise<void> {
     const managed = this.managedSessions.get(id);
     if (!managed) throw new Error(`Session ${id} not found`);
-    await managed.session.steer(message);
+    await this._sendPrompt(managed, message, { streamingBehavior: "steer" });
   }
 
   async followUp(id: string, message: string): Promise<void> {
     const managed = this.managedSessions.get(id);
     if (!managed) throw new Error(`Session ${id} not found`);
-    await managed.session.followUp(message);
+    await this._sendPrompt(managed, message, { streamingBehavior: "followUp" });
   }
 
   getPendingMessages(id: string): { steering: string[]; followUp: string[] } | null {
@@ -1772,7 +1809,7 @@ Your output must be:
 
   /**
    * Execute a slash command in a session.
-   * Constructs the command string and sends it via prompt().
+   * Constructs the command string and sends it via _sendPrompt.
    */
   async executeCommand(id: string, name: string, args?: string): Promise<void> {
     const managed = this.managedSessions.get(id);
@@ -1781,9 +1818,8 @@ Your output must be:
     // Construct command string like "/plan" or "/search keyword"
     const commandText = args ? `/${name} ${args}` : `/${name}`;
 
-    // Use prompt to execute the command
-    // SDK's prompt() automatically handles extension commands via _tryExecuteExtensionCommand
-    await managed.session.prompt(commandText);
+    // Use _sendPrompt to execute the command with compression check
+    await this._sendPrompt(managed, commandText);
   }
 
   getContextUsage(id: string): { tokens: number | null; contextWindow: number; percent: number | null } | null {

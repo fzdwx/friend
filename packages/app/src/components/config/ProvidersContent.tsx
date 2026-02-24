@@ -17,9 +17,18 @@ const DEFAULT_MODEL: CustomModelConfig = {
 export function ProvidersContent() {
   const { t } = useTranslation();
   const customProviders = useConfigStore((s) => s.customProviders);
-  const { addCustomProvider, removeCustomProvider } = useConfigStore();
+  const { addCustomProvider, removeCustomProvider, setCustomProviders } = useConfigStore();
 
   const [editing, setEditing] = useState<CustomProviderConfig | null>(null);
+
+  // Fetch providers from server on mount
+  useEffect(() => {
+    api.getProviders().then((res) => {
+      if (res.ok && res.data) {
+        setCustomProviders(res.data);
+      }
+    });
+  }, [setCustomProviders]);
 
   const handleSave = async (provider: CustomProviderConfig) => {
     await api.addProvider(provider);

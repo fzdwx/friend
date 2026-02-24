@@ -106,7 +106,7 @@ export function PlanEditor({ todos: initialTodos, onExecute, onCancel, disabled 
   const totalSteps = todos.reduce((acc, todo) => acc + 1 + (todo.subtasks?.length || 0), 0);
 
   return (
-    <div className="plan-editor bg-secondary/30 border border-border rounded-lg p-4 my-3  max-h-[400px]  flex flex-col">
+    <div className="plan-editor bg-secondary/30 border border-border rounded-lg p-4 my-3 max-h-[70vh] flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-3 pb-2 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -172,7 +172,7 @@ export function PlanEditor({ todos: initialTodos, onExecute, onCancel, disabled 
                   value={todo.text}
                   onChange={(e) => handleEditStep(index, e.target.value)}
                   disabled={disabled}
-                  className="flex-1 bg-transparent text-sm outline-none border-b border-transparent focus:border-primary/50 px-1 py-0.5"
+                  className="flex-1 min-w-[200px] bg-transparent text-sm outline-none border-b border-transparent focus:border-primary/50 px-1 py-0.5 overflow-visible"
                 />
 
                 {/* Completed indicator */}
@@ -207,7 +207,7 @@ export function PlanEditor({ todos: initialTodos, onExecute, onCancel, disabled 
                         value={subtask.text}
                         onChange={(e) => handleEditSubtask(index, subIndex, e.target.value)}
                         disabled={disabled}
-                        className="flex-1 bg-transparent text-sm outline-none border-b border-transparent focus:border-primary/50 px-1 py-0.5"
+                        className="flex-1 min-w-[150px] bg-transparent text-sm outline-none border-b border-transparent focus:border-primary/50 px-1 py-0.5 overflow-visible"
                       />
 
                       {/* Completed indicator */}
@@ -293,7 +293,7 @@ export function PlanProgress({ completed, total, todos }: PlanProgressProps) {
   }, [currentTaskIndex]);
 
   return (
-    <div className="plan-progress bg-secondary/30 border border-border rounded-lg p-3 my-2 max-h-[200px] flex flex-col overflow-hidden">
+    <div className="plan-progress bg-secondary/30 border border-border rounded-lg p-3 my-2 max-h-[50vh] flex flex-col overflow-hidden">
       <div className="flex items-center justify-between mb-2 flex-shrink-0">
         <span className="text-sm font-medium">{t("plan.executing")}</span>
         <span className="text-xs text-muted-foreground">

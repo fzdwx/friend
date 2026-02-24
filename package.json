@@ -13,8 +13,8 @@
     "start": "cd packages/server && bun run start"
   },
   "dependencies": {
-    "@mariozechner/pi-agent-core": "^0.52.12",
-    "@mariozechner/pi-ai": "^0.52.12",
-    "@mariozechner/pi-coding-agent": "^0.52.12"
+    "@mariozechner/pi-agent-core": "^0.54.2",
+    "@mariozechner/pi-ai": "^0.54.2",
+    "@mariozechner/pi-coding-agent": "0.54.2"
   }
 }

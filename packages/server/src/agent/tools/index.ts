@@ -24,6 +24,9 @@ export { createGetSessionTool, GetSessionParams } from "./session-get";
 export { createCreateSessionTool, CreateSessionParams } from "./session-create";
 export { createSessionSearchTool, SessionSearchParams } from "./session-search";
 
+// Agent Tools
+export { createCreateAgentTool, CreateAgentParams } from "./create-agent";
+
 // Memory Tools
 export { createMemorySearchTool, createMemoryGetTool, MemorySearchParams, MemoryGetParams } from "./memory.js";
 
