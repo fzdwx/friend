@@ -1,5 +1,5 @@
 {
-  "name": "@friend/app",
+  "name": "@apex/app",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "tauri:build": "tauri build"
   },
   "dependencies": {
-    "@friend/shared": "workspace:*",
+    "@apex/shared": "workspace:*",
     "@pierre/diffs": "^1.0.10",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

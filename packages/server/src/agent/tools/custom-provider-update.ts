@@ -1,6 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
-import type { CustomProviderConfig, CustomModelConfig } from "@friend/shared";
+import type { CustomProviderConfig, CustomModelConfig } from "@apex/shared";
 import type { IAgentManager } from "../managers/types.js";
 
 // ─── Tool Parameters Schema ────────────────────────────────

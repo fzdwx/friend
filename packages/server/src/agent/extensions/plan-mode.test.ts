@@ -229,8 +229,8 @@ Plan:
    6.4. 示例输出：\`⚠ 3 skills have missing dependencies. Run 'friend skills setup' or visit Settings > Skills.\`
 
 7. 【新增】创建 Skill 状态检测命令 packages/server/src/commands/skills-doctor.ts
-   7.1. 实现 \`friend skills status\` 命令（显示所有 skill 状态）
-   7.2. 实现 \`friend skills setup\` 命令（交互式安装缺失依赖）
+   7.1. 实现 \`apex skills status\` 命令（显示所有 skill 状态）
+   7.2. 实现 \`apex skills setup\` 命令（交互式安装缺失依赖）
    7.3. 参考 openclaw 的 \`setupSkills()\` 流程
    7.4. 使用 Question tool 询问用户要安装哪些 skill
 
@@ -260,7 +260,7 @@ Plan:
 | 时机 | 行为 | 说明 |
 |------|------|------|
 | 服务启动 | 检测 + 提示 | 自动检测缺失依赖，输出提示信息，不自动安装 |
-| 命令行 \`friend skills setup\` | 交互式安装 | 使用 Question tool 询问用户要安装哪些 |
+| 命令行 \`apex skills setup\` | 交互式安装 | 使用 Question tool 询问用户要安装哪些 |
 | 前端设置页面 | 手动安装 | 用户点击"安装"按钮触发 |
 | API 调用 | 执行安装 | 前端/CLI 调用 skills.install API |
 

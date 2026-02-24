@@ -1,0 +1,28 @@
+{
+  "type": "message_end",
+  "message": {
+    "role": "assistant",
+    "content": [],
+    "api": "openai-completions",
+    "provider": "github-copilot",
+    "model": "grok-code-fast-1",
+    "usage": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "totalTokens": 0,
+      "cost": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0
+      }
+    },
+    "stopReason": "error",
+    "timestamp": 1771925267482,
+    "errorMessage": "400 bad request: Personal Access Tokens are not supported for this endpoint\n"
+  },
+  "sessionId": "ebba9d2b-dfb1-40d7-b3a7-3118b6091823"
+}

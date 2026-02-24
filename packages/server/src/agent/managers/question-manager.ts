@@ -4,7 +4,7 @@
  * Handles the question tool's pending questions and answers.
  */
 
-import type { PendingQuestion, Question, QuestionAnswer, QuestionnaireResolveValue } from "@friend/shared";
+import type { PendingQuestion, Question, QuestionAnswer, QuestionnaireResolveValue } from "@apex/shared";
 import type { IQuestionManager, QuestionManagerDeps } from "./types.js";
 
 interface PendingQuestionEntry {

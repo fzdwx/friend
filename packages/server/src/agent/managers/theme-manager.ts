@@ -4,9 +4,9 @@
  * Handles theme management and persistence.
  */
 
-import { prisma } from "@friend/db";
-import type { ThemeConfig } from "@friend/shared";
-import { BUILT_IN_THEMES } from "@friend/shared";
+import { prisma } from "@apex/db";
+import type { ThemeConfig } from "@apex/shared";
+import { BUILT_IN_THEMES } from "@apex/shared";
 import type { IThemeManager, ThemeManagerDeps } from "./types.js";
 
 export class ThemeManager implements IThemeManager {

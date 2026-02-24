@@ -1,6 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
-import type { SessionDetail, Message } from "@friend/shared";
+import type { SessionDetail, Message } from "@apex/shared";
 import type { IAgentManager } from "../managers/types.js";
 
 export const GetSessionParams = Type.Object({

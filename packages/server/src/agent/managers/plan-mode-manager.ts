@@ -4,7 +4,7 @@
  * Handles plan mode state management and transitions.
  */
 
-import type { PlanModeState } from "@friend/shared";
+import type { PlanModeState } from "@apex/shared";
 import type { TodoItem, NORMAL_MODE_TOOLS, PLAN_MODE_TOOLS } from "../extensions/plan-mode.js";
 import type { IPlanModeManager, PlanModeManagerDeps, ManagedSession } from "./types.js";
 

@@ -17,7 +17,7 @@ import type {
   SSEEvent,
   ConfigUpdatedEvent,
   SessionCreatedEvent,
-} from "@friend/shared";
+} from "@apex/shared";
 import type { TodoItem } from "../extensions/plan-mode.js";
 
 // ─── Managed Session ──────────────────────────────────────

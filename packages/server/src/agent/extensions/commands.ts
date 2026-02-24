@@ -1,5 +1,5 @@
 /**
- * Custom slash commands for the friend application.
+ * Custom slash commands for the apex application.
  *
  * These commands are registered via the extension system and can be
  * triggered from the input box by typing "/" followed by the command name.

@@ -2,15 +2,15 @@
  * Agent configuration management
  * 
  * Handles loading, resolving, and managing agent configurations.
- * Agents are stored in the database, workspace files in ~/.config/friend/agents/{id}/
+ * Agents are stored in the database, workspace files in ~/.config/apex/agents/{id}/
  */
 
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
-import { prisma } from "@friend/db";
-import type { ThinkingLevel } from "@friend/shared";
-import { DEFAULT_AGENT_ID, DEFAULT_IDENTITY } from "@friend/shared";
+import { prisma } from "@apex/db";
+import type { ThinkingLevel } from "@apex/shared";
+import { DEFAULT_AGENT_ID, DEFAULT_IDENTITY } from "@apex/shared";
 import { APP_CONFIG_DIR } from "./paths.js";
 
 // ─── Types ────────────────────────────────────────────────

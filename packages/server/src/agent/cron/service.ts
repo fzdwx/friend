@@ -5,8 +5,8 @@
  * Inspired by PicoClaw and OpenClaw implementations.
  */
 
-import { prisma } from "@friend/db";
-import type { DbCronJob } from "@friend/shared";
+import { prisma } from "@apex/db";
+import type { DbCronJob } from "@apex/shared";
 import type { CronJob, CronJobCreate, CronJobUpdate, CronJobInfo, CronServiceDeps, CronSchedule, CronPayload, CronJobState } from "./types.js";
 import { computeNextRunAtMs, describeSchedule } from "./schedule.js";
 import { MAX_TIMER_DELAY_MS, MAX_SCHEDULE_ERRORS, JOB_TIMEOUT_MS, getErrorBackoffMs } from "./types.js";

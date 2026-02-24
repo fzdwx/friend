@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { AgentIdentity } from "@friend/shared";
+import type { AgentIdentity } from "@apex/shared";
 
 // All bootstrap files loaded directly into context (like picoclaw's context.go)
 // Order: identity → soul → user preferences → workspace rules → tool notes → memory

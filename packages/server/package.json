@@ -1,5 +1,5 @@
 {
-  "name": "@friend/server",
+  "name": "@apex/server",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,15 +7,15 @@
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
     "typecheck": "tsc --noEmit",
-    "build:binary": "bun build src/index.ts --compile --include='../app/dist/**/*' --outfile=../friend-server",
+    "build:binary": "bun build src/index.ts --compile --include='../app/dist/**/*' --outfile=../apex-server",
     "test": "bun test",
     "test:watch": "bun test --watch",
     "test:coverage": "bun test --coverage"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.3.0",
-    "@friend/db": "workspace:*",
-    "@friend/shared": "workspace:*",
+    "@apex/db": "workspace:*",
+    "@apex/shared": "workspace:*",
     "@mariozechner/pi-agent-core": "^0.54.2",
     "@mariozechner/pi-ai": "^0.54.2",
     "@mariozechner/pi-coding-agent": "0.54.2",

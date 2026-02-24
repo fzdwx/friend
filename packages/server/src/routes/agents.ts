@@ -3,7 +3,7 @@
  */
 
 import { Elysia, t } from "elysia";
-import type { ThinkingLevel, AgentIdentity } from "@friend/shared";
+import type { ThinkingLevel, AgentIdentity } from "@apex/shared";
 import {
   listAgents,
   getAgent,

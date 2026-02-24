@@ -6,11 +6,11 @@
  * ManagedSession instances at the application level.
  */
 
-import { prisma } from "@friend/db";
-import type { SessionInfo, SessionDetail, Message } from "@friend/shared";
+import { prisma } from "@apex/db";
+import type { SessionInfo, SessionDetail, Message } from "@apex/shared";
 import type { AgentSession, SessionStats, SlashCommandInfo } from "@mariozechner/pi-coding-agent";
 import type { ISessionManager, SessionManagerDeps, ManagedSession } from "./types.js";
-import type { PlanModeState, PendingQuestion } from "@friend/shared";
+import type { PlanModeState, PendingQuestion } from "@apex/shared";
 
 export class SessionManager implements ISessionManager {
   private readonly deps: SessionManagerDeps;

@@ -1,7 +1,7 @@
 import { Type } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
-import type { ThemeConfig } from "@friend/shared";
-import { prisma } from "@friend/db";
+import type { ThemeConfig } from "@apex/shared";
+import { prisma } from "@apex/db";
 import { getAllBuiltInThemes } from "./theme-utils";
 import type { IAgentManager } from "../managers/types.js";
 

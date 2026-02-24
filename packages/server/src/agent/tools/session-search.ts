@@ -7,7 +7,7 @@
 
 import { Type } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
-import type { SessionInfo, SessionDetail } from "@friend/shared";
+import type { SessionInfo, SessionDetail } from "@apex/shared";
 
 // ─── Tool Parameters Schema ───────────────────────────────────
 

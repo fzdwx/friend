@@ -15,7 +15,7 @@
 
 import { Type, type Static } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
-import type { Question, QuestionAnswer, QuestionnaireResult } from "@friend/shared";
+import type { Question, QuestionAnswer, QuestionnaireResult } from "@apex/shared";
 
 // ─── Tool Parameters Schema ────────────────────────────────
 

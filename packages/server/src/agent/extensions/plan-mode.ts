@@ -18,10 +18,10 @@ import type { ExtensionAPI, ExtensionContext, ToolCallEvent, AgentEndEvent, Turn
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, TextContent } from "@mariozechner/pi-ai";
 import { Type } from "@sinclair/typebox";
-import type { TodoItem, PlanModeState } from "@friend/shared";
+import type { TodoItem, PlanModeState } from "@apex/shared";
 
 // Re-export for convenience
-export type { TodoItem, PlanModeState } from "@friend/shared";
+export type { TodoItem, PlanModeState } from "@apex/shared";
 
 // ─── Constants ────────────────────────────────────────────────────────────
 

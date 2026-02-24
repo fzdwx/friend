@@ -1,6 +1,6 @@
 import { Elysia, sse } from "elysia";
 import { getAgentManager } from "../agent/manager";
-import { HEARTBEAT_INTERVAL, type GlobalSSEEvent } from "@friend/shared";
+import { HEARTBEAT_INTERVAL, type GlobalSSEEvent } from "@apex/shared";
 
 export const eventRoutes = new Elysia().get("/api/events", async function* () {
   // Yield immediately so Elysia flushes SSE response headers

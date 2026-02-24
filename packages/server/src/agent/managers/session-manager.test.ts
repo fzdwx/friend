@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, mock } from "bun:test";
 import { SessionManager } from "./session-manager.js";
 import type { SessionManagerDeps, ManagedSession } from "./types.js";
-import type { SessionInfo, SessionDetail } from "@friend/shared";
+import type { SessionInfo, SessionDetail } from "@apex/shared";
 
 // ─── Tests ────────────────────────────────────────────────────────
 

@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Friend",
+  "productName": "Apex",
   "version": "0.1.0",
-  "identifier": "com.friend.app",
+  "identifier": "com.apex.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173"
@@ -10,7 +10,7 @@
   "app": {
     "windows": [
       {
-        "title": "Friend",
+        "title": "Apex",
         "width": 1280,
         "height": 800,
         "minWidth": 900,

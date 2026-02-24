@@ -44,7 +44,7 @@ src/
 
 - 不要阻塞响应等待 DB: 使用 fire-and-forget
 - 不要在路由中处理业务逻辑: 委托给 AgentManager
-- 不要使用相对路径数据库: `~/.config/friend/friend.db`
+- 不要使用相对路径数据库: `~/.config/apex/friend.db`
 
 ---
 

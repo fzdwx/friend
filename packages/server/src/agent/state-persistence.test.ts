@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import type { PlanModeState, PendingQuestion, TodoItem, Question } from "@friend/shared";
+import type { PlanModeState, PendingQuestion, TodoItem, Question } from "@apex/shared";
 
 describe("PlanModeState Serialization", () => {
   test("should serialize and deserialize plan mode state", () => {

@@ -5,8 +5,8 @@
  */
 
 import type { ModelRegistry, AuthStorage } from "@mariozechner/pi-coding-agent";
-import type { CustomProviderConfig } from "@friend/shared";
-import { prisma } from "@friend/db";
+import type { CustomProviderConfig } from "@apex/shared";
+import { prisma } from "@apex/db";
 import type { IProviderManager, ProviderManagerDeps } from "./types.js";
 
 export class ProviderManager implements IProviderManager {

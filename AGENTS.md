@@ -1,4 +1,4 @@
-# PROJECT KNOWLEDGE BASE: Friend
+# PROJECT KNOWLEDGE BASE: Apex
 
 **Generated:** 2026-02-15
 **Commit:** 6bf6ac7
@@ -11,7 +11,7 @@
 
 ## OVERVIEW
 
-Friend 是一个 AI 编程助手桌面应用，使用 Tauri + React 构建前端，Bun + Elysia 构建后端，通过 SSE 流式传输与 AI Agent 交互。
+Apex 是一个 AI 编程助手桌面应用，使用 Tauri + React 构建前端，Bun + Elysia 构建后端，通过 SSE 流式传输与 AI Agent 交互。
 
 ---
 
@@ -20,10 +20,10 @@ Friend 是一个 AI 编程助手桌面应用，使用 Tauri + React 构建前端
 ```
 .
 ├── packages/
-│   ├── shared/     # 类型定义 (@friend/shared)
-│   ├── server/     # Elysia API 后端 (@friend/server)
-│   ├── app/        # React + Vite + Tauri 前端 (@friend/app)
-│   └── db/         # Prisma + SQLite (@friend/db)
+│   ├── shared/     # 类型定义 (@apex/shared)
+│   ├── server/     # Elysia API 后端 (@apex/server)
+│   ├── app/        # React + Vite + Tauri 前端 (@apex/app)
+│   └── db/         # Prisma + SQLite (@apex/db)
 ├── justfile        # 任务定义
 └── package.json    # Bun workspaces
 ```
@@ -50,7 +50,7 @@ Friend 是一个 AI 编程助手桌面应用，使用 Tauri + React 构建前端
 
 - **ESM only** (`"type": "module"` in all packages)
 - 本地导入使用 `.js` 扩展名: `import { x } from "./file.js"`
-- Workspace 依赖: `@friend/shared`, `@friend/db`
+- Workspace 依赖: `@apex/shared`, `@apex/db`
 
 ### 命名
 
@@ -66,7 +66,7 @@ import { Elysia } from "elysia";
 import { useEffect } from "react";
 
 // 2. Workspace 包
-import type { SessionInfo } from "@friend/shared";
+import type { SessionInfo } from "@apex/shared";
 
 // 3. 本地路径别名 (@/*)
 import { useSessionStore } from "@/stores/sessionStore";
@@ -87,7 +87,7 @@ interface ApiResponse<T> {
 ## ANTI-PATTERNS
 
 - **禁止使用 ESLint/Prettier**: 项目使用 `oxfmt` + `oxlint` 替代
-- **不要在生产环境使用相对路径数据库**: 已固定到 `~/.config/friend/friend.db`
+- **不要在生产环境使用相对路径数据库**: 已固定到 `~/.config/apex/apex.db`
 - **不要直接使用 `window.__TAURI__`**: 通过 API 客户端与后端通信
 - **不要在组件外调用 hooks**: 遵循 React Rules of Hooks
 
@@ -114,11 +114,11 @@ just db-push      # 推送 schema
 - **无 CI/CD**: 无 `.github/workflows` 目录
 - **Tauri 图标**: `packages/app/src-tauri/icons/` 包含多平台图标
 - **SSE 代理**: Vite dev server 代理 `/api` 到 `:3001`
-- **主题系统**: 15 组内置主题（5 亮色 + 10 暗色），使用 oklch 颜色格式，支持自定义主题导入/导出。注意：`BUILT_IN_THEMES` 运行时数据在 `@friend/shared` 中，而非纯类型
-- **数据库混合存储**: Session 元数据在 SQLite，消息历史在 JSON 文件 (`~/.config/friend/sessions/*.json`)
+- **主题系统**: 15 组内置主题（5 亮色 + 10 暗色），使用 oklch 颜色格式，支持自定义主题导入/导出。注意：`BUILT_IN_THEMES` 运行时数据在 `@apex/shared` 中，而非纯类型
+- **数据库混合存储**: Session 元数据在 SQLite，消息历史在 JSON 文件 (`~/.config/apex/sessions/*.json`)
 - **Tauri Dialog 插件**: 已配置 `dialog:default` 权限，前端通过 `@tauri-apps/plugin-dialog` 选择目录
 - **自定义工具**: `packages/server/src/agent/tools/` 包含工厂函数模式创建 Agent 工具（15 个工具：theme/provider/session/memory/question 相关）
-- **@friend/shared 运行时代码**: 虽然 AGENTS.md 声明纯类型定义，但 `themes.ts` 导出 `BUILT_IN_THEMES` 常量数组（469 行主题数据），被 server 和 app 共享
+- **@apex/shared 运行时代码**: 虽然 AGENTS.md 声明纯类型定义，但 `themes.ts` 导出 `BUILT_IN_THEMES` 常量数组（469 行主题数据），被 server 和 app 共享
 - **Memory 系统**: `packages/server/src/agent/memory/` 实现 Agent 长期记忆，支持 BM25 关键词搜索 + 向量语义搜索，使用 SQLite + sqlite-vec
 
 ---

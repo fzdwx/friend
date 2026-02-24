@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia";
 import { getAgentManager } from "../agent/manager";
-import type { SkillInfo, SkillPaths } from "@friend/shared";
+import type { SkillInfo, SkillPaths } from "@apex/shared";
 
 export const skillRoutes = new Elysia({ prefix: "/api/skills" })
   // List all loaded skills (global + agent)

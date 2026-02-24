@@ -1,5 +1,5 @@
-import type { ThemeConfig, ThemeMode } from "@friend/shared";
-import { BUILT_IN_THEMES } from "@friend/shared";
+import type { ThemeConfig, ThemeMode } from "@apex/shared";
+import { BUILT_IN_THEMES } from "@apex/shared";
 
 export function getAllBuiltInThemes(): ThemeConfig[] {
   return [...BUILT_IN_THEMES];

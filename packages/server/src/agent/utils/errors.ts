@@ -6,15 +6,15 @@
  * - Error factory functions
  * - Error utilities for catching and wrapping
  *
- * Based on shared AppError types from @friend/shared
+ * Based on shared AppError types from @apex/shared
  */
 
-import type { AppError, ErrorCategory, ErrorCode, Result } from "@friend/shared";
-import { ErrorCodes } from "@friend/shared";
+import type { AppError, ErrorCategory, ErrorCode, Result } from "@apex/shared";
+import { ErrorCodes } from "@apex/shared";
 
 // Re-export from shared for convenience
 export type { AppError, ErrorCategory, ErrorCode, Result };
-export { ErrorCodes } from "@friend/shared";
+export { ErrorCodes } from "@apex/shared";
 
 // ─── Custom Error Classes ────────────────────────────────────
 

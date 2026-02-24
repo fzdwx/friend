@@ -19,8 +19,8 @@ export type SkillChangeCallback = (agentId?: string) => void;
  * Watch for skill file changes
  *
  * Supports watching multiple directories:
- * - Global skills: ~/.config/friend/skills
- * - Agent skills: ~/.config/friend/agents/{agentId}/skills
+ * - Global skills: ~/.config/apex/skills
+ * - Agent skills: ~/.config/apex/agents/{agentId}/skills
  *
  * When a directory changes, the callback is invoked with the affected agentId.
  * Global changes invoke callback with undefined (all sessions should reload).
@@ -133,7 +133,7 @@ export class SkillWatcher {
     if (dir === GLOBAL_SKILLS_DIR) {
       return undefined;
     }
-    // Agent skills dir: ~/.config/friend/agents/{agentId}/skills
+    // Agent skills dir: ~/.config/apex/agents/{agentId}/skills
     const match = dir.match(/\/agents\/([^/]+)\/skills$/);
     return match ? match[1] : undefined;
   }
