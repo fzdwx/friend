@@ -1,4 +1,4 @@
-import type { ColorDefinition, ColorSet, Theme, ThemeMode, ThemeConfig } from "@friend/shared";
+import type { ColorDefinition, ColorSet, Theme, ThemeMode, ThemeConfig } from "@apex/shared";
 
 export function oklchToString(color: ColorDefinition): string {
   return `oklch(${color.l} ${color.c} ${color.h})`;

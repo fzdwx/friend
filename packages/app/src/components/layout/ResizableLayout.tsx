@@ -7,7 +7,7 @@ interface ResizableLayoutProps {
   activity: React.ReactNode;
 }
 
-const STORAGE_KEY = "friend-panel-sizes";
+const STORAGE_KEY = "apex-panel-sizes";
 const MIN_SIDEBAR = 180;
 const MIN_ACTIVITY = 240;
 

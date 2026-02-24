@@ -1,6 +1,6 @@
 # APP PACKAGE KNOWLEDGE BASE
 
-**Package:** @friend/app  
+**Package:** @apex/app  
 **Stack:** React 19 + Vite 6 + Tailwind CSS v4 + Tauri v2
 
 ---

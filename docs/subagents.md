@@ -30,7 +30,7 @@ packages/app/src/components/tools/registry/renderers/
 ### Directory Structure
 
 ```
-~/.config/friend/subagents/     # User-level subagents
+~/.config/apex/subagents/     # User-level subagents
   ├── scout.md
   ├── planner.md
   ├── reviewer.md
@@ -281,7 +281,7 @@ Step 3 (✓): worker
 
 ### Trust Levels
 
-**User-level subagents** (`~/.config/friend/subagents/`)
+**User-level subagents** (`~/.config/apex/subagents/`)
 - ✅ Always trusted
 - ✅ User-controlled directory
 - ✅ No confirmation required
@@ -555,7 +555,7 @@ The system tracks for each execution:
 **Problem:** "Unknown agent: 'my-agent'"
 
 **Solutions:**
-1. Check file exists in `~/.config/friend/subagents/my-agent.md`
+1. Check file exists in `~/.config/apex/subagents/my-agent.md`
 2. Verify YAML frontmatter has `name` field
 3. Run `/subagents` to list available agents
 4. Check for typos in agent name
@@ -754,7 +754,7 @@ Changes:
 A: Currently no. Subagents run in isolation and cannot invoke other subagents.
 
 **Q: How do I share agents across projects?**  
-A: Use user-level agents (`~/.config/friend/subagents/`) which are available globally.
+A: Use user-level agents (`~/.config/apex/subagents/`) which are available globally.
 
 **Q: Can I use a different model for specific tasks?**  
 A: Yes! Specify the `model` field in the agent's frontmatter.
@@ -781,5 +781,5 @@ A: Yes! Use the `tools` field in frontmatter to restrict available tools.
 ---
 
 For more information, see:
-- [Friend Documentation](https://github.com/likefriend/friend)
+- [Friend Documentation](https://gitlab.minum.cloud/innovationteam/apex)
 - [pi-mono Subagent Reference](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent/examples/extensions/subagent)

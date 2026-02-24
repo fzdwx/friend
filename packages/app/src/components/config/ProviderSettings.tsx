@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { useConfigStore } from "@/stores/configStore";
-import type { CustomProviderConfig, CustomModelConfig } from "@friend/shared";
+import type { CustomProviderConfig, CustomModelConfig } from "@apex/shared";
 import { Plus, Trash2, ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

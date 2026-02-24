@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
 import { applyThemeToDOM } from "@/lib/theme";
-import type { ThemeConfig } from "@friend/shared";
+import type { ThemeConfig } from "@apex/shared";
 import { cn } from "@/lib/utils";
 
 interface PresetCardProps {

@@ -1,8 +1,8 @@
 {
-  "name": "friend-server",
+  "name": "apex-server",
   "version": "0.1.0",
   "piConfig": {
-    "name": "friend",
-    "configDir": ".friend"
+    "name": "apex",
+    "configDir": ".apex"
   }
 }

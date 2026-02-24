@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronRight, Brain, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { UserMessage, AssistantMessage, ToolResultMessage } from "@friend/shared";
+import type { UserMessage, AssistantMessage, ToolResultMessage } from "@apex/shared";
 import { ThinkingBlock } from "@/components/chat/ThinkingBlock";
 import { ToolBlock } from "@/components/tools/ToolBlock";
 import { useSessionStore } from "@/stores/sessionStore";

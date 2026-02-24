@@ -521,4 +521,4 @@ customTools: [
 3. **Error handling**: Return error messages in the text content if something goes wrong
 4. **Signal handling**: Respect the `signal` parameter for cancellation support
 5. **Progress updates**: Use `onUpdate` to provide progress information if needed
-6. **Database persistence**: Use `@friend/db` prisma client for data persistence
+6. **Database persistence**: Use `@apex/db` prisma client for data persistence

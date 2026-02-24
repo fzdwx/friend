@@ -1,5 +1,5 @@
 import { memo, useState, useCallback } from "react";
-import type { UserMessage as PiUserMessage } from "@friend/shared";
+import type { UserMessage as PiUserMessage } from "@apex/shared";
 import { Copy, Check } from "lucide-react";
 
 interface UserMessageProps {

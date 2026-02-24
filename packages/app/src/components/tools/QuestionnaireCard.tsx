@@ -12,7 +12,7 @@
 import { useState, useCallback } from "react";
 import { HelpCircle, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Question, QuestionAnswer } from "@friend/shared";
+import type { Question, QuestionAnswer } from "@apex/shared";
 import { useTranslation } from "react-i18next";
 
 interface QuestionnaireCardProps {

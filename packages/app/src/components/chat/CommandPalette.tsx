@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Command } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
-import type { SlashCommandInfo } from "@friend/shared";
+import type { SlashCommandInfo } from "@apex/shared";
 
 interface CommandPaletteProps {
   commands: SlashCommandInfo[];

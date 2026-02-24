@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { api } from "@/lib/api";
-import type { SkillInfo, SkillPaths } from "@friend/shared";
+import type { SkillInfo, SkillPaths } from "@apex/shared";
 import {
   RefreshCw,
   FolderOpen,
@@ -83,7 +83,7 @@ export function SkillsContent() {
     const agentGroups = new Map<string, SkillInfo[]>();
 
     for (const skill of agentSkills) {
-      // Extract agentId from path: ~/.config/friend/agents/{agentId}/skills/...
+      // Extract agentId from path: ~/.config/apex/agents/{agentId}/skills/...
       const match = skill.filePath.match(/\/agents\/([^/]+)\/skills\//);
       const agentId = match ? match[1] : "unknown";
 

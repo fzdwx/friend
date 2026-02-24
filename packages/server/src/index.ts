@@ -12,7 +12,7 @@ if (!process.env.PI_PACKAGE_DIR) {
   const cwdPkgPath = join(process.cwd(), "package.json");
   if (!existsSync(cwdPkgPath)) {
     // Create a minimal package.json in a temp directory
-    const tempDir = join(tmpdir(), "friend-runtime");
+    const tempDir = join(tmpdir(), "apex-runtime");
     if (!existsSync(tempDir)) {
       mkdirSync(tempDir, { recursive: true });
     }
@@ -20,7 +20,7 @@ if (!process.env.PI_PACKAGE_DIR) {
     const tempPkgPath = join(tempDir, "package.json");
     if (!existsSync(tempPkgPath)) {
       const minimalPackage = {
-        name: "friend-server",
+        name: "apex-server",
         version: "1.0.0",
         description: "Friend AI Agent Server"
       };

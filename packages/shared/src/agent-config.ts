@@ -35,7 +35,7 @@ export interface AgentConfig {
   /** Whether this is the default agent */
   default?: boolean;
   
-  /** Custom workspace path (defaults to ~/.config/friend/agents/{id}/workspace) */
+  /** Custom workspace path (defaults to ~/.config/apex/agents/{id}/workspace) */
   workspace?: string;
   
   /** Agent-specific identity (overrides defaults) */

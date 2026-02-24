@@ -45,7 +45,7 @@ export const SkillCreateParams = Type.Object({
 
 function getConfigDir(): string {
   const home = homedir();
-  return join(home, ".config", "friend");
+  return join(home, ".config", "apex");
 }
 
 function getGlobalSkillsDir(): string {

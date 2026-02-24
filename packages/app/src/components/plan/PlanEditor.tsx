@@ -11,7 +11,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { GripVertical, Play, X, Check, Clock, ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { TodoItem } from "@friend/shared";
+import type { TodoItem } from "@apex/shared";
 import { useTranslation } from "react-i18next";
 
 interface PlanEditorProps {

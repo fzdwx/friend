@@ -226,7 +226,7 @@ Plan:
    6.1. 在服务启动后检测所有 skill 状态
    6.2. 发现缺失依赖时，在控制台输出提示信息
    6.3. 不自动安装，只提示用户前往设置页面
-   6.4. 示例输出：\`⚠ 3 skills have missing dependencies. Run 'friend skills setup' or visit Settings > Skills.\`
+   6.4. 示例输出：\`⚠ 3 skills have missing dependencies. Run 'apex skills setup' or visit Settings > Skills.\`
 
 7. 【新增】创建 Skill 状态检测命令 packages/server/src/commands/skills-doctor.ts
    7.1. 实现 \`apex skills status\` 命令（显示所有 skill 状态）

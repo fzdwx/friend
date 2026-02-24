@@ -4,7 +4,7 @@
  * Build script for creating a release package
  * 
  * Output: release/
- *   - friend-server  (binary)
+ *   - apex-server  (binary)
  *   - web/           (frontend assets)
  */
 
@@ -27,7 +27,7 @@ console.log(`✅ Frontend: ${APP_DIST}`);
 
 // Step 2: Build binary
 console.log("🚀 Compiling binary...");
-await $`cd ${join(ROOT, "packages/server")} && bun build src/index.ts --compile --outfile=${join(RELEASE_DIR, "friend-server")}`.quiet();
+await $`cd ${join(ROOT, "packages/server")} && bun build src/index.ts --compile --outfile=${join(RELEASE_DIR, "apex-server")}`.quiet();
 console.log("✅ Binary compiled");
 
 // Step 3: Copy frontend to release/web
@@ -38,12 +38,12 @@ cpSync(APP_DIST, webDir, { recursive: true });
 console.log(`✅ Frontend copied to: ${webDir}`);
 
 // Step 4: Print summary
-const binarySize = Math.round(statSync(join(RELEASE_DIR, "friend-server")).size / 1024 / 1024);
+const binarySize = Math.round(statSync(join(RELEASE_DIR, "apex-server")).size / 1024 / 1024);
 
 console.log(`\n✅ Release package ready!
    ${RELEASE_DIR}/
-   ├── friend-server  (${binarySize}MB)
+   ├── apex-server  (${binarySize}MB)
    └── web/           (frontend assets)
    
-   Usage: ./friend-server
+   Usage: ./apex-server
 `);

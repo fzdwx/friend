@@ -1,6 +1,6 @@
 # DATABASE PACKAGE KNOWLEDGE BASE
 
-**Package:** @friend/db
+**Package:** @apex/db
 **Stack:** Prisma + SQLite
 
 ---
@@ -27,7 +27,7 @@ prisma/
 ## CONVENTIONS
 
 **命名**: PascalCase 模型, camelCase 字段, `String?` nullable  
-**数据库路径**: `file:~/.config/friend/friend.db`
+**数据库路径**: `file:~/.config/apex/apex.db`
 
 ---
 

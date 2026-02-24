@@ -1,4 +1,4 @@
-# Friend
+# Apex
 
 一个现代化的 AI 编程助手桌面应用，提供流畅的对话体验和强大的工具调用能力。
 
@@ -74,8 +74,8 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/fzdwx/friend.git
-cd friend
+git clone https://gitlab.minum.cloud/innovationteam/apex.git
+cd apex
 
 # 安装依赖
 bun install
@@ -183,14 +183,14 @@ just build-tauri
 
 ## 🧠 Memory 系统
 
-Friend 实现了完整的 Agent 记忆机制，让 Agent 拥有持久化的上下文和个性。
+Apex 实现了完整的 Agent 记忆机制，让 Agent 拥有持久化的上下文和个性。
 
 ### Agent Workspace 结构
 
 每个 Agent 拥有独立的工作空间：
 
 ```
-~/.config/friend/agents/{agent-name}/
+~/.config/apex/agents/{agent-name}/
 ├── AGENTS.md       # 行为指令
 ├── SOUL.md         # 核心人格定义
 ├── IDENTITY.md     # 身份信息

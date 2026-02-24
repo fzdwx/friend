@@ -16,8 +16,8 @@ import { join, relative } from "node:path";
 const ROOT = join(import.meta.dir, "..");
 const APP_DIST = join(ROOT, "packages/app/dist");
 const SERVER_SRC = join(ROOT, "packages/server/src");
-const TEMP_BINARY = join(ROOT, "friend-server-temp");
-const FINAL_BINARY = join(ROOT, "friend-server");
+const TEMP_BINARY = join(ROOT, "apex-server-temp");
+const FINAL_BINARY = join(ROOT, "apex-server");
 
 const ASSET_MARKER = Buffer.from("FRND_ASSETS");
 
@@ -134,7 +134,7 @@ console.log(`\n✅ Build complete!
    Size: ${finalSize}MB
    Assets: ${files.length} files embedded
    
-   Usage: ./friend-server
+   Usage: ./apex-server
 `);
 
 // Helper for sync write

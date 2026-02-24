@@ -3,7 +3,7 @@
 > **状态**: 草案  
 > **日期**: 2026-02-16  
 > **作者**: Coder  
-> **目标**: 为 friend 设计多 Agent 协作能力
+> **目标**: 为 Apex 设计多 Agent 协作能力
 
 ---
 
@@ -706,7 +706,7 @@ packages/server/src/agent/collaboration/
 ### 11.1 Agent 配置
 
 ```yaml
-# ~/.config/friend/agents/coder/config.yaml
+# ~/.config/apex/agents/coder/config.yaml
 id: coder
 name: Coder
 identity:
@@ -735,7 +735,7 @@ collaboration:
 ### 11.2 团队配置
 
 ```yaml
-# ~/.config/friend/teams/dev-team.yaml
+# ~/.config/apex/teams/dev-team.yaml
 id: dev-team
 name: Development Team
 description: 软件开发团队

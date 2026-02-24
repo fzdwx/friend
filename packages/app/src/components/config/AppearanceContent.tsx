@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Plus, Download, Upload, Trash2, Eye, Edit3, Globe } from "lucide-react";
 import { useConfigStore } from "@/stores/configStore";
 import { applyThemeToDOM, cloneColorSet, generateId, oklchToHex, hexToOklch } from "@/lib/theme";
-import type { ThemeConfig, ColorSet, ColorDefinition } from "@friend/shared";
+import type { ThemeConfig, ColorSet, ColorDefinition } from "@apex/shared";
 import { PresetCard } from "./PresetCard";
 import { ColorPicker } from "./ColorPicker";
 import { cn } from "@/lib/utils";

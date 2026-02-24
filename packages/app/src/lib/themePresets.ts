@@ -1,1 +1,1 @@
-export { BUILT_IN_THEMES } from "@friend/shared";
+export { BUILT_IN_THEMES } from "@apex/shared";

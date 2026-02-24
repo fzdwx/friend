@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { hexToOklch, oklchToHex } from "@/lib/theme";
-import type { ColorDefinition } from "@friend/shared";
+import type { ColorDefinition } from "@apex/shared";
 import { cn } from "@/lib/utils";
 
 interface ColorPickerProps {

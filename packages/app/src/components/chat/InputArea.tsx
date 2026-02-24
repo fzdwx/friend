@@ -6,7 +6,7 @@ import { CommandPalette } from "@/components/chat/CommandPalette";
 import { useSessionStore } from "@/stores/sessionStore";
 import { api } from "@/lib/api";
 import { useTranslation } from "react-i18next";
-import type { SlashCommandInfo } from "@friend/shared";
+import type { SlashCommandInfo } from "@apex/shared";
 
 interface InputAreaProps {
   onSend: (message: string) => void;

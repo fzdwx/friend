@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import type { AppConfig, CustomProviderConfig, ThemeConfig } from "@friend/shared";
-import { BUILT_IN_THEMES } from "@friend/shared";
+import type { AppConfig, CustomProviderConfig, ThemeConfig } from "@apex/shared";
+import { BUILT_IN_THEMES } from "@apex/shared";
 import { applyThemeToDOM } from "@/lib/theme";
 import { api } from "@/lib/api";
 

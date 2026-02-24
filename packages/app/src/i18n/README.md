@@ -1,6 +1,6 @@
 # i18n Internationalization
 
-Friend supports multiple languages through [i18next](https://www.i18next.com/) and [react-i18next](https://react.i18next.com/).
+Apex supports multiple languages through [i18next](https://www.i18next.com/) and [react-i18next](https://react.i18next.com/).
 
 ## Supported Languages
 

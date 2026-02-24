@@ -31,7 +31,7 @@ stores/
 
 ```typescript
 import { create } from "zustand";
-import type { SessionInfo } from "@friend/shared";
+import type { SessionInfo } from "@apex/shared";
 
 interface SessionState {
   sessions: SessionInfo[];

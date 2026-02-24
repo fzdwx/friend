@@ -8,7 +8,7 @@ import { QuestionnaireCard } from "@/components/tools/QuestionnaireCard";
 import { MessageSquarePlus, Zap } from "lucide-react";
 import { api } from "@/lib/api";
 import { useTranslation } from "react-i18next";
-import type { QuestionAnswer } from "@friend/shared";
+import type { QuestionAnswer } from "@apex/shared";
 import { useEffect } from "react";
 import { toast } from "sonner";
 

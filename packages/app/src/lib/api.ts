@@ -5,7 +5,7 @@ import type {
   SkillInfo,
   SkillPaths,
   SlashCommandInfo,
-} from "@friend/shared";
+} from "@apex/shared";
 
 const API_BASE = "/api";
 

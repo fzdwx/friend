@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAgentStore, type AgentInfo } from "@/stores/agentStore";
 import { api } from "@/lib/api";
-import type { ModelInfo } from "@friend/shared";
+import type { ModelInfo } from "@apex/shared";
 import { cn } from "@/lib/utils";
 import {
   Bot,

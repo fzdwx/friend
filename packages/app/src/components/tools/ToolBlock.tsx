@@ -3,7 +3,7 @@ import { Loader2, Check, X, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToolStore } from "@/stores/toolStore";
 import { getToolRenderer } from "./registry/registry.js";
-import type { ToolResultMessage } from "@friend/shared";
+import type { ToolResultMessage } from "@apex/shared";
 
 interface ToolBlockProps {
   toolCallId: string;

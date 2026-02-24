@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { SessionInfo, Message, AssistantMessage, ToolCall, ModelInfo, TodoItem, Question, SlashCommandInfo } from "@friend/shared";
+import type { SessionInfo, Message, AssistantMessage, ToolCall, ModelInfo, TodoItem, Question, SlashCommandInfo } from "@apex/shared";
 import { api } from "@/lib/api.js";
 
 const ACTIVE_SESSION_KEY = "friend_active_session";

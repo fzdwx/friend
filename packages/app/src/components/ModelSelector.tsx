@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { Cpu } from "lucide-react";
 import { useSessionStore } from "@/stores/sessionStore.js";
-import type { ModelInfo } from "@friend/shared";
+import type { ModelInfo } from "@apex/shared";
 import { useTranslation } from "react-i18next";
 
 export function ModelSelector() {

@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next";
 
 type TabType = "activity" | "files";
 
-const STORAGE_KEY = "friend-right-panel-tab";
+const STORAGE_KEY = "apex-right-panel-tab";
 
 function loadTab(): TabType {
   try {

@@ -1,5 +1,5 @@
 import { memo, useState, useCallback } from "react";
-import type { AssistantMessage as PiAssistantMessage } from "@friend/shared";
+import type { AssistantMessage as PiAssistantMessage } from "@apex/shared";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { Copy, Check, AlertCircle } from "lucide-react";
 

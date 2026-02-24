@@ -2,7 +2,7 @@
 
 ## 概述
 
-多 agent 人格系统，agents 存储在数据库，workspace 文件在 `~/.config/friend/agents/{id}/workspace/`。
+多 agent 人格系统，agents 存储在数据库，workspace 文件在 `~/.config/apex/agents/{id}/workspace/`。
 
 ## 数据库结构
 
@@ -32,8 +32,8 @@ model Session {
 ## 目录结构
 
 ```
-~/.config/friend/
-├── friend.db              # SQLite 数据库
+~/.config/apex/
+├── apex.db              # SQLite 数据库
 ├── skills/                # 全局 skills
 └── agents/
     ├── main/
@@ -117,8 +117,8 @@ curl -X POST http://localhost:3001/api/sessions \
 
 ## 已移除
 
-- ❌ `~/.config/friend/config.json`
-- ❌ Project-level `.friend/`
+- ❌ `~/.config/apex/config.json`
+- ❌ Project-level `.apex/`
 - ❌ Binding rules
 - ❌ 自动路径匹配
 

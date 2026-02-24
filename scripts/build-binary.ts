@@ -2,7 +2,7 @@
  * Build script for creating a single-file executable with embedded frontend
  * 
  * Usage: bun run scripts/build-binary.ts
- * Output: ./friend-server (single executable)
+ * Output: ./apex-server (single executable)
  */
 
 import { join, resolve } from "node:path";
@@ -10,7 +10,7 @@ import { writeFileSync } from "node:fs";
 
 const ROOT = resolve(import.meta.dir, "..");
 const SERVER_INDEX = join(ROOT, "packages/server/src/index.ts");
-const OUTPUT = join(ROOT, "friend-server");
+const OUTPUT = join(ROOT, "apex-server");
 
 console.log("🔨 Building single-file executable...\n");
 
@@ -37,11 +37,11 @@ if (!result.success) {
 
 // Step 3: Create package.json for runtime (needed by pi-coding-agent)
 const packageJson = {
-  name: "friend-server",
+  name: "apex-server",
   version: "0.1.0",
   piConfig: {
-    name: "friend",
-    configDir: ".friend",
+    name: "apex",
+    configDir: ".apex",
   },
 };
 
@@ -58,7 +58,7 @@ console.log(`\n✅ Build complete!
    Size: ${sizeMB}MB
    
    Usage: 
-     cp friend-server ~/bin/
+     cp apex-server ~/bin/
      cp package.embedded.json ~/bin/package.json
-     ~/bin/friend-server
+     ~/bin/apex-server
 `);

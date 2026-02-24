@@ -1,7 +1,7 @@
 import { useMemo, useRef, useEffect } from "react";
 import { Activity, Radio } from "lucide-react";
 import { useSessionStore } from "@/stores/sessionStore";
-import type { Message, UserMessage, AssistantMessage, ToolResultMessage } from "@friend/shared";
+import type { Message, UserMessage, AssistantMessage, ToolResultMessage } from "@apex/shared";
 import { TurnGroup, type Turn } from "@/components/activity/TurnGroup";
 import { useTranslation } from "react-i18next";
 

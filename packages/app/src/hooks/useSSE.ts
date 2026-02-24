@@ -3,8 +3,8 @@ import { useSessionStore } from "@/stores/sessionStore";
 import { useToolStore } from "@/stores/toolStore";
 import { useConfigStore } from "@/stores/configStore";
 import { api } from "@/lib/api";
-import type { GlobalSSEEvent, ToolCall, Message } from "@friend/shared";
-import { HEARTBEAT_INTERVAL } from "@friend/shared";
+import type { GlobalSSEEvent, ToolCall, Message } from "@apex/shared";
+import { HEARTBEAT_INTERVAL } from "@apex/shared";
 
 /**
  * Parse SSE text stream into {event, data} pairs.

@@ -3,7 +3,7 @@ import type {
   Message,
   UserMessage as PiUserMessage,
   AssistantMessage as PiAssistantMessage,
-} from "@friend/shared";
+} from "@apex/shared";
 import { UserMessage } from "./UserMessage";
 import { AssistantMessage } from "./AssistantMessage";
 import { useSessionStore } from "@/stores/sessionStore";

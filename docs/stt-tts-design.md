@@ -3,7 +3,7 @@
 > **状态**: 草案  
 > **日期**: 2026-02-16  
 > **作者**: Coder  
-> **目标**: 为 friend agent 框架设计语音输入输出能力
+> **目标**: 为 Apex agent 框架设计语音输入输出能力
 
 ---
 
@@ -11,7 +11,7 @@
 
 ### 1.1 目标
 
-为 friend agent 添加语音交互能力：
+为 Apex agent 添加语音交互能力：
 - **STT (Speech-to-Text)**: 语音转文字，让用户可以用说话与 agent 交互
 - **TTS (Text-to-Speech)**: 文字转语音，让 agent 用声音回应用户
 
@@ -439,7 +439,7 @@ packages/server/src/agent/voice/
 ## 6. 配置示例
 
 ```typescript
-// friend 配置文件
+// apex 配置文件
 {
   "voice": {
     "enabled": true,

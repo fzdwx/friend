@@ -1,4 +1,4 @@
-# Friend Agent 配置示例
+# Apex Agent 配置示例
 
 本文档展示如何配置 agent 的各种功能。
 

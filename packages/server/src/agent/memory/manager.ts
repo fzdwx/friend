@@ -41,7 +41,7 @@ export function getDefaultConfig(workspaceDir: string, agentId: string): MemoryS
     extraPaths: [],
     provider: "auto",
     store: {
-      path: join(workspaceDir, ".friend", "memory", `${agentId}.sqlite`),
+      path: join(workspaceDir, ".apex", "memory", `${agentId}.sqlite`),
     },
     chunking: {
       tokens: DEFAULT_CHUNK_TOKENS,

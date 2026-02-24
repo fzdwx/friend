@@ -1,6 +1,6 @@
 # SHARED PACKAGE KNOWLEDGE BASE
 
-**Package:** @friend/shared  
+**Package:** @apex/shared  
 **Purpose:** 类型定义与 API 契约  
 **Usage:** Frontend + Backend 共享
 
@@ -80,5 +80,5 @@ export type ChatMessage = UserChatMessage | AssistantChatMessage | ToolResultCha
 ## USAGE
 
 ```typescript
-import type { SessionInfo, ChatMessage } from "@friend/shared";
+import type { SessionInfo, ChatMessage } from "@apex/shared";
 ```
