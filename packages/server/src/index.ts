@@ -51,8 +51,8 @@ import { skillRoutes } from "./routes/skills";
 import { agentsRoutes, bindingsRoutes } from "./routes/agents.js";
 import { fileRoutes } from "./routes/files.js";
 import { cronRoutes } from "./routes/cron.js";
-import { existsSync, readdirSync, statSync } from "node:fs";
-import { join, dirname, relative } from "node:path";
+import { readdirSync, statSync } from "node:fs";
+import { dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { embeddedAssets, hasEmbeddedAssets, listEmbeddedAssets } from "./generated-assets.js";
 

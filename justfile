@@ -8,8 +8,29 @@ default:
 
 # ── 开发 ──────────────────────────────────────────
 
+# 首次运行前置准备 (依赖安装 + Prisma + generated-assets stub)
+setup:
+    #!/usr/bin/env bash
+    if [ ! -d "node_modules" ]; then
+        echo "[setup] Installing dependencies..."
+        bun install
+    fi
+    if ! bun -e "require('@prisma/client')" 2>/dev/null; then
+        echo "[setup] Generating Prisma Client..."
+        (cd packages/db && bunx prisma generate)
+    fi
+    DB_PATH="${XDG_CONFIG_HOME:-$HOME/.config}/friend/friend.db"
+    if [ ! -f "$DB_PATH" ]; then
+        echo "[setup] Creating database..."
+        DATABASE_URL="file:$DB_PATH" sh -c 'cd packages/db && bunx prisma db push'
+    fi
+    if [ ! -f "packages/server/src/generated-assets.ts" ]; then
+        echo "[setup] Creating generated-assets stub..."
+        bun run scripts/generate-assets-stub.ts
+    fi
+
 # 同时启动 server + frontend dev
-dev:
+dev: setup
     just dev-server &
     just dev-app
 
