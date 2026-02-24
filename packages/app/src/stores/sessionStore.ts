@@ -41,6 +41,9 @@ interface SessionState {
   // Streaming states for all sessions (for sidebar indicator)
   sessionStreamingStates: Record<string, boolean>;
 
+  // Compaction states for all sessions (for sidebar indicator)
+  sessionCompactingStates: Record<string, boolean>;
+
   // Pending messages (steer/followUp queues)
   steeringMessages: string[];
   followUpMessages: string[];
@@ -99,6 +102,9 @@ interface SessionState {
   // Streaming states for all sessions
   setSessionStreaming: (sessionId: string, streaming: boolean) => void;
 
+  // Compaction states for all sessions
+  setSessionCompacting: (sessionId: string, compacting: boolean) => void;
+
   // Stats actions
   setSessionStats: (stats: SessionStats | null) => void;
   setContextUsage: (usage: ContextUsage | null) => void;
@@ -140,6 +146,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   currentModel: null,
   sseConnected: false,
   sessionStreamingStates: {},
+  sessionCompactingStates: {},
   steeringMessages: [],
   followUpMessages: [],
   sessionStats: null,
@@ -229,6 +236,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       planModeExecuting: false,
       planModeTodos: [],
       planModeProgress: null,
+      // Update isCompacting to the new session's state
+      isCompacting: id ? get().sessionCompactingStates[id] ?? false : false,
     });
     if (id) {
       const session = get().sessions.find((s) => s.id === id);
@@ -349,6 +358,14 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     });
   },
   setCompacting: (compacting) => set({ isCompacting: compacting }),
+
+  // Compaction states for all sessions
+  setSessionCompacting: (sessionId, compacting) =>
+    set((s) => ({
+      sessionCompactingStates: { ...s.sessionCompactingStates, [sessionId]: compacting },
+      // Also update global isCompacting if this is the active session
+      ...(s.activeSessionId === sessionId && { isCompacting: compacting }),
+    })),
 
   // Plan mode actions
   setPlanModeState: (enabled, executing, todos, modifying = false) =>

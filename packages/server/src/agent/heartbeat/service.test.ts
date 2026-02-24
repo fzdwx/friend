@@ -263,7 +263,6 @@ describe("HeartbeatService", () => {
       id: "test-agent",
       name: "Test Agent",
       model: "test-model",
-      systemPrompt: "test-prompt",
       heartbeat: { every: "30m" },
     };
 

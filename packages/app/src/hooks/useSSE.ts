@@ -44,6 +44,7 @@ export function useGlobalSSE() {
   const setFollowUpMessages = useSessionStore((s) => s.setFollowUpMessages);
   const setCompacting = useSessionStore((s) => s.setCompacting);
   const setSessionStreaming = useSessionStore((s) => s.setSessionStreaming);
+  const setSessionCompacting = useSessionStore((s) => s.setSessionCompacting);
 
   const { addExecution, updateExecution, completeExecution, clearExecutions } = useToolStore();
 
@@ -214,12 +215,16 @@ export function useGlobalSSE() {
 
           case "auto_compaction_start":
             console.log("[SSE] Auto compaction started:", event.reason);
-            setCompacting(true);
+            if (event.sessionId) {
+              setSessionCompacting(event.sessionId, true);
+            }
             break;
 
           case "auto_compaction_end":
             console.log("[SSE] Auto compaction ended");
-            setCompacting(false);
+            if (event.sessionId) {
+              setSessionCompacting(event.sessionId, false);
+            }
             break;
 
           // Plan mode events - only process if matches current session

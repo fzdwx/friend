@@ -135,15 +135,15 @@ function SessionItem({
             )}
           </div>
         )}
-        <div className="flex items-center gap-1.5 mt-0.5">
+        <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
           {session.agentId && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground/70">
-              <Bot className="w-3 h-3 flex-shrink-0" />
+            <div className="flex items-center gap-1 text-xs text-muted-foreground/70 flex-shrink-0">
+              <Bot className="w-3 h-3" />
               <span className="truncate max-w-[80px]">{session.agentId}</span>
             </div>
           )}
           {session.workingPath && !isEditing && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground/70 flex-1 min-w-0">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground/70 min-w-0 flex-shrink">
               <Folder className="w-3 h-3 flex-shrink-0" />
               <span className="truncate">{session.workingPath}</span>
             </div>

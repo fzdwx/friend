@@ -1528,12 +1528,12 @@ Your output must be:
       return;
     }
 
-    // Use SDK's compact() API with custom instructions
+    // Emit auto_compaction_start event for frontend (via broadcast)
+    this.broadcast(managed, { type: "auto_compaction_start", reason: "threshold" });
+
     console.log(`[ContextCompression] Triggering compaction for session ${managed.id}`);
     
     try {
-      // SDK's compact() handles summarization automatically
-      // It will also emit auto_compaction_start and auto_compaction_end events
       const customInstructions = `
 请重点保留：
 1. 当前任务/讨论的核心主题
@@ -1548,11 +1548,28 @@ Your output must be:
 - 已被取代的旧方案讨论
 `;
       
-      await managed.session.compact(customInstructions);
+      const result = await managed.session.compact(customInstructions);
+      
+      // Emit auto_compaction_end event for frontend
+      this.broadcast(managed, { 
+        type: "auto_compaction_end", 
+        result, 
+        aborted: false, 
+        willRetry: false 
+      });
       
       console.log(`[ContextCompression] Compaction completed for session ${managed.id}`);
     } catch (error) {
       console.error(`[ContextCompression] Failed:`, error);
+      
+      // Emit auto_compaction_end event with error
+      this.broadcast(managed, { 
+        type: "auto_compaction_end", 
+        result: undefined, 
+        aborted: false, 
+        willRetry: false,
+        errorMessage: String(error),
+      });
     }
   }
 
@@ -1769,7 +1786,22 @@ Your output must be:
   async compact(id: string): Promise<void> {
     const managed = this.managedSessions.get(id);
     if (!managed) throw new Error(`Session ${id} not found`);
-    await managed.session.compact();
+    
+    // Emit auto_compaction_start event for frontend
+    // Note: Using "threshold" as reason since SDK doesn't support "manual" yet
+    this.broadcast(managed, { type: "auto_compaction_start", reason: "threshold" });
+    
+    try {
+      await managed.session.compact();
+    } finally {
+      // Emit auto_compaction_end event for frontend
+      this.broadcast(managed, { 
+        type: "auto_compaction_end", 
+        result: undefined, 
+        aborted: false, 
+        willRetry: false 
+      });
+    }
   }
 
   /**
