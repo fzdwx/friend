@@ -274,4 +274,57 @@ describe("HeartbeatService", () => {
     expect(result.status).toBe("executed");
     expect(mockDeps.executeAgentTask).toHaveBeenCalled();
   });
+
+  test("skips heartbeat for newly created agent", async () => {
+    const mockAgent: AgentConfig = {
+      id: "new-agent",
+      name: "New Agent",
+      model: "test-model",
+      heartbeat: { every: "30m" },
+    };
+
+    // Agent created 2 minutes ago (below the 10-minute threshold)
+    const createdAt = new Date(Date.now() - 2 * 60 * 1000);
+
+    mockDeps.getAgents = mock(() => Promise.resolve([mockAgent]));
+    mockDeps.getAgentCreatedAt = mock(() => Promise.resolve(createdAt));
+    mockDeps.executeAgentTask = mock(() => Promise.resolve("HEARTBEAT_OK"));
+
+    // Force run checkAllAgents directly
+    service.start();
+
+    // Wait for the initial 5s delay to pass
+    await new Promise(resolve => setTimeout(resolve, 5100));
+
+    // Should not have executed the task
+    expect(mockDeps.executeAgentTask).not.toHaveBeenCalled();
+
+    service.stop();
+  }, 10000); // 10 second timeout
+
+  test("executes heartbeat for agent older than threshold", async () => {
+    const mockAgent: AgentConfig = {
+      id: "old-agent",
+      name: "Old Agent",
+      model: "test-model",
+      heartbeat: { every: "30m" },
+    };
+
+    // Agent created 15 minutes ago (above the 10-minute threshold)
+    const createdAt = new Date(Date.now() - 15 * 60 * 1000);
+
+    mockDeps.getAgents = mock(() => Promise.resolve([mockAgent]));
+    mockDeps.getAgentCreatedAt = mock(() => Promise.resolve(createdAt));
+    mockDeps.executeAgentTask = mock(() => Promise.resolve("HEARTBEAT_OK"));
+
+    service.start();
+
+    // Wait for the initial 5s delay to pass
+    await new Promise(resolve => setTimeout(resolve, 5100));
+
+    // Should have executed the task
+    expect(mockDeps.executeAgentTask).toHaveBeenCalled();
+
+    service.stop();
+  }, 10000); // 10 second timeout
 });

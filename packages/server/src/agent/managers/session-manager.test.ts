@@ -15,7 +15,12 @@ describe("SessionManager", () => {
     
     mockDeps = {
       getManagedSessions: mock(() => mockSessions),
-      deleteManagedSession: mock(() => {}),
+      deleteManagedSession: mock(() => true),
+      setManagedSession: mock(() => {}),
+      createAgentSessionWithSkills: mock(() => Promise.resolve({ session: {} as any, resourceLoader: {} as any })),
+      setupEventListeners: mock(() => {}),
+      broadcastGlobal: mock(() => {}),
+      modelRegistry: {} as any,
     };
 
     manager = new SessionManager(mockDeps);
@@ -247,12 +252,31 @@ describe("SessionManager", () => {
 
 // ─── Helper Functions ────────────────────────────────────────
 
-function createMockManagedSession(overrides?: Partial<ManagedSession>): ManagedSession {
-  const messages = overrides?.messages || [];
-  
+interface MockCommand {
+  name: string;
+  description: string;
+}
+
+interface MockMessage {
+  role: string;
+  content: string;
+}
+
+// Extended options for test mocking (includes properties that go on session, not ManagedSession)
+interface MockSessionOptions extends Partial<ManagedSession> {
+  messages?: MockMessage[];
+  model?: unknown;
+  commands?: MockCommand[];
+}
+
+function createMockManagedSession(overrides?: MockSessionOptions): ManagedSession {
+  const messages: MockMessage[] = overrides?.messages || [];
+  const commands: MockCommand[] = overrides?.commands || [];
+  const model = overrides?.model;
+
   const mockSession = {
     messages,
-    model: overrides?.model || null,
+    model: model || null,
     isStreaming: false,
     sessionManager: {
       getSessionFile: mock(() => null),
@@ -263,23 +287,38 @@ function createMockManagedSession(overrides?: Partial<ManagedSession>): ManagedS
       tokenCount: 0,
     })),
     prompt: mock(() => Promise.resolve()),
-    extensionRunner: overrides?.commands ? {
-      getRegisteredCommands: mock(() => overrides.commands),
+    extensionRunner: commands.length > 0 ? {
+      getRegisteredCommands: mock(() => commands),
     } : null,
   };
 
-  return {
-    id: overrides?.id || "test-session",
-    name: overrides?.name || "Test Session",
-    agentId: overrides?.agentId || "test-agent",
-    session: mockSession as any,
-    resourceLoader: {} as any,
-    createdAt: overrides?.createdAt || new Date().toISOString(),
-    updatedAt: overrides?.updatedAt || new Date().toISOString(),
+  // Extract only ManagedSession properties from overrides
+  const managedSessionOverrides: Partial<ManagedSession> = {
+    id: overrides?.id,
+    name: overrides?.name,
+    agentId: overrides?.agentId,
+    createdAt: overrides?.createdAt,
+    updatedAt: overrides?.updatedAt,
     workingPath: overrides?.workingPath,
-    userMessageCount: overrides?.userMessageCount || 0,
+    userMessageCount: overrides?.userMessageCount,
     autoRenamed: overrides?.autoRenamed,
+    memoryFlushPending: overrides?.memoryFlushPending,
+    planModeState: overrides?.planModeState,
+    needContextRefresh: overrides?.needContextRefresh,
     modifiedFiles: overrides?.modifiedFiles,
-    ...overrides,
+  };
+
+  return {
+    id: managedSessionOverrides.id || "test-session",
+    name: managedSessionOverrides.name || "Test Session",
+    agentId: managedSessionOverrides.agentId || "test-agent",
+    session: mockSession as unknown as ManagedSession["session"],
+    resourceLoader: {} as ManagedSession["resourceLoader"],
+    createdAt: managedSessionOverrides.createdAt || new Date().toISOString(),
+    updatedAt: managedSessionOverrides.updatedAt || new Date().toISOString(),
+    workingPath: managedSessionOverrides.workingPath,
+    userMessageCount: managedSessionOverrides.userMessageCount || 0,
+    autoRenamed: managedSessionOverrides.autoRenamed,
+    modifiedFiles: managedSessionOverrides.modifiedFiles,
   };
 }

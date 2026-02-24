@@ -87,9 +87,10 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
         result.push({ msg: m, turnIndex });
       } else if (m.role === "assistant") {
         const content = m.content;
-        if (!content || content.length === 0) continue;
+        const isError = m.stopReason === "error";
+        if (!isError && (!content || content.length === 0)) continue;
         const hasText = content.some((block) => block.type === "text" && block.text.trim() !== "");
-        if (hasText && turnIndex >= 0) {
+        if ((hasText || isError) && turnIndex >= 0) {
           result.push({ msg: m, turnIndex });
         }
       }

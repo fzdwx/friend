@@ -1,7 +1,7 @@
 import { memo, useState, useCallback } from "react";
 import type { AssistantMessage as PiAssistantMessage } from "@friend/shared";
 import { MarkdownRenderer } from "./MarkdownRenderer";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, AlertCircle } from "lucide-react";
 
 interface AssistantMessageProps {
   message: PiAssistantMessage;
@@ -49,7 +49,34 @@ export const AssistantMessage = memo(function AssistantMessage({
   }, [fullText]);
 
   // Early return after all hooks are called
-  if (textBlocks.length === 0) return null;
+  if (textBlocks.length === 0 && message.stopReason !== "error") return null;
+
+  const isError = message.stopReason === "error";
+
+  if (isError) {
+    return (
+      <div className="flex justify-start">
+        <div className="max-w-[80%] rounded-2xl rounded-tl-sm border border-red-500/30 bg-red-500/5 px-4 py-2.5">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+            <div className="min-w-0">
+              <div className="text-sm text-red-500 font-medium">
+                {message.provider}/{message.model}
+              </div>
+              <div className="text-sm text-red-400/80 mt-1 break-words">
+                {message.errorMessage || "Unknown error"}
+              </div>
+            </div>
+          </div>
+          {message.timestamp && (
+            <div className="text-[10px] text-muted-foreground/60 mt-1.5 text-right">
+              {formatTime(message.timestamp)}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-start group">

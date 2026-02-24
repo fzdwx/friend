@@ -20,6 +20,7 @@ const DEFAULT_INTERVAL_MS = 30 * 60 * 1000;  // 30 minutes default
 const CHECK_INTERVAL_MS = 60 * 1000;  // Check every 1 minute
 const HEARTBEAT_TOKEN = "HEARTBEAT_OK";
 const HEARTBEAT_OK_THRESHOLD = 300;  // chars — below this, treat as "nothing happened"
+const AGENT_AGE_THRESHOLD_MS = 10 * 60 * 1000;  // Skip heartbeat if agent created < 10 minutes ago
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -55,6 +56,8 @@ export interface HeartbeatServiceDeps {
   createSession?: (agentId: string, name?: string) => Promise<string>;
   broadcastEvent?: (event: { type: string; agentId: string; status: string; message?: string }) => void;
   getCronJobs?: (agentId: string) => Promise<CronHealthInfo[]>;
+  /** Get agent creation timestamp */
+  getAgentCreatedAt?: (agentId: string) => Promise<Date | null>;
 }
 
 // ─── HeartbeatService ────────────────────────────────────────
@@ -118,6 +121,24 @@ export class HeartbeatService {
 
       for (const agent of agents) {
         const state = this.getOrCreateState(agent);
+
+        // Check if agent was recently created (skip heartbeat for new agents)
+        if (this.deps.getAgentCreatedAt) {
+          try {
+            const createdAt = await this.deps.getAgentCreatedAt(agent.id);
+            if (createdAt) {
+              const ageMs = now - createdAt.getTime();
+              if (ageMs < AGENT_AGE_THRESHOLD_MS) {
+                const ageMin = Math.round(ageMs / 60000);
+                logger.debug(`[${agent.id}] Skipping heartbeat for newly created agent (age: ${ageMin}min)`);
+                continue;
+              }
+            }
+          } catch (err: unknown) {
+            const errorMsg = err instanceof Error ? err.message : String(err);
+            logger.warn(`[${agent.id}] Failed to check agent creation time: ${errorMsg}`);
+          }
+        }
 
         // Check if it's time to run for this agent
         if (state.lastRunAtMs !== null) {

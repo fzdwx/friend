@@ -139,7 +139,7 @@ export class AgentManager implements IAgentManager {
   private questionManager: QuestionManager;
 
   constructor() {
-    this.authStorage = new AuthStorage();
+    this.authStorage = AuthStorage.create();
     this.modelRegistry = new ModelRegistry(this.authStorage);
 
     // Initialize sub-managers with dependency injection
@@ -416,22 +416,8 @@ export class AgentManager implements IAgentManager {
             const dbSessionId = this.resolveDbSessionId(sdkSessionId);
             const managed = dbSessionId ? this.managedSessions.get(dbSessionId) : null;
 
-            // Check if context already injected
-            const entries = ctx.sessionManager.getEntries();
-            const contextEntries = entries.filter(
-              (e) =>
-                e.type === "message" &&
-                e.message.role === "user" &&
-                (e.message as any).customType === "friend_context"
-            );
-
             // Determine if we need to inject/refresh context
             const needsRefresh = managed?.needContextRefresh;
-            const hasNoContext = contextEntries.length === 0;
-
-            if (!hasNoContext && !needsRefresh) {
-              return; // Already injected and no refresh requested
-            }
 
             // Clear refresh flag
             if (managed?.needContextRefresh) {
@@ -472,15 +458,7 @@ export class AgentManager implements IAgentManager {
               : "";
 
             return {
-              systemPrompt:`
-              You are friend agent.
-              `,
-              message: {
-                role: "developer",
-                customType: "friend_context",
-                content: systemPrompt + refreshNote,
-                display: false,
-              } ,
+              systemPrompt: systemPrompt + refreshNote,
             };
           });
         },
@@ -847,6 +825,13 @@ export class AgentManager implements IAgentManager {
           lastStatus: j.lastStatus,
           lastRunAt: j.lastRunAt?.toLocaleString(),
         }));
+      },
+      getAgentCreatedAt: async (agentId: string) => {
+        const agent = await prisma.agent.findUnique({
+          where: { id: agentId },
+          select: { createdAt: true },
+        });
+        return agent?.createdAt ?? null;
       },
     };
     this.heartbeatService = new HeartbeatService(heartbeatDeps);
