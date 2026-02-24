@@ -34,9 +34,9 @@ import type {
   TextContent,
   ThemeConfig,
   ThinkingLevel,
-} from "@friend/shared";
-import {DEFAULT_AGENT_ID} from "@friend/shared";
-import {prisma} from "@friend/db";
+} from "@apex/shared";
+import {DEFAULT_AGENT_ID} from "@apex/shared";
+import {prisma} from "@apex/db";
 import {stat, unlink} from "node:fs/promises";
 import type {IAgentManager} from "./tools";
 import {
