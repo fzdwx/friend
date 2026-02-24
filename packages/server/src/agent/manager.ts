@@ -34,9 +34,9 @@ import type {
   TextContent,
   ThemeConfig,
   ThinkingLevel,
-} from "@apex/shared";
-import {DEFAULT_AGENT_ID} from "@apex/shared";
-import {prisma} from "@apex/db";
+} from "@friend/shared";
+import {DEFAULT_AGENT_ID} from "@friend/shared";
+import {prisma} from "@friend/db";
 import {stat, unlink} from "node:fs/promises";
 import type {IAgentManager} from "./tools";
 import {
@@ -60,6 +60,7 @@ import {
   createSkillListTool,
   createSkillUpdateTool,
   createUpdateProviderTool,
+  notifyTool,
 } from "./tools";
 import {HeartbeatService, type HeartbeatServiceDeps} from "./heartbeat/index.js";
 import {type CronJobInfo, type CronSchedule, CronService, type CronServiceDeps} from "./cron/index.js";
@@ -369,6 +370,8 @@ export class AgentManager implements IAgentManager {
       createSkillListTool(this, agentId),
       // Agent tool for creating new agents
       createCreateAgentTool(this),
+      // Notify tool for sending desktop notifications
+      notifyTool,
     ];
 
     // Reload files fresh each turn (ensures latest content)
@@ -416,8 +419,22 @@ export class AgentManager implements IAgentManager {
             const dbSessionId = this.resolveDbSessionId(sdkSessionId);
             const managed = dbSessionId ? this.managedSessions.get(dbSessionId) : null;
 
+            // Check if context already injected
+            const entries = ctx.sessionManager.getEntries();
+            const contextEntries = entries.filter(
+              (e) =>
+                e.type === "message" &&
+                e.message.role === "user" &&
+                (e.message as any).customType === "friend_context"
+            );
+
             // Determine if we need to inject/refresh context
             const needsRefresh = managed?.needContextRefresh;
+            const hasNoContext = contextEntries.length === 0;
+
+            if (!hasNoContext && !needsRefresh) {
+              return; // Already injected and no refresh requested
+            }
 
             // Clear refresh flag
             if (managed?.needContextRefresh) {
@@ -458,7 +475,15 @@ export class AgentManager implements IAgentManager {
               : "";
 
             return {
-              systemPrompt: systemPrompt + refreshNote,
+              systemPrompt:`
+              You are friend agent.
+              `,
+              message: {
+                role: "developer",
+                customType: "friend_context",
+                content: systemPrompt + refreshNote,
+                display: false,
+              } ,
             };
           });
         },
@@ -825,13 +850,6 @@ export class AgentManager implements IAgentManager {
           lastStatus: j.lastStatus,
           lastRunAt: j.lastRunAt?.toLocaleString(),
         }));
-      },
-      getAgentCreatedAt: async (agentId: string) => {
-        const agent = await prisma.agent.findUnique({
-          where: { id: agentId },
-          select: { createdAt: true },
-        });
-        return agent?.createdAt ?? null;
       },
     };
     this.heartbeatService = new HeartbeatService(heartbeatDeps);
