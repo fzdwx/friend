@@ -14,3 +14,4 @@ packages/db/prisma/dev.db-journal
 # Generated binary
 friend-server
 packages/server/src/generated-assets.ts
+packages/db/src/generated/

@@ -15,14 +15,14 @@ setup:
         echo "[setup] Installing dependencies..."
         bun install
     fi
-    if ! bun -e "require('@prisma/client')" 2>/dev/null; then
+    if [ ! -d "packages/db/src/generated/prisma" ]; then
         echo "[setup] Generating Prisma Client..."
-        (cd packages/db && bunx prisma generate)
+        (cd packages/db && DATABASE_URL="file:dummy" bunx prisma generate)
     fi
     DB_PATH="${XDG_CONFIG_HOME:-$HOME/.config}/friend/friend.db"
     if [ ! -f "$DB_PATH" ]; then
         echo "[setup] Creating database..."
-        DATABASE_URL="file:$DB_PATH" sh -c 'cd packages/db && bunx prisma db push'
+        (cd packages/db && DATABASE_URL="file:$DB_PATH" bunx prisma db push)
     fi
     if [ ! -f "packages/server/src/generated-assets.ts" ]; then
         echo "[setup] Creating generated-assets stub..."
@@ -40,7 +40,7 @@ dev-server:
 
 # 启动 Vite 前端 (port 5173)
 dev-app:
-    cd packages/app && bunx vite
+    cd packages/app && bunx vite --host
 
 # 启动 Tauri 桌面应用 (需先启动 dev-server)
 dev-tauri:
